@@ -1,0 +1,65 @@
+name: AIRA PR #2 15-minute monitor
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: aira-pr2-monitor
+  cancel-in-progress: true
+
+jobs:
+  summarize-handoff:
+    if: >-
+      ${{ github.event_name != 'issue_comment' ||
+          (github.event.issue.number == 2 &&
+           github.event.issue.pull_request &&
+           startsWith(github.event.comment.body, '## Codex → ChatGPT:')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarize latest Codex handoff
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = 2;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+              per_page: 100
+            });
+
+            const codex = comments.filter(c =>
+              c.body?.startsWith('## Codex → ChatGPT:')
+            );
+            const chatgpt = comments.filter(c =>
+              c.body?.startsWith('## ChatGPT → Codex:')
+            );
+
+            const latestCodex = codex.at(-1);
+            const latestInstruction = chatgpt.at(-1);
+            const link = c => c
+              ? `[#${c.id}](${c.html_url}) — ${c.created_at}`
+              : 'None found';
+
+            await core.summary
+              .addHeading('AIRA PR #2 handoff monitor')
+              .addTable([
+                [{data: 'Item', header: true}, {data: 'Latest', header: true}],
+                ['Codex report', link(latestCodex)],
+                ['ChatGPT instruction', link(latestInstruction)],
+                ['Codex reports found', String(codex.length)]
+              ])
+              .addQuote('Monitoring only: this workflow does not execute or wake Codex, invoke ChatGPT, post instructions, modify source, or merge pull requests.')
+              .write();
+
+            core.info(`Latest Codex report: ${latestCodex?.html_url ?? 'none'}`);
+            core.info(`Latest ChatGPT instruction: ${latestInstruction?.html_url ?? 'none'}`);
