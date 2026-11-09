@@ -107,3 +107,13 @@ Never collapse these labels into a generic "done" or "saved" status.
 - R1 and R2 deterministic defect reproductions passed; R4 ran 20,000 iterations and reproduced 9,700 shutdown cases with Pinned session state despite all leases Free.
 
 This does not validate the absent Claude 2 repair or any Apple DriverKit/USB/DMA/HAL behavior. The report records exact source hashes, toolchain, commands, outputs and limitations.
+
+
+## v3.4.1 R1/R2 isolated candidate — conversation archive only
+
+A local patchset was assembled from the original v3.4 SHA recorded above:
+- `DEMORA_v3_4_1_R1_R2_OFFLINE_CANDIDATE_PATCHSET.zip`, SHA-256 `d90c88c9748cdcb4bb90e38ba5430e4938c356f1f854cf2c274715aef7b972e1`.
+- Patch SHA-256 `26f46765525ba7a06237abbe8c0ad4f6d62195e8fd273f51fc3d89ca7b9d2e6b`.
+- Report: [V34_1_R1_R2_OFFLINE_CANDIDATE_REPORT.md](V34_1_R1_R2_OFFLINE_CANDIDATE_REPORT.md).
+
+Candidate includes an R1 finish deferral fix and a host-only R2 ingress model (Pending-vs-Empty queue result, serial-drain clear/recheck, no mailbox fallback, N-sized queue, bounded sequence reorder). Applied to a disposable copy of the exact original archive, `make check` passed 94/514 and Python 61; ASan/UBSan passed; R1/R4 stress checks passed. This is **CONVERSATION_ARCHIVE**, not a GitHub source commit. The native scheduler adapter, TSan, ARM64 macOS and Apple DriverKit contracts remain unverified. Do not promote or wire into native code.
