@@ -20,7 +20,10 @@
 - Do not delete, move or rename originals during discovery. Hash each source and create a manifest first.
 - Keep raw/private capture bytes out of public-safe GitHub; commit a metadata/hash index only.
 
-### C — Continue the G1 synthetic layout fixture
+### C — Independently review and harden the R1/R2 candidate
+Review the exact local patchset hash in ARTIFACT_REGISTER.md. Check the callback-owned finish deferral, queue Pending-vs-Empty behavior, asynchronous serial scheduler contract, coalesced wake recheck, queue capacity invariant, and sequence reorder window. Add adversarial duplicate/stale-generation/slot-contention/shutdown tests. Do not commit or wire it into native code until the scheduler API is qualified and TSan/ARM64 checks are complete.
+
+### D — Continue the G1 synthetic layout fixture
 The G1 task in PR #2 comment 6717868274 remains an offline-only assignment unless a verified completion packet is found. First inspect the repository and local workspaces for an existing implementation; do not duplicate it. The fixture must distinguish requested-stride and packed-offset synthetic layouts and must not be presented as proof of DriverKit's real memory contract.
 
 ### D — Native compile-only preparation
