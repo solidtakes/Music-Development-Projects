@@ -95,3 +95,15 @@ Never collapse these labels into a generic "done" or "saved" status.
 6. Generate SHA-256 manifests and compare against handoff hashes.
 7. Commit public-safe source/docs to a dedicated branch. Keep raw captures, proprietary binaries and private data outside Git; commit only a metadata/hash index.
 8. Update this register only after each artifact is actually fetched or verified.
+
+
+## Independent offline verification added November 9
+
+[OFFLINE_RECOVERY_VERIFICATION_2026-11-09.md](OFFLINE_RECOVERY_VERIFICATION_2026-11-09.md) records fresh Linux x86_64 reproduction from the exact recovered archive hashes:
+- v3.3 `make check`: 89 tests / 450 checks, 0 failures; Python 61 passed; 154,500-line parity and engine logs passed.
+- v3.3 ASan/UBSan: 89 / 450 passed. TSan did not finish within a 120-second execution limit; no TSan result is claimed.
+- Original v3.4 core `make check`: 94 tests / 511 checks, 0 failures; Python 61 passed; parity and logs passed.
+- Five standalone Stage 4/5 programs compiled and passed their assertions.
+- R1 and R2 deterministic defect reproductions passed; R4 ran 20,000 iterations and reproduced 9,700 shutdown cases with Pinned session state despite all leases Free.
+
+This does not validate the absent Claude 2 repair or any Apple DriverKit/USB/DMA/HAL behavior. The report records exact source hashes, toolchain, commands, outputs and limitations.
