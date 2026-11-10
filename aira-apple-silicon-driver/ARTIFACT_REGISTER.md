@@ -267,3 +267,30 @@ The prototype archive remains:
 - Entries include all seven prototype components confirmed in the prior recovery note.
 
 No archive extraction, test, build, script, technical research, file movement or modification was performed. Hashes are as reported by the owner's Terminal; not independently recomputed in this chat.
+
+
+## Claude 3 archive report contents recovered — November 10, 2026
+
+The owner supplied the complete output of reading `Pasted text(20261109-214223).txt` from the Claude 3 review ZIP. This is the detailed **“DEMORA v3.4 Stage 5: Independent Review (Claude 1)”** report embedded in Claude 3's package. It is a review of the **original v3.4 Stage 5**, not a review of a repaired v3.4.1 source.
+
+### Findings recorded in the recovered report
+- R1: callback-owned lease at shutdown can leave the session permanently Pinned; reproduced under Pin and Free policies. After callback release, leases can all be Free while restart remains refused.
+- R2: the Vyukov queue algorithm is assessed PASS on x86 only, but `pop()==false` may mean a producer has claimed but not published a cell; one-shot mailbox scan can strand an event; mailbox recovery can reorder events and the strict ledger rejects late sequence delivery.
+- Queue capacity >= pool size is presented as an inferred argument for avoiding push failures, not as a universal proof for additional event classes.
+- Stage 5 overflow tests are single-threaded; their TSan result does not exercise concurrent mailbox publication/consumption.
+- Owner-path mutation coverage: 9 of 12 mutants killed; report identifies genuine gaps for `move()` ignoring owner bit and `release_owned` without owner check.
+- Apple DriverKit contracts include multiple UNRESOLVED/BLOCKED items: synchronous abort completion semantics, payload placement, frame-vs-microframe entry, DMA visibility, descriptor retention, OSAction lifetime/cancel ordering, disconnect-safe reclamation, interface ownership, entitlements actually granted.
+- USB isochronous 10x10 packet-layout evidence is BLOCKED because no captures were supplied to that review.
+- Reported environment: Linux x86_64, GCC 13.3, Python 3.12.3, one CPU core; ARM64 macOS not run.
+- Reported original Stage 5 results: 94 tests / 511 checks / 0 failures, 61 Python tests; Stage 5 TSan is explicitly called vacuous because its test is single-threaded.
+- The report recommends, only when implementation is authorized: defer Session::finish() while callback-owned leases remain, use a bounded owner-stall deadline ending in Pinned with a distinct fault, update tests that encoded the defect, add concurrent R4 and owner mutants, and leave the mailbox out pending the real DriverKit dispatch model.
+- The report states nothing was committed, pushed, merged, installed or signed and v3.3 was untouched.
+
+### Provenance and distinction
+- Container: `~/Downloads/DEMORA_Claude3_Independent_Review_Package.zip`, owner-reported SHA-256 `7fa9ca571a968c5f28846578fc9c9aa9648609a948ba655aef16ac34dac8c48a`.
+- Embedded report filename: `Pasted text(20261109-214223).txt`.
+- Reproduction source entries in the same archive: `r1_pinned_after_owner_release.cpp`, `r2_queue_mailbox_ordering.cpp`, `r4_stress.cpp`, `mut_owner.py`, `RUN.sh`.
+- This confirms the report and reproduction package are preserved locally. It does not establish that any repaired candidate was reviewed.
+- The report's own reproduction figures and the separate later candidate report's figures are distinct test contexts; do not combine them into one result.
+
+The owner freeze remains active. No tests, builds, scripts, extraction, implementation, research, hardware operations, or file movement were performed in this recovery update.
