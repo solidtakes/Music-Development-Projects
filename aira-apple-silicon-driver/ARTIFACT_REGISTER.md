@@ -196,3 +196,21 @@ The file contains a templated bounded queue implementation using per-cell sequen
 This single component does not recover the missing `channel.hpp`, `session_p.hpp`, `session_p.diff`, `wake_model.py`, `bq_stall.hpp`, `tests_det.cpp` or `stress.cpp`. It is not the complete R1/R2 patchset and does not establish a repaired Stage 5 package.
 
 No compilation, execution, testing, technical research, file movement or source modification was performed. The owner supplied the file contents and hash in Terminal output; no independent hash recomputation has been performed in this chat.
+
+
+## External-volume search result — November 10, 2026
+
+The owner searched the mounted macOS volumes under `/Volumes` for the seven prototype component filenames plus `channel.hpp`. The search was repeated six times and returned no matches each time.
+
+No standalone copies were located on currently mounted external volumes for:
+- `session_p.hpp`
+- `session_p.diff`
+- `wake_model.py`
+- `channel.hpp`
+- `bq_stall.hpp`
+- `tests_det.cpp`
+- `stress.cpp`
+
+This result applies only to mounted volumes visible to the command at the time of the search. It does not rule out files inside differently named archives, unmounted drives, Library/conversation attachments, cloud-synced folders, or Claude/Codex workspaces. Keep these components `MISSING_UNCONFIRMED` outside the known prototype ZIP; do not recreate them from the README or pasted diff.
+
+The standalone `bq.hpp` remains the only individually located prototype component outside the ZIP. No files were moved or modified; no tests, builds, scripts or research were run.
