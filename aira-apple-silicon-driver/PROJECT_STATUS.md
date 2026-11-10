@@ -81,3 +81,12 @@ A Mac inventory located `stage5_design_prototype.zip` (SHA-256 `35223ac088b9c5f7
 This is recovered R1/R2 design history, **not** the final v3.4.1 candidate patchset or a complete repaired Stage 5 source. The expected candidate patchset hash beginning `d90c88c9` remains unrecovered. Claude 2's November 7 source bundle is an M7B/M7C review bundle, not a Stage 5 repair. Claude 2's review response also contains a November 8 review of Claude 1 v3 with F-1 ownership/reclaim concerns, which must not be conflated with the Stage 5 prototype.
 
 The artifact register records exact local paths and hashes. Recovery freeze remains in force; no tests or scripts were run.
+
+
+## Recovery manifest update — November 10, 2026
+
+Claude 3's metadata-only inventory confirms the original Stage 5 ZIP, scratch design prototype and three historical/candidate reports are present in its upload set with exact byte sizes and SHA-256 hashes recorded in `ARTIFACT_REGISTER.md`. The original work ZIP's directory listing does not include the candidate's reported `completion_ingress.hpp` or `test_completion_ingress.cpp`; the candidate source/patch and validation logs remain unrecovered. The prototype is a partial scratch design archive, not a full repaired tree. Claude 3 has no evidence of reviewing a repaired-source hash.
+
+Test-count reports remain distinct: original Stage 5 review says 94 tests / 511 checks / 61 Python tests; candidate report says 94 tests / 514 checks / 61 Python tests. No reconciliation is possible without the underlying candidate logs.
+
+Recovery freeze remains active. No engineering work resumes until the owner approves completion of the artifact recovery and synchronization audit.
