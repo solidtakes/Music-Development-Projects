@@ -48,3 +48,27 @@ The raw Windows USB captures, v7.1/v7.2 probe source, complete `MultiRolandDrive
 ## Safety constraints
 
 No automatic merge, force-push, overwrite of stable code, driver installation/activation, USB hardware operation or nonzero output. No raw captures, proprietary binaries, credentials or NDA material in public-safe repository files. Each completed task must have a task ID, base commit, exact file list, SHA-256, test commands/logs, environment and unresolved limitations.
+
+
+## Recovery and synchronization freeze — November 10, 2026
+
+**Owner-approved direction:** pause engineering tests, stress tests, new technical research and implementation until artifact recovery, local cleanup and GitHub reconciliation are complete.
+
+### Current phase
+- **PHASE: RECOVERY_AND_SYNC — ACTIVE**
+- No new test runs, sanitizer runs, benchmarks, reverse-engineering experiments or technical research.
+- No driver implementation, simulator changes, native integration, signing, installation, activation, hardware access or nonzero output.
+- No merge, force-push, overwrite, branch deletion or deletion/movement of original local files.
+- Existing GitHub monitoring may continue as read-only notification; it is not file synchronization or agent execution.
+- Research and daily development-handoff automations have been paused during this phase.
+
+### Recovery work order
+1. Reconcile GitHub refs, PR contents, comments and authoritative status.
+2. Recover the exact R1/R2 candidate ZIP, patch and manifest; recover Claude 2's repaired Stage 5 package/logs if they exist.
+3. Inventory Mac, Windows, Claude and backup locations non-destructively; preserve originals.
+4. Hash and register each recovered artifact; distinguish COMMITTED, PR_ONLY, CONVERSATION_ARCHIVE, LOCAL_ONLY, REPORTED, VERIFIED and MISSING_UNCONFIRMED.
+5. Publish a single synchronized handoff to GitHub and provide the same handoff to Codex and Claude.
+6. Resume engineering only after the owner approves completion of the recovery audit.
+
+### Source-of-truth reminder
+The PR #2 documentation branch is not main. The R1/R2 candidate report is documentation only; the candidate patchset itself remains a conversation/archive artifact until its exact bytes and hash are recovered and verified. v3.3 remains the frozen offline baseline; original v3.4 Stage 5 and the v3.4.1 R1/R2 candidate are not promoted. No native 10x10 CoreAudio driver has been demonstrated.
