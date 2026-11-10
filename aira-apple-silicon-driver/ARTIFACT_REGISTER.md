@@ -117,3 +117,34 @@ A local patchset was assembled from the original v3.4 SHA recorded above:
 - Report: [V34_1_R1_R2_OFFLINE_CANDIDATE_REPORT.md](V34_1_R1_R2_OFFLINE_CANDIDATE_REPORT.md).
 
 Candidate includes an R1 finish deferral fix and a host-only R2 ingress model (Pending-vs-Empty queue result, serial-drain clear/recheck, no mailbox fallback, N-sized queue, bounded sequence reorder). Applied to a disposable copy of the exact original archive, `make check` passed 94/514 and Python 61; ASan/UBSan passed; R1/R4 stress checks passed. This is **CONVERSATION_ARCHIVE**, not a GitHub source commit. The native scheduler adapter, TSan, ARM64 macOS and Apple DriverKit contracts remain unverified. Do not promote or wire into native code.
+
+
+## Mac recovery inventory update — Stage 5 prototype identified (November 10, 2026)
+
+User-provided Terminal output establishes these local artifacts and hashes:
+
+| Artifact | Local path | SHA-256 | Classification |
+|---|---|---|---|
+| Original Stage 5 ZIP | `~/Desktop/DEMORA_v3_4_STAGE5_WORK.zip` and `~/Downloads/DEMORA_v3_4_STAGE5_WORK.zip` | `e5c26c6d94f2472bc760de9d522e7fe579dd6583a9bd0b2789b61373582d62d6` (both identical) | LOCAL_ONLY / original experimental source |
+| Claude 2 M7B/M7C review source bundle | `~/Downloads/AIRA_CLAUDE2_REVIEW_SOURCE_BUNDLE_20261107.zip` | `4702d8ab2f0f375495fb231cbdd896cd678db2e80953d5649763d2591689c5b0` | LOCAL_ONLY / M7B-M7C review package, not Stage 5 repair |
+| Stage 5 design prototype | `~/Downloads/stage5_design_prototype.zip` | `35223ac088b9c5f7cb2af968bea99ab9a342db6375b89ddca9774d6543789968` | LOCAL_ONLY / scratch design prototype |
+| Candidate report | `~/Downloads/V34_1_R1_R2_OFFLINE_CANDIDATE_REPORT.md` | `6172dad98505a2a6eff50f12675dc269af6272da7465b5c940c092068b9e46ce` | LOCAL_ONLY / report only |
+
+### Stage 5 prototype interpretation
+
+The prototype README explicitly labels the package **SCRATCH — not production code**. It says:
+- `session_p.hpp` is a patched copy of `core/v3/session.hpp`; `session_p.diff` is the exact patch.
+- `atomic_lease.hpp` is used unmodified from the Claude 1 Stage 5 Review V2 tree.
+- `DiagEngine` itself cannot be built because `core/demora_ledger.hpp` is missing; `driver.hpp` is only a minimal engine skeleton.
+- It contains an explicit-state wake/rescan model, queue/mailbox/coalesced-wake proposal, a three-valued finish proposal, deterministic tests, stress harnesses and mutation/policy scripts.
+- README instructs Apple Silicon and multi-core follow-up, but owner freeze prohibits running these tests now.
+
+Therefore this is useful design and patch history for R1/R2, but it is **not established as the final v3.4.1 patchset**, not a repaired complete Stage 5 source package, and not evidence that the expected candidate ZIP hash `d90c88c9...` has been recovered.
+
+### Claude 2 review evidence
+
+`CLAUDE2_REVIEW_RESPONSE.md` records earlier classifier/native-preparation work and a November 8 review of Claude 1 v3. It identifies a separate F-1 ownership/reclaim concern and other native-backend assumptions. The November 7 Claude 2 source bundle contains M7B/M7C reports and accepted baselines, not this Stage 5 prototype.
+
+The user-provided output contains no Claude 2 Stage 5 repaired ZIP, no exact candidate patchset ZIP, and no Claude 3 review of a repaired package. Mark those items `MISSING_UNCONFIRMED`; do not infer they never existed.
+
+**No tests, builds, scripts, technical research, hardware access or source modifications were performed as part of this recovery update.**
