@@ -515,3 +515,35 @@ Claude reports `PROJECT_STATUS.md` describes a narrow exception allowing Claude 
 
 ### Next decision
 Owner must choose between (a) locating and uploading the original EXP1 worktree/ZIP/diff from the Mac, or (b) explicitly authorizing a new, separately named disposable repair from the original v3.4 Stage 5 archive. Do not silently recreate EXP1 or conflate a new repair with recovered prior work. Preserve v3.3 and original v3.4; no hardware, installation, activation or merge.
+
+
+## Claude 2 GitHub artifact search — 2026-11-10 (agent-reported; read-only)
+
+Claude 2 reports completing a structural search of the GitHub repository and PR history for the missing DEMORA Stage 5 artifacts. This entry records Claude 2's findings; they have not yet been independently re-run by ChatGPT.
+
+### Search scope reported
+- 11 branches enumerated; root and `aira-apple-silicon-driver/` walked on all 11, with full AIRA-tree walks on F2, PR #1 and `main`.
+- No tags or releases found.
+- PRs #1 and #2 open; PR #3 merged.
+- All 94 PR #2 comments loaded and searched; Claude reports all authored by repository owner. No reviews/review threads on PR #1 or #2.
+- PR #2's 36 commits reportedly contain documentation changes only; commit-message search for Stage 5/v3.4/ingress/patchset/manifest returned no hits.
+- GitHub code search returned zero hits but was flagged incomplete; branch-tree inspection is the stronger negative evidence.
+- Search was not complete: PR #3 reviews, Issues, forks, Gists, Actions artifacts, orphaned commits, non-AIRA directories on every branch, and one cross-branch file comparison were not checked. Claude's response ended early after hitting a tool limit.
+
+### Recovery findings (Claude 2 report)
+- Candidate patchset `d90c88c9748cdcb4bb90e38ba5430e4938c356f1f854cf2c274715aef7b972e1`: **MISSING_UNCONFIRMED** as a file; hash appears only as a reference in PR #2 comment `6754450968` and the candidate report. Reported patch hash prefix: `26f46765`.
+- `completion_ingress.hpp`, `test_completion_ingress.cpp`, modified `session.hpp` and `test_v3.cpp`: **MISSING_UNCONFIRMED** on GitHub branches.
+- Claude 2 repaired Stage 5 ZIP, complete diff, original test/sanitizer logs and SHA-256 manifest: **MISSING_UNCONFIRMED** as files on GitHub.
+- The 94 tests / 514 checks / 61 Python tests result is **REPORTED ONLY**; no supporting logs were found by Claude 2.
+- Claude 2 reports only Markdown documentation is present on PR #2; the original Stage 5 source ZIP remains outside GitHub (owner-local/conversation archive).
+- Reported test-count variants remain distinct: original v3.4 94/511/61; candidate 94/514/61; 100/561 with 2,420 interleavings appears only in a PR comment and is reported-only.
+- Claude 2 reports recovered Git blobs for the project documents and references, but not the missing source deliverables.
+
+### Hash references reported (not recovered file bytes)
+Original Stage 5 ZIP `e5c26c6d…62d6`; candidate patchset `d90c88c9…72e1`; candidate patch `26f46765…2d6b`; prototype `35223ac0…9968`; Claude 3 review package `7fa9ca57…c48a`; standalone `bq.hpp` `aba4734a…3680`; v3 core ZIP `4a8a59f2…135e1`; v3.1 pin scratch ZIP `c2a6f4f3…9091`; v3.1 patch `4101df6a…83f9`; v3.3 ZIP `1853630d…9445`. These are references quoted from repository documents/comments, not proof the files are present.
+
+### Next recovery actions
+1. Continue the bounded search in the unchecked surfaces only if needed; do not treat zero code-search hits as exhaustive.
+2. Search the owner's Mac, Windows machine, local backups and Claude conversation/workspace exports for the exact candidate patchset hash `d90c88c9…`, Claude 2's repaired ZIP, and the consolidated archive `DEMORA_PROJECT_CONSOLIDATED_2026-11-09.zip` (reported hash prefix `0a8e51b1`).
+3. Preserve original files; record exact path, byte size, timestamp and SHA-256. Do not recreate missing artifacts.
+4. Keep RECOVERY_AND_SYNC active; no tests, builds, implementation, hardware, installation, activation or merges until owner approval.
