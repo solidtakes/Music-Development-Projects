@@ -214,3 +214,28 @@ No standalone copies were located on currently mounted external volumes for:
 This result applies only to mounted volumes visible to the command at the time of the search. It does not rule out files inside differently named archives, unmounted drives, Library/conversation attachments, cloud-synced folders, or Claude/Codex workspaces. Keep these components `MISSING_UNCONFIRMED` outside the known prototype ZIP; do not recreate them from the README or pasted diff.
 
 The standalone `bq.hpp` remains the only individually located prototype component outside the ZIP. No files were moved or modified; no tests, builds, scripts or research were run.
+
+
+## ZIP archive-content search — prototype files confirmed nested (November 10, 2026)
+
+The owner ran a read-only ZIP directory listing search across ZIP files under Desktop, Downloads, Documents and mounted volumes. It found:
+
+### `~/Downloads/stage5_design_prototype.zip`
+The archive contains all seven previously searched prototype components:
+- `stage5_design_prototype/wake_model.py`
+- `stage5_design_prototype/channel.hpp`
+- `stage5_design_prototype/bq_stall.hpp`
+- `stage5_design_prototype/session_p.hpp`
+- `stage5_design_prototype/session_p.diff`
+- `stage5_design_prototype/tests_det.cpp`
+- `stage5_design_prototype/stress.cpp`
+
+Therefore these seven files are **recovered inside the existing prototype ZIP**, not missing. Their standalone copies were not found by filename search. Keep the archive classified LOCAL_ONLY until copied to a verified repository/backup; do not extract or execute during the freeze.
+
+### `~/Downloads/DEMORA_Claude3_Independent_Review_Package.zip`
+The archive search found at least `r4_stress.cpp`. The user's pasted terminal output is truncated after an initial `s`, so the complete matching-entry list and full archive inventory remain unconfirmed. Do not infer additional filenames.
+
+### Standalone `bq.hpp`
+The separately located `~/Downloads/bq.hpp` remains LOCAL_ONLY, 2,341 bytes, owner-reported SHA-256 `aba4734a4c4ea27490f472b151544012b20bb61b695c9be46433dbe9c8ae3680`. The prototype README says its bundled `bq.hpp` is verbatim from Stage 5 test lines 20–112; byte identity between standalone and bundled copies has not been checked.
+
+No ZIP extraction, tests, builds, scripts, research, file movement or modification were performed.
