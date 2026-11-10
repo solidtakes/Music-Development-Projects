@@ -112,3 +112,12 @@ No repaired Stage 5 source, patch, logs or hash manifest was found on the refs i
 Do not conflate reported test totals: original v3.4 Stage 5 94 tests/511 checks; candidate report 94/514; another comment 100/561 with 2,420 interleavings. Underlying logs are not recovered. No native 10x10 CoreAudio driver readiness is established.
 
 Recovery next: recover Claude 1 EXP1 actual state; recover Claude 2 Stage 5 repair and Bridge v3.1 artifacts; have Claude 3 review the exact recovered source hash; locate candidate patchset and reconcile report copies; back up/hash local-only artifacts; inventory Mac/Windows capture/probe/driver trees without uploading raw captures; have Codex close out or supersede G/H/I and compile-only CoreAudio task; then clean stale documentation. Keep recovery-first restrictions and owner approval for publication/implementation. No merges, hardware or installation are authorized by this audit.
+
+
+## Claude 1 retrieval checkpoint — November 10, 2026
+
+Claude 1 reports successful read access to PR #2 files at head `4e21550b`, but its PR-comment attempt failed with `403 Resource not accessible by integration`. It reports no writes were made. Claude's GitHub connector therefore has read access but currently lacks PR/issue comment permission; other write scopes have not been established.
+
+Claude reports the original EXP1 task text is not on GitHub (only summarized there); it remains in owner-supplied transcript `Pasted text(20261110-014705).txt`. It found no `DEMORA_v3_5_EXP1_STAGE5_REPAIR` worktree, upload, ZIP, patch or matching branch in its sandbox/repository view. It states it made no source changes and ran no tests. No repaired source, logs or hashes are verified. EXP1 status: **NOT RECOVERED / NO SOURCE DELIVERABLE VERIFIED**.
+
+There is a documentation mismatch: PROJECT_STATUS.md describes a narrow Claude 1 EXP1 exception to the recovery freeze, but NEXT_TASK.md and RECOVERY_SYNC_HANDOFF_2026-11-10.md omit it. Reconcile the authorization before fresh implementation. Owner decision: recover/upload original EXP1 worktree artifacts, or explicitly authorize a newly named disposable repair from original v3.4. Do not recreate it while calling it recovered. Preserve v3.3 and original v3.4; no hardware/install/activation/merge.
