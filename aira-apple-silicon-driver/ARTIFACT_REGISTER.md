@@ -161,3 +161,22 @@ No standalone copies were found for `session_p.hpp`, `session_p.diff`, `wake_mod
 Classification: `LOCAL_ONLY`, exact bytes/hash not yet recorded. This is one component file only and does not constitute recovery of the full Stage 5 prototype source. The other components remain available only inside the previously inventoried `stage5_design_prototype.zip`, unless found in another archive or backup.
 
 No files were moved or modified; no tests, scripts, builds or research were run.
+
+
+## Follow-up filename search — prototype component source (November 10, 2026)
+
+The user searched `~/Desktop/AIRA_MODULAR_PROJECT`, `~/Desktop` and `~/Downloads` for the seven prototype filenames documented in the Stage 5 design prototype README. The only matching file found was:
+
+- `~/Downloads/bq.hpp` — LOCAL_ONLY, **hash and contents not yet inspected**.
+
+The other six named components were not found by this search:
+- `session_p.hpp`
+- `session_p.diff`
+- `wake_model.py`
+- `bq_stall.hpp`
+- `tests_det.cpp`
+- `stress.cpp`
+
+This does not prove they are absent from other archives, Library/attachments, Claude/Codex workspaces, or backups. Do not reconstruct them from the prototype README or pasted diff. The search command was repeated and returned the same single result; this is one located file, not two copies.
+
+Next recovery action: inspect and hash the single `bq.hpp` file only. Do not compile, execute, test, move, rename or delete it.
