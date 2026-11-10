@@ -99,3 +99,16 @@ Owner supplied Claude 1's latest conversation transcript. It records a later exp
 This changes the prior blanket recovery freeze only for the specifically authorized isolated source-repair task. It does not authorize tests/builds beyond the task's explicit scope, GitHub writes by Claude, merges, installation, activation, USB hardware access or physical output. Preserve v3.3 and original v3.4. Claude 1's transcript does not establish that any source edit, test run, repaired ZIP, diff, output hash or report was completed. Recover the actual DEMORA_v3_5_EXP1_STAGE5_REPAIR worktree/session state first; do not recreate or assume progress.
 
 Keep Claude 1's v3.5 EXP1 work distinct from Claude 2's earlier repair assignment and the partial scratch stage5_design_prototype.zip. The native 10x10 CoreAudio driver remains non-operational; this offline repair is not native driver readiness.
+
+
+## GitHub second-audit reconciliation — November 10, 2026
+
+Owner supplied Claude's read-only PR #2 audit transcript. Scope caveat: all 92 comments were loaded, but only about 16 assignment comments were read in full and the rest as excerpts; no PR reviews/inline threads existed; long Codex technical reports were not read line-by-line. All comments are authored by the repository owner, so agent attribution is based on comment headings, not authenticated GitHub authorship.
+
+PR #2 head is `11feab2d`, 31 commits ahead / 2 behind current main. The two later main commits are `2cc50a06` (PR #3 workflow merge) and `071c2ad0` (recovery task file); neither changes PR #2's ten files and GitHub reports cleanly mergeable. Base SHA `6381fcc1` is the frozen main tip when PR #2 opened, so the earlier suspected base discrepancy is resolved. Current main is `071c2ad0`; older references to `2cc50a06` are stale. PR #2 contains ten Markdown files, not nine; its body needs correction.
+
+No repaired Stage 5 source, patch, logs or hash manifest was found on the refs inspected (PR #2 head, main and F2 branch). Specifically absent there: completion_ingress.hpp, test_completion_ingress.cpp, session_p.*, core/v3/* and test logs. This is not proof of absence from every branch or external workspace. Claude 1 v3.5 EXP1 remains a reported worktree start with state/output unverified; Claude 2 repair outputs remain MISSING_UNCONFIRMED.
+
+Do not conflate reported test totals: original v3.4 Stage 5 94 tests/511 checks; candidate report 94/514; another comment 100/561 with 2,420 interleavings. Underlying logs are not recovered. No native 10x10 CoreAudio driver readiness is established.
+
+Recovery next: recover Claude 1 EXP1 actual state; recover Claude 2 Stage 5 repair and Bridge v3.1 artifacts; have Claude 3 review the exact recovered source hash; locate candidate patchset and reconcile report copies; back up/hash local-only artifacts; inventory Mac/Windows capture/probe/driver trees without uploading raw captures; have Codex close out or supersede G/H/I and compile-only CoreAudio task; then clean stale documentation. Keep recovery-first restrictions and owner approval for publication/implementation. No merges, hardware or installation are authorized by this audit.
