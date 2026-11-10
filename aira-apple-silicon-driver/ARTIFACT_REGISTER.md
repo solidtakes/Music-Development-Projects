@@ -239,3 +239,31 @@ The archive search found at least `r4_stress.cpp`. The user's pasted terminal ou
 The separately located `~/Downloads/bq.hpp` remains LOCAL_ONLY, 2,341 bytes, owner-reported SHA-256 `aba4734a4c4ea27490f472b151544012b20bb61b695c9be46433dbe9c8ae3680`. The prototype README says its bundled `bq.hpp` is verbatim from Stage 5 test lines 20–112; byte identity between standalone and bundled copies has not been checked.
 
 No ZIP extraction, tests, builds, scripts, research, file movement or modification were performed.
+
+
+## Claude 3 review archive fully inventoried — November 10, 2026
+
+Owner-provided Terminal output confirms:
+
+- Path: `~/Downloads/DEMORA_Claude3_Independent_Review_Package.zip`
+- Size: not yet recorded.
+- SHA-256: `7fa9ca571a968c5f28846578fc9c9aa9648609a948ba655aef16ac34dac8c48a`
+- Classification: `LOCAL_ONLY` — full archive recovered; not yet committed or copied to a verified backup.
+
+Exact ZIP entries:
+1. `DEMORA_v3_4_STAGE5_WORK.zip` — embedded original Stage 5 archive.
+2. `Pasted text(20261109-214223).txt` — report/source text; contents not yet inspected.
+3. `r1_pinned_after_owner_release.cpp` — R1 reproduction source.
+4. `r2_queue_mailbox_ordering.cpp` — R2 reproduction source.
+5. `r4_stress.cpp` — R4 stress reproduction source.
+6. `RUN.sh` — execution script; do not run during recovery freeze.
+7. `mut_owner.py` — mutation script; do not run during recovery freeze.
+
+The archive is more than a report: it preserves the original v3.4 Stage 5 ZIP and the three R1/R2/R4 repro source files plus their runner/mutation harness. This is Claude 3's independent review/reproduction package for the original Stage 5 source. It is **not** the missing repaired v3.4.1 candidate package and does not establish that a repaired source was reviewed.
+
+The prototype archive remains:
+- Path: `~/Downloads/stage5_design_prototype.zip`
+- SHA-256: `35223ac088b9c5f7cb2af968bea99ab9a342db6375b89ddca9774d6543789968`
+- Entries include all seven prototype components confirmed in the prior recovery note.
+
+No archive extraction, test, build, script, technical research, file movement or modification was performed. Hashes are as reported by the owner's Terminal; not independently recomputed in this chat.
