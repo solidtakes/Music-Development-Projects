@@ -180,3 +180,19 @@ The other six named components were not found by this search:
 This does not prove they are absent from other archives, Library/attachments, Claude/Codex workspaces, or backups. Do not reconstruct them from the prototype README or pasted diff. The search command was repeated and returned the same single result; this is one located file, not two copies.
 
 Next recovery action: inspect and hash the single `bq.hpp` file only. Do not compile, execute, test, move, rename or delete it.
+
+
+## Standalone `bq.hpp` recovered — November 10, 2026
+
+The owner inspected `~/Downloads/bq.hpp` without compiling or executing it.
+
+- Size: 2,341 bytes.
+- Modified: November 9, 2026 03:43:18 (Mac local time).
+- SHA-256: `aba4734a4c4ea27490f472b151544012b20bb61b695c9be46433dbe9c8ae3680`.
+- Classification: `LOCAL_ONLY` — one standalone prototype component; not yet committed or copied to a verified backup.
+
+The file contains a templated bounded queue implementation using per-cell sequence counters, atomic enqueue/dequeue positions, acquire/release operations, and a power-of-two capacity assertion. Its structure matches the `bq.hpp` component named in the Stage 5 design prototype README. The README says the prototype's `bq.hpp` is copied verbatim from Stage 5 test lines 20–112.
+
+This single component does not recover the missing `channel.hpp`, `session_p.hpp`, `session_p.diff`, `wake_model.py`, `bq_stall.hpp`, `tests_det.cpp` or `stress.cpp`. It is not the complete R1/R2 patchset and does not establish a repaired Stage 5 package.
+
+No compilation, execution, testing, technical research, file movement or source modification was performed. The owner supplied the file contents and hash in Terminal output; no independent hash recomputation has been performed in this chat.
