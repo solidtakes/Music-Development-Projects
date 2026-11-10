@@ -148,3 +148,16 @@ Therefore this is useful design and patch history for R1/R2, but it is **not est
 The user-provided output contains no Claude 2 Stage 5 repaired ZIP, no exact candidate patchset ZIP, and no Claude 3 review of a repaired package. Mark those items `MISSING_UNCONFIRMED`; do not infer they never existed.
 
 **No tests, builds, scripts, technical research, hardware access or source modifications were performed as part of this recovery update.**
+
+
+## Prototype source-file search result — November 10, 2026
+
+The owner searched `~/Desktop/AIRA_MODULAR_PROJECT`, `~/Desktop` and `~/Downloads` for the prototype's component filenames. The only standalone match was:
+
+- `~/Downloads/bq.hpp`
+
+No standalone copies were found for `session_p.hpp`, `session_p.diff`, `wake_model.py`, `bq_stall.hpp`, `tests_det.cpp` or `stress.cpp`.
+
+Classification: `LOCAL_ONLY`, exact bytes/hash not yet recorded. This is one component file only and does not constitute recovery of the full Stage 5 prototype source. The other components remain available only inside the previously inventoried `stage5_design_prototype.zip`, unless found in another archive or backup.
+
+No files were moved or modified; no tests, scripts, builds or research were run.
