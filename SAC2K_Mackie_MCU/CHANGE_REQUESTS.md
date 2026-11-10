@@ -9,11 +9,19 @@ Status: proposed; not implemented or hardware tested.
 - Preserve clockwise/counterclockwise direction, center behavior, state and LED/display feedback; avoid wrapping and clip at valid parameter bounds.
 - Inspect actual Live script's relative MIDI decoder and parameter mapping first; avoid applying scaling twice or modifying a global decoder shared with other modes.
 
-## CR-002 Scrub/jog wheel surrounding button mappings
-- Problem: some SAC-2K physical labels near scrub wheel do not match Ableton MCU script actions.
-- Inventory physical labels, actual transmitted MIDI notes/CCs, current Live actions and desired actions before changing assignments.
-- Keep scrub wheel rotational input and existing transport working.
-- Request from user: specific button labels and intended replacements, or a labeled photo plus MIDI capture.
+## CR-002 Marker-area button mappings (user-confirmed desired functions)
+
+| SAC-2K label | Desired Ableton action |
+|---|---|
+| STORE MARKER | Create Arrangement locator at current playhead position (or insertion position when stopped, where supported) |
+| FROM | Jump to previous Arrangement locator |
+| TO | Jump to next Arrangement locator |
+| RECALL MARKER | Toggle Arrangement Loop on/off |
+
+- Jog/scrub wheel rotation is **perfect**: do not modify its mapping or sensitivity.
+- SHIFT currently appears inactive; investigate separately, do not depend on it for these four buttons.
+- Need actual SAC-2K MIDI note IDs / script handlers before implementing. The physical labels are not proof of standard MCU note values.
+- Clarify whether STORE MARKER should target playhead versus current scrub/insertion position if they differ; default playhead when running.
 
 ## Acceptance criteria
 - Existing script backed up; new test build only.
