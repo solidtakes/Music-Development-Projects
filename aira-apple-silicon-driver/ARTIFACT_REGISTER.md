@@ -447,3 +447,49 @@ The last visible progress message says Claude 1 was about to inspect existing fi
 
 ### Authorization boundary
 The transcript contains a later, explicit authorization to begin isolated experimental implementation. That authorization is limited to a disposable experimental source tree based on the original v3.4 Stage 5 baseline. Preserve v3.3 and original v3.4; no GitHub writes by Claude 1, no merge, no installation/activation, no USB hardware, no physical output, and no native-driver-readiness claim. No tests are evidenced as having started in the transcript; resume by recovering the existing worktree state and reporting exact files before repeating or extending work.
+
+
+## Claude GitHub second-audit findings — owner supplied transcript, 2026-11-10
+
+Source: owner-uploaded `Pasted text(20261110-021958).txt` (129 lines). Claude reports that it loaded all 92 PR #2 conversation comments, read full text for about 16 assignment comments and only excerpts (400–1,400 characters) of the remainder; it reviewed no submitted PR reviews or inline threads (none existed). All 92 comments are authored by the repository owner, so agent-role attribution in comment headings is not independently authenticated. Long Codex technical reports were not read line-by-line. Treat this as a useful but bounded audit, not a complete forensic review.
+
+### PR #2 / branch reconciliation
+- PR #2 is open and unmerged; head `codex/aira-m9p-integration-plan` at `11feab2d6ba78a16c2b46d87ce6199b300c1193f`.
+- It is 31 commits ahead and 2 behind current `main`. The two later `main` commits are `2cc50a06` (PR #3 monitor workflow merge) and `071c2ad0` (Claude 3 recovery task file). Neither touches PR #2's ten changed files; GitHub reports the PR cleanly mergeable.
+- The base SHA `6381fcc1` is the frozen main tip when PR #2 opened on Nov 7, not an unexplained mismatch. PRs #1, #2 and #3 share that original base. This resolves the earlier suspected base-SHA discrepancy; parent linkage was inferred, not directly proven by the audit.
+- PR #2 has 10 changed Markdown files, not source code. The PR body says nine files and is stale/incomplete.
+- Current `main` is `071c2ad0`, not the older `2cc50a06` cited in prior status/register text. The PR branch's documentation needs refresh.
+
+### Engineering history and attribution caveat
+- Claude 1's Stage 5 review exists only embedded in the locally held Claude 3 review package; it reviews original v3.4, not a repaired hash.
+- Claude 1 later reported starting `DEMORA_v3_5_EXP1_STAGE5_REPAIR`; actual worktree/output remains unverified. The separate earlier Claude 1 approval-gate assignment (`aira-bridge/approval_gate.py`, `test_approval_gate.py`) has no delivery evidence.
+- Claude 2's isolated Stage 5 repair outputs remain MISSING_UNCONFIRMED. Claude 2's Bridge v3.1 design is also reported delivered in conversation but absent from refs checked.
+- Claude 3's v3.1 pin scratch candidate is reported as `DEMORA_Offline_v3.1_pin_scratch.zip` hash prefix `c2a6f4f3`, patch prefix `4101df6a`, 56 tests / 298 checks / 42-of-42 mutants; actual package provenance and validation logs need artifact recovery.
+- Codex tasks G (synthetic isochronous fixture), H (RME-inspired diagnostics spec), I (Mac readiness checklist), and compile-only CoreAudio plan have no completion evidence in the audited comments.
+- Reported completed but not committed/local-only work includes M9R mock source/logs and an `aira-bridge/` tree; publication was not authorized. Do not publish without owner approval.
+
+### No repair source or test evidence on refs inspected
+The audit reports no repaired Stage 5 source, patch, logs or hash manifest on PR #2 head, `main`, or the F2 experiment branch it inspected. Specifically absent on those refs: `completion_ingress.hpp`, `test_completion_ingress.cpp`, `session_p.*`, `core/v3/*`, and test logs. PR #1 contains older M9K/M9N-B simulators; F2 contains a probe dependent on missing `core/v3/diag_engine.hpp`. This is limited to refs examined, not every branch or external workspace.
+
+### Important inconsistencies requiring reconciliation
+- Main SHA references in docs are stale; refresh to `071c2ad0`.
+- Register's “four M9P docs” and PR body “nine files” conflict with actual ten changed files.
+- Register is append-only and contains superseded/contradictory entries (prototype files alternately missing/found; bq.hpp status; Claude 3 ZIP inventory).
+- Freeze / Claude 1 EXP1 exception is inconsistent across PROJECT_STATUS, NEXT_TASK and handoff docs.
+- Old “current authorized next work” still lists compile-only native preparation despite recovery freeze.
+- Test totals conflict: original v3.4 Stage 5 94 tests / 511 checks; v3.4.1 candidate report 94 / 514; another workflow comment claims 100 / 561 with 2,420 interleavings. Underlying logs are not recovered; do not combine or treat these as equivalent.
+- Embedded review title says Claude 1 but was filed in Claude 3 package; attribute by report title, not container name.
+- v3.3 archive hash is present in offline verification report (prefix `1853630d`), contrary to earlier register claim that no hash was recorded.
+- Committed candidate report is 3,218 bytes, while local report is 5,712 bytes and not byte-identical.
+- RECOVERY_AND_HANDOFF_POLICY says do not edit main directly, but `071c2ad0` was committed directly to main.
+- Conflicting agent-dependent / agent-free workflow documents and overlap between F2 README and register should be reconciled.
+
+### Recovery priorities
+1. Claude 1: recover actual v3.5 EXP1 worktree state; separately resolve approval-gate assignment.
+2. Claude 2: recover original Stage 5 repaired ZIP, diff, logs, hashes and before/after R1/R2/R4 evidence; recover Bridge v3.1 design.
+3. Claude 3: review the exact hash of whichever repair is actually recovered.
+4. Owner: locate candidate patchset (reported patchset prefix `d90c88c9`, patch prefix `26f46765`); reconcile local/committed candidate report versions; back up and hash-verify local-only packages; inventory Mac/Windows capture, probe and driver trees. Raw captures must not be committed to GitHub.
+5. Codex: either provide evidence for G/H/I and compile-only CoreAudio task or mark them superseded; owner approval required before publishing M9R/Bridge local source.
+6. Documentation cleanup: refresh refs/counts, resolve stale/contradictory sections, clarify EXP1 exception and task freeze, and reconcile test counts.
+
+Claude states it made no write calls during this audit. No source, test, build or hardware activity is evidenced by this transcript.
