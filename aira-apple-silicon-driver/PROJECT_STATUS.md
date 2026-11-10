@@ -72,3 +72,12 @@ No automatic merge, force-push, overwrite of stable code, driver installation/ac
 
 ### Source-of-truth reminder
 The PR #2 documentation branch is not main. The R1/R2 candidate report is documentation only; the candidate patchset itself remains a conversation/archive artifact until its exact bytes and hash are recovered and verified. v3.3 remains the frozen offline baseline; original v3.4 Stage 5 and the v3.4.1 R1/R2 candidate are not promoted. No native 10x10 CoreAudio driver has been demonstrated.
+
+
+## Recovery inventory finding — Stage 5 prototype (November 10, 2026)
+
+A Mac inventory located `stage5_design_prototype.zip` (SHA-256 `35223ac088b9c5f7cb2af968bea99ab9a342db6375b89ddca9774d6543789968`). Its own README explicitly labels it SCRATCH / not production code. It contains a proposed `session_p.diff`, queue/mailbox/wakeup model, deterministic tests and stress/mutation harnesses. It patches a copy of the Claude 1 Stage 5 Review V2 `session.hpp`; `atomic_lease.hpp` is reused unmodified. The README states the full DiagEngine cannot build because `core/demora_ledger.hpp` is missing and `driver.hpp` is only a minimal skeleton.
+
+This is recovered R1/R2 design history, **not** the final v3.4.1 candidate patchset or a complete repaired Stage 5 source. The expected candidate patchset hash beginning `d90c88c9` remains unrecovered. Claude 2's November 7 source bundle is an M7B/M7C review bundle, not a Stage 5 repair. Claude 2's review response also contains a November 8 review of Claude 1 v3 with F-1 ownership/reclaim concerns, which must not be conflated with the Stage 5 prototype.
+
+The artifact register records exact local paths and hashes. Recovery freeze remains in force; no tests or scripts were run.
