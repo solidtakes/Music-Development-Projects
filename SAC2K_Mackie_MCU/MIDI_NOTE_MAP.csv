@@ -1,0 +1,75 @@
+function,note_decimal,note_hex,source_status
+Record Arm 1,0,0x00,standard MCU reference - unverified SAC-2K
+Record Arm 2,1,0x01,standard MCU reference - unverified SAC-2K
+Record Arm 3,2,0x02,standard MCU reference - unverified SAC-2K
+Record Arm 4,3,0x03,standard MCU reference - unverified SAC-2K
+Record Arm 5,4,0x04,standard MCU reference - unverified SAC-2K
+Record Arm 6,5,0x05,standard MCU reference - unverified SAC-2K
+Record Arm 7,6,0x06,standard MCU reference - unverified SAC-2K
+Record Arm 8,7,0x07,standard MCU reference - unverified SAC-2K
+Solo 1,8,0x08,standard MCU reference - unverified SAC-2K
+Solo 2,9,0x09,standard MCU reference - unverified SAC-2K
+Solo 3,10,0x0A,standard MCU reference - unverified SAC-2K
+Solo 4,11,0x0B,standard MCU reference - unverified SAC-2K
+Solo 5,12,0x0C,standard MCU reference - unverified SAC-2K
+Solo 6,13,0x0D,standard MCU reference - unverified SAC-2K
+Solo 7,14,0x0E,standard MCU reference - unverified SAC-2K
+Solo 8,15,0x0F,standard MCU reference - unverified SAC-2K
+Mute 1,16,0x10,standard MCU reference - unverified SAC-2K
+Mute 2,17,0x11,standard MCU reference - unverified SAC-2K
+Mute 3,18,0x12,standard MCU reference - unverified SAC-2K
+Mute 4,19,0x13,standard MCU reference - unverified SAC-2K
+Mute 5,20,0x14,standard MCU reference - unverified SAC-2K
+Mute 6,21,0x15,standard MCU reference - unverified SAC-2K
+Mute 7,22,0x16,standard MCU reference - unverified SAC-2K
+Mute 8,23,0x17,standard MCU reference - unverified SAC-2K
+Select 1,24,0x18,standard MCU reference - unverified SAC-2K
+Select 2,25,0x19,standard MCU reference - unverified SAC-2K
+Select 3,26,0x1A,standard MCU reference - unverified SAC-2K
+Select 4,27,0x1B,standard MCU reference - unverified SAC-2K
+Select 5,28,0x1C,standard MCU reference - unverified SAC-2K
+Select 6,29,0x1D,standard MCU reference - unverified SAC-2K
+Select 7,30,0x1E,standard MCU reference - unverified SAC-2K
+Select 8,31,0x1F,standard MCU reference - unverified SAC-2K
+V-Pot Push 1,32,0x20,standard MCU reference - unverified SAC-2K
+V-Pot Push 2,33,0x21,standard MCU reference - unverified SAC-2K
+V-Pot Push 3,34,0x22,standard MCU reference - unverified SAC-2K
+V-Pot Push 4,35,0x23,standard MCU reference - unverified SAC-2K
+V-Pot Push 5,36,0x24,standard MCU reference - unverified SAC-2K
+V-Pot Push 6,37,0x25,standard MCU reference - unverified SAC-2K
+V-Pot Push 7,38,0x26,standard MCU reference - unverified SAC-2K
+V-Pot Push 8,39,0x27,standard MCU reference - unverified SAC-2K
+Rewind,43,0x2B,standard MCU reference - unverified SAC-2K
+Fast Forward,44,0x2C,standard MCU reference - unverified SAC-2K
+Stop,45,0x2D,standard MCU reference - unverified SAC-2K
+Play,46,0x2E,standard MCU reference - unverified SAC-2K
+Record,47,0x2F,standard MCU reference - unverified SAC-2K
+Channel Left,48,0x30,standard MCU reference - unverified SAC-2K
+Channel Right,49,0x31,standard MCU reference - unverified SAC-2K
+Bank Left,50,0x32,standard MCU reference - unverified SAC-2K
+Bank Right,51,0x33,standard MCU reference - unverified SAC-2K
+Flip,62,0x3E,standard MCU reference - unverified SAC-2K
+Global View,63,0x3F,standard MCU reference - unverified SAC-2K
+Name/Value,64,0x40,standard MCU reference - unverified SAC-2K
+SMPTE/Beats,65,0x41,standard MCU reference - unverified SAC-2K
+Undo,67,0x43,standard MCU reference - unverified SAC-2K
+Redo,68,0x44,standard MCU reference - unverified SAC-2K
+Copy,69,0x45,standard MCU reference - unverified SAC-2K
+Paste,70,0x46,standard MCU reference - unverified SAC-2K
+Delete,71,0x47,standard MCU reference - unverified SAC-2K
+Marker,88,0x58,standard MCU reference - unverified SAC-2K
+Nudge,89,0x59,standard MCU reference - unverified SAC-2K
+Cycle,90,0x5A,standard MCU reference - unverified SAC-2K
+Drop,91,0x5B,standard MCU reference - unverified SAC-2K
+Replace,92,0x5C,standard MCU reference - unverified SAC-2K
+Click,93,0x5D,standard MCU reference - unverified SAC-2K
+Global Solo,94,0x5E,standard MCU reference - unverified SAC-2K
+Punch,95,0x5F,standard MCU reference - unverified SAC-2K
+F1,54,0x36,standard MCU reference - unverified SAC-2K
+F2,55,0x37,standard MCU reference - unverified SAC-2K
+F3,56,0x38,standard MCU reference - unverified SAC-2K
+F4,57,0x39,standard MCU reference - unverified SAC-2K
+F5,58,0x3A,standard MCU reference - unverified SAC-2K
+F6,59,0x3B,standard MCU reference - unverified SAC-2K
+F7,60,0x3C,standard MCU reference - unverified SAC-2K
+F8,61,0x3D,standard MCU reference - unverified SAC-2K
