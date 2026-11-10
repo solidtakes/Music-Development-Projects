@@ -493,3 +493,25 @@ The audit reports no repaired Stage 5 source, patch, logs or hash manifest on PR
 6. Documentation cleanup: refresh refs/counts, resolve stale/contradictory sections, clarify EXP1 exception and task freeze, and reconcile test counts.
 
 Claude states it made no write calls during this audit. No source, test, build or hardware activity is evidenced by this transcript.
+
+
+## Claude 1 GitHub retrieval checkpoint — 2026-11-10
+
+Source: owner-supplied Claude 1 response after authenticated GitHub read attempt.
+
+Claude reports it successfully read the PR #2 head files at commit `4e21550b`: `PROJECT_STATUS.md` (blob `fa11ab67`), `NEXT_TASK.md` (blob `56d2cc5b`), `ARTIFACT_REGISTER.md` (blob `ccc2baf7`), `RECOVERY_SYNC_HANDOFF_2026-11-10.md`, and `RECOVERY_AND_HANDOFF_POLICY.md`. It reports the handoff and policy were unchanged from `11feab2d`. These are Claude-reported observations, not independently re-audited here.
+
+### Access limitation
+Claude's GitHub connector successfully read repository files but its attempt to post a PR comment failed with `403 Resource not accessible by integration`. Claude reports no GitHub writes were made. The connector currently has read access but lacks permission for PR/issue comments. This does not establish whether all other write scopes are absent.
+
+### EXP1 recovery result
+- Original EXP1 instructions are not in the GitHub files; only a summary is present. The original instructions remain in the owner-supplied conversation transcript `Pasted text(20261110-014705).txt`.
+- Claude reports no `DEMORA_v3_5_EXP1_STAGE5_REPAIR` worktree, uploaded files, ZIPs or patches in its sandbox, and no matching branch.
+- Claude explicitly reports it produced no repaired source, made no source modifications and ran no tests. No EXP1 logs or output hashes exist in the inspected environment.
+- Therefore EXP1 remains **NOT RECOVERED / NO SOURCE DELIVERABLE VERIFIED**. Do not describe it as an active implementation or completed repair.
+
+### Authorization/documentation mismatch
+Claude reports `PROJECT_STATUS.md` describes a narrow exception allowing Claude 1's isolated offline v3.5 EXP1 repair, while `NEXT_TASK.md` and `RECOVERY_SYNC_HANDOFF_2026-11-10.md` do not mention that exception. The governing scope should be reconciled before any fresh implementation is authorized.
+
+### Next decision
+Owner must choose between (a) locating and uploading the original EXP1 worktree/ZIP/diff from the Mac, or (b) explicitly authorizing a new, separately named disposable repair from the original v3.4 Stage 5 archive. Do not silently recreate EXP1 or conflate a new repair with recovered prior work. Preserve v3.3 and original v3.4; no hardware, installation, activation or merge.
