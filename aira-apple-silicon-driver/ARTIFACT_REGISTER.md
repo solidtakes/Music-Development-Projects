@@ -294,3 +294,37 @@ The owner supplied the complete output of reading `Pasted text(20261109-214223).
 - The report's own reproduction figures and the separate later candidate report's figures are distinct test contexts; do not combine them into one result.
 
 The owner freeze remains active. No tests, builds, scripts, extraction, implementation, research, hardware operations, or file movement were performed in this recovery update.
+
+
+## Claude 3 consolidated inventory response — owner supplied, November 10, 2026
+
+Claude 3 reports that its current upload directory contained five files: the original Stage 5 ZIP, the Stage 5 design prototype ZIP, the v3.4.1 R1/R2 candidate report, `CLAUDE2_REVIEW_RESPONSE.md`, and `DEMORA_CLAUDE2_V3_REVIEW.md`. It did not inspect either ZIP, compute hashes, extract files, or run tests/builds/scripts. Its ZIP-content conclusions are therefore explicitly **NOT VERIFIED BY CLAUDE 3**.
+
+### Claude 3 conclusions (limited to its current session view)
+- Repaired v3.4 Stage 5 source: **not established as present**.
+- Exact v3.4.1 R1/R2 patchset: report present; source patch/ZIP and logs not established as present.
+- Claude 2's two supplied review documents concern earlier adjacent work and do not validate the later Stage 5 ingress/queue/mailbox design.
+- Claude 3 has no record of reviewing a specific repaired-source hash.
+- It requests authorization to list and hash the five uploads and list ZIP contents without extracting them.
+
+### Reconciliation against owner-provided Mac terminal evidence
+Earlier in this conversation, the owner directly ran `unzip -Z1` against `~/Downloads/stage5_design_prototype.zip`. That terminal output confirmed the archive contains:
+`wake_model.py`, `channel.hpp`, `bq_stall.hpp`, `session_p.hpp`, `session_p.diff`, `tests_det.cpp`, and `stress.cpp`.
+The owner also supplied its SHA-256: `35223ac088b9c5f7cb2af968bea99ab9a342db6375b89ddca9774d6543789968`.
+The prototype README was previously read by the owner and explicitly labels it SCRATCH / not production code. Thus the files are recovered inside the local ZIP even though Claude 3's current session did not inspect its contents. Do not mark those seven components missing from the Mac inventory.
+
+Earlier owner-provided Mac terminal output also confirmed the Claude 3 review ZIP contains the original Stage 5 ZIP, the Claude 1 review text, R1/R2/R4 repro sources, `RUN.sh` and `mut_owner.py`. The ZIP SHA-256 supplied by the owner is `7fa9ca571a968c5f28846578fc9c9aa9648609a948ba655aef16ac34dac8c48a`. Claude 3's current-session upload inventory is a separate access snapshot and must not overwrite the Mac recovery evidence.
+
+### Candidate report claims — preserve as reported, not independently verified
+Claude 3 transcribed the report's stated scope:
+- Candidate changes reportedly touched `core/v3/session.hpp`, `core/v3/test_v3.cpp`, and added `core/v3/completion_ingress.hpp` and `core/v3/test_completion_ingress.cpp`.
+- Report-stated results: 94 tests / 514 checks / 61 Python tests.
+These figures differ from other historical reports (including the original Stage 5 report's 94 tests / 511 checks and 61 Python tests). Keep each figure attached to its own report; do not merge or silently reconcile them.
+
+### Outstanding items
+- Actual final v3.4.1 candidate patch/source package and its exact hash: `MISSING_UNCONFIRMED`.
+- Claude 2 repaired Stage 5 source ZIP, complete diff and logs: `MISSING_UNCONFIRMED`.
+- Evidence that Claude 3 reviewed the exact repaired-source hash: `MISSING_UNCONFIRMED`.
+- Claude 3's requested metadata-only inspection of the five currently supplied files: pending owner approval in that Claude session.
+
+This entry records Claude 3's report and reconciles it with the owner's earlier Mac terminal evidence. It does not authorize tests, builds, scripts, extraction, implementation, research or hardware operations.
