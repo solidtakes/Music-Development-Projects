@@ -378,3 +378,47 @@ The candidate report's stated results are 94 tests / 514 checks / 61 Python test
 Claude 3's report explicitly says it did not extract or read ZIP member contents in this metadata-only pass. It inferred prototype roles from filenames and prior notes; content-level validation of `session_p.diff` and the prototype source remains outstanding and is not authorized during the current freeze. Its five-file upload list is a snapshot of that Claude session and does not override the owner's broader Mac inventory, which includes the separate Claude 3 review ZIP and its repro harnesses.
 
 No tests, builds, scripts, extraction, implementation, research or hardware operations were performed in this recovery update.
+
+
+## Claude 2 last known Stage 5 implementation assignment — owner supplied, November 10, 2026
+
+The owner supplied the last known Claude 2 task text and its listed input attachments. This establishes that Claude 2 had previously been assigned an **isolated experimental implementation**, not merely a review:
+
+### Inputs listed in Claude 2's session
+- `DEMORA_v3_4_STAGE5_WORK.zip`
+- `RUN.sh`
+- `mut_owner.py`
+- `r4_stress.cpp`
+- `r2_queue_mailbox_ordering.cpp`
+- `r1_pinned_after_owner_release.cpp`
+
+These are the original Stage 5 source and Claude 1's reproduction/mutation harness inputs. Their presence in Claude 2's prior session is owner-reported. The listing does **not** establish that Claude 2 completed or exported a repaired source package.
+
+### Original requested work
+Claude 2 was asked to work in a disposable copy, preserve v3.3 and original v3.4 Stage 5, and implement an isolated experimental repair:
+1. Fix permanent Pinned shutdown defect.
+2. Correct queue publication and consumer wakeup handling.
+3. Remove emergency mailbox only if queue-capacity invariant can be formally established.
+4. Preserve strict sample-ledger ordering.
+5. Add concurrent regression tests based on R1/R2/R4.
+6. Run complete suite and sanitizers.
+
+### Required deliverables requested from Claude 2
+- Complete repaired source ZIP.
+- Exact source hashes.
+- Full test results.
+- Before/after defect reproductions.
+- Changed-file list.
+- Remaining risks.
+- New experimental version identifier.
+- Explicit no-native-driver-readiness claim.
+
+Claude 2 was explicitly told not to modify GitHub, commit, push, merge, install, activate or access USB hardware.
+
+### Current recovery interpretation
+This is evidence of the **scope and inputs** of Claude 2's previous implementation assignment. It is not evidence that the requested repair was completed. The repaired ZIP, changed files, exact output hashes, full logs and before/after results remain `MISSING_UNCONFIRMED` until recovered from Claude 2's prior response/session or actual files.
+
+### Doorbell/wakeup note
+The owner also supplied Claude's correction: the test sampled `bells` after the first ring, so exactly one additional ring after Idle was expected. The observed post-Idle re-ring was considered correct behavior. Preserve this as a test-accounting correction, not a new defect or a validated production wakeup protocol.
+
+The owner reports Claude 2 is currently rate-limited for another hour. No new work is authorized during the wait. Do not restart implementation or tests until the existing output artifacts and session state are recovered and the owner explicitly resumes work.
