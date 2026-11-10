@@ -328,3 +328,53 @@ These figures differ from other historical reports (including the original Stage
 - Claude 3's requested metadata-only inspection of the five currently supplied files: pending owner approval in that Claude session.
 
 This entry records Claude 3's report and reconciles it with the owner's earlier Mac terminal evidence. It does not authorize tests, builds, scripts, extraction, implementation, research or hardware operations.
+
+
+## Claude 3 metadata-only ZIP manifest — 2026-11-09/10
+
+Claude 3 supplied the following exact metadata for the five files in its upload directory. It reports that hashes were computed over the five uploaded files; ZIP contents were inspected only through central-directory listings, not extracted. These values agree with the owner-provided Mac hashes previously recorded for the original Stage 5 ZIP, prototype ZIP and candidate report.
+
+| File | Bytes | SHA-256 | Classification |
+|---|---:|---|---|
+| `DEMORA_v3_4_STAGE5_WORK.zip` | 4,023,544 | `e5c26c6d94f2472bc760de9d522e7fe579dd6583a9bd0b2789b61373582d62d6` | ORIGINAL_BASELINE |
+| `stage5_design_prototype.zip` | 22,332 | `35223ac088b9c5f7cb2af968bea99ab9a342db6375b89ddca9774d6543789968` | SCRATCH_PROTOTYPE |
+| `V34_1_R1_R2_OFFLINE_CANDIDATE_REPORT.md` | 5,712 | `6172dad98505a2a6eff50f12675dc269af6272da7465b5c940c092068b9e46ce` | REVIEW_REPORT / candidate description |
+| `CLAUDE2_REVIEW_RESPONSE.md` | 5,405 | `8d4afc33a7d313a87b12546628e506963843544fb002605737816e5331c5856d` | REVIEW_REPORT |
+| `DEMORA_CLAUDE2_V3_REVIEW.md` | 7,863 | `bd175c5f31adfa40f3bd3515f42b489ad85cadf063c374d831092d522d69a890` | REVIEW_REPORT |
+
+### Original Stage 5 archive directory inventory
+Claude 3 reports 149 entries and 23,564,445 uncompressed bytes. The archive contains the v3.3-era source, reports, binaries, logs, Stage 4 tests and Stage 5 overflow test. It has no nested archives. Specifically, the reported `core/v3/` inventory contains `atomic_lease.hpp`, `diag_engine.hpp`, `ledger2.hpp`, `parity_v3.cpp`, `session.hpp` and `test_v3.cpp`; Stage 5 includes `test_callback_overflow.cpp` and a byte-identical `test_callback_overflow_STAGE5_PASS.cpp`. It does not contain `completion_ingress.hpp` or `test_completion_ingress.cpp`. The report states no repaired full source tree or candidate patch is present in this archive.
+
+### Prototype archive directory inventory
+Claude 3 reports 13 entries and 55,036 uncompressed bytes:
+- `README.md` (2,179 bytes)
+- `wake_model.py` (4,003)
+- `channel.hpp` (2,252)
+- `bq.hpp` (2,341)
+- `bq_stall.hpp` (2,539)
+- `session_p.hpp` (12,423)
+- `session_p.diff` (5,836)
+- `driver.hpp` (4,206)
+- `tests_det.cpp` (9,730)
+- `stress.cpp` (5,404)
+- `policy_guard.hpp` (1,078)
+- `cf_run.sh` (1,504)
+- `mutation_run.sh` (1,541)
+
+This corroborates the earlier Mac directory listing and the README already read by the owner, which labels the prototype SCRATCH / not production. Claude 3's current metadata-only pass did not read the prototype file contents. The archive has no filenames in common with the original work ZIP. It is a partial design prototype, not a complete repaired Stage 5 tree.
+
+### Candidate status
+- The candidate report is present, but its described candidate source package/patch and supporting logs are not in the five uploaded files.
+- The original work ZIP's reported inventory lacks `completion_ingress.hpp` and `test_completion_ingress.cpp`.
+- The only `.diff` identified in the supplied material is prototype `session_p.diff`; its content has not been inspected in Claude 3's current metadata-only pass. The owner previously read a pasted diff excerpt from the prototype README context, but that excerpt does not establish the final candidate patch.
+- Claude 3 has no evidence that it reviewed a specific repaired-source hash.
+- The exact v3.4.1 candidate source/patch remains `MISSING_UNCONFIRMED`; Claude 2's final repaired Stage 5 ZIP/diff/logs remain `MISSING_UNCONFIRMED`.
+
+### Duplicate and test-count cautions
+Claude 3's ZIP central-directory CRC/size analysis identified likely duplicate groups within the original archive, including the three 7,294,567-byte vector outputs, duplicate CSV logs, duplicate Python tests, duplicate handoff and duplicate Stage 4/Stage 5 test source files. CRC-32 plus size is not cryptographic proof; do not describe these as SHA-256-verified duplicates.
+The candidate report's stated results are 94 tests / 514 checks / 61 Python tests. The original Stage 5 review reported 94 tests / 511 checks / 61 Python tests. These are separate report-stated figures and must remain distinct until their underlying logs are recovered and reconciled.
+
+### Evidence boundaries
+Claude 3's report explicitly says it did not extract or read ZIP member contents in this metadata-only pass. It inferred prototype roles from filenames and prior notes; content-level validation of `session_p.diff` and the prototype source remains outstanding and is not authorized during the current freeze. Its five-file upload list is a snapshot of that Claude session and does not override the owner's broader Mac inventory, which includes the separate Claude 3 review ZIP and its repro harnesses.
+
+No tests, builds, scripts, extraction, implementation, research or hardware operations were performed in this recovery update.
