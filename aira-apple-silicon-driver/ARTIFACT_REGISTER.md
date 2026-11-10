@@ -422,3 +422,28 @@ This is evidence of the **scope and inputs** of Claude 2's previous implementati
 The owner also supplied Claude's correction: the test sampled `bells` after the first ring, so exactly one additional ring after Idle was expected. The observed post-Idle re-ring was considered correct behavior. Preserve this as a test-accounting correction, not a new defect or a validated production wakeup protocol.
 
 The owner reports Claude 2 is currently rate-limited for another hour. No new work is authorized during the wait. Do not restart implementation or tests until the existing output artifacts and session state are recovered and the owner explicitly resumes work.
+
+
+## Claude 1 latest session transcript — experimental implementation handoff (owner supplied, November 10, 2026)
+
+Source: owner-uploaded transcript Pasted text(20261110-014705).txt (281 lines). This is a conversation transcript, not a source package or build log.
+
+### Assignment and review completed
+Claude 1's November 9 assignment was initially read-only: independently audit Stage 5 ownership/concurrency, review DriverKit contracts and packet-layout evidence, preserve v3.3/v3.4, and return findings. Its report reproduced the original permanent-Pinned shutdown defect, identified queue/mailbox and ordering risks, and reported 94 tests / 511 checks / 61 Python tests on its stated Linux x86-64 environment. USB packet-layout analysis was blocked because captures were not supplied; DriverKit contract items remained mixed/unresolved.
+
+### Later authorization and new worktree
+The transcript then records: “Implementation is now authorized” and Claude 1 began an isolated experimental repair in a new tree named DEMORA_v3_5_EXP1_STAGE5_REPAIR, starting from the original baseline archive. Claude 1 stated it would leave the original upload untouched and exclude stale arm64 binaries and dSYMs because they would not correspond to the new source.
+
+The last visible progress message says Claude 1 was about to inspect existing finish() test assumptions to identify tests requiring deliberate changes. It then hit a usage limit. The transcript does not show any completed source edits, test execution, output ZIP, diff, source hashes or final report for v3.5 EXP1.
+
+### Status and provenance
+- DEMORA_v3_5_EXP1_STAGE5_REPAIR: WORKTREE START REPORTED; CONTENT/COMPLETION UNVERIFIED.
+- Repaired source ZIP: MISSING_UNCONFIRMED.
+- Changed-file list/diff: MISSING_UNCONFIRMED.
+- Test/sanitizer logs for EXP1: MISSING_UNCONFIRMED.
+- Output source hashes: MISSING_UNCONFIRMED.
+- No evidence in this transcript of a commit, push, merge, install, activation or USB access.
+- Do not confuse this Claude 1 v3.5 EXP1 worktree with Claude 2's separate requested repair, or with the partial stage5_design_prototype.zip.
+
+### Authorization boundary
+The transcript contains a later, explicit authorization to begin isolated experimental implementation. That authorization is limited to a disposable experimental source tree based on the original v3.4 Stage 5 baseline. Preserve v3.3 and original v3.4; no GitHub writes by Claude 1, no merge, no installation/activation, no USB hardware, no physical output, and no native-driver-readiness claim. No tests are evidenced as having started in the transcript; resume by recovering the existing worktree state and reporting exact files before repeating or extending work.
