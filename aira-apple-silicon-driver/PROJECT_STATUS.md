@@ -90,3 +90,12 @@ Claude 3's metadata-only inventory confirms the original Stage 5 ZIP, scratch de
 Test-count reports remain distinct: original Stage 5 review says 94 tests / 511 checks / 61 Python tests; candidate report says 94 tests / 514 checks / 61 Python tests. No reconciliation is possible without the underlying candidate logs.
 
 Recovery freeze remains active. No engineering work resumes until the owner approves completion of the artifact recovery and synchronization audit.
+
+
+## Claude 1 v3.5 EXP1 implementation status — November 10, 2026
+
+Owner supplied Claude 1's latest conversation transcript. It records a later explicit authorization to begin a bounded, offline experimental implementation after the read-only audit. Claude 1 reported starting a new disposable tree named DEMORA_v3_5_EXP1_STAGE5_REPAIR from the original v3.4 Stage 5 archive and excluding stale arm64 binaries/dSYMs. Its last visible action was to inspect current finish() test assumptions before making deliberate test changes; the session then hit its usage limit.
+
+This changes the prior blanket recovery freeze only for the specifically authorized isolated source-repair task. It does not authorize tests/builds beyond the task's explicit scope, GitHub writes by Claude, merges, installation, activation, USB hardware access or physical output. Preserve v3.3 and original v3.4. Claude 1's transcript does not establish that any source edit, test run, repaired ZIP, diff, output hash or report was completed. Recover the actual DEMORA_v3_5_EXP1_STAGE5_REPAIR worktree/session state first; do not recreate or assume progress.
+
+Keep Claude 1's v3.5 EXP1 work distinct from Claude 2's earlier repair assignment and the partial scratch stage5_design_prototype.zip. The native 10x10 CoreAudio driver remains non-operational; this offline repair is not native driver readiness.
