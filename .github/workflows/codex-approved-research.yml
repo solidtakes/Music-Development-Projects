@@ -1,0 +1,86 @@
+name: Codex research from approved issue
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Approved GitHub issue number'
+        required: true
+        default: '7'
+permissions:
+  contents: read
+concurrency:
+  group: codex-research-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+jobs:
+  research:
+    if: >-
+      (github.event_name == 'issues' &&
+       github.event.label.name == 'codex-research' &&
+       github.event.issue.user.login == 'solidtakes') ||
+      (github.event_name == 'workflow_dispatch' && github.actor == 'solidtakes')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      report: ${{ steps.codex.outputs.final-message }}
+      issue_number: ${{ steps.context.outputs.issue_number }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Select approved issue
+        id: context
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          if ! [[ "$ISSUE_NUMBER" =~ ^[0-9]+$ ]]; then exit 1; fi
+          echo "issue_number=$ISSUE_NUMBER" >> "$GITHUB_OUTPUT"
+      - name: Verify API key configured
+        env:
+          KEY_PRESENT: ${{ secrets.OPENAI_API_KEY != '' }}
+        run: |
+          if [ "$KEY_PRESENT" != "true" ]; then
+            echo "::error::Set repository Actions secret OPENAI_API_KEY first."
+            exit 1
+          fi
+      - name: Run Codex research (read only)
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":read-only"
+          prompt: |
+            You are researching an approved issue in solidtakes/Music-Development-Projects.
+            Issue number: ${{ steps.context.outputs.issue_number }}.
+            For issue #7: research MF SEQ V1.4.9 Ableton MIDI clip loop-bracket
+            extension, marker ordering and API behavior. Preserve Main Build.
+            Inspect repository source and report what exists versus what is missing.
+            Do not edit, build, commit, merge, or claim hardware verification.
+            If source is absent, explicitly state that and list the required files.
+            Produce a concise actionable research report with evidence and test plan.
+  report:
+    needs: research
+    if: needs.research.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Post Codex findings to approved issue
+        uses: actions/github-script@v7
+        env:
+          ISSUE_NUMBER: ${{ needs.research.outputs.issue_number }}
+          CODEX_REPORT: ${{ needs.research.outputs.report }}
+        with:
+          script: |
+            const number = Number(process.env.ISSUE_NUMBER);
+            if (!Number.isSafeInteger(number) || number <= 0) throw new Error('Invalid issue number');
+            const body = '## Automated Codex research report\n\n' +
+              (process.env.CODEX_REPORT || 'Codex returned an empty report.') +
+              '\n\nResearch only. No code was merged or installed.';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: number, body: body.slice(0, 60000)
+            });
