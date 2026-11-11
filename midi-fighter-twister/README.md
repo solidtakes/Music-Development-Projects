@@ -19,3 +19,7 @@ This is the coordination home for **four hardware banks and one shared Experimen
 - No automatic merges, overwrites, or silent code migrations.
 - All build handoffs should include version, tested/unverified features, archive/commit SHA, rollback and outstanding issues.
 - Use one ChatGPT conversation per Bank plus one Experimental conversation. GitHub cannot itself create/move ChatGPT threads.
+
+## Start here for cross-thread recovery
+- [Cross-thread Ableton/Python handoff](CROSS_THREAD_PYTHON_ABLETON_HANDOFF_2026-11-11.md): consolidated Main/Alternate, MF, MIDI Remote Script, LED Diagnostics, bank mappings, confirmed tests, unresolved source gaps and recovery rules. Read before changing any build.
+- [Historical chronology](CONSOLIDATED_CHRONOLOGY_2026-11-11.md) and [build register](experimental/SIGNED_OFF_BUILD_REGISTER.md) provide inventory and approval provenance.
