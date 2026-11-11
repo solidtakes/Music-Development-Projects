@@ -49,3 +49,14 @@ Known issues:
 - A milestone is not automatically stable; stable requires explicit owner designation. Moving on freezes the current explicitly approved baseline and starts subsequent work separately.
 - For each new test build, archive source before delivery. For each owner milestone, update this register and link the exact GitHub commit. Never claim that an unavailable ZIP was archived.
 - This is an **event-driven in-chat workflow**, not autonomous monitoring of conversations. When the owner says milestone/stable/move on in a conversation with GitHub access, perform the update then; if the source is inaccessible, record metadata and clearly flag the missing source.
+
+## COL-001 — Twister LED color calibration (2026-11-11)
+- **Owner goal:** Bank 1 and Bank 3, 16 distinct color values per bank, compare Standard and Expanded MF Utility modes, no functional controls in final calibration.
+- **Historical working reference:** Twister LED Diagnostics (reported v0.3.0); exact source and ZIP not yet recovered. User reports clicking an encoder changes colors; earlier conversational descriptions conflict; do not claim precise behavior until source is inspected.
+- **Hardware mapping reported from prior tests:** custom encoder rotation channel 12 CC 0–15; push/RGB channel 11 CC 0–15 on Bank 1. Bank 3 rotary CC 32–47 channel 12, push CC 32–47 channel 11 (verify against source and MF Utility before use).
+- **COL-001 v0.1:** fixed output channel 2 palette, user reports no colors; failed hardware test.
+- **COL-001 v0.2:** delayed/repeated channel 2 palette, user reports no colors; failed hardware test.
+- **Experimental source branch:** experimental/mft-col-001-banks-1-3; last source commit 933d40c4e0d31841da9c420ea5b0d34051113b65. Neither version is stable or hardware-approved.
+- **Root-cause status:** unverified. Channel mismatch is a hypothesis, not established diagnosis.
+- **Next step:** retrieve the exact prior working diagnostic source, inspect its output behavior and MIDI messages, then produce source-archived COL-001 v0.3. Do not ask the owner to re-explain already documented mappings or treat memory as a substitute for source.
+- **Archive limitation:** original working ZIP not available in GitHub; source and binary provenance remain pending. No claim of full historical recovery.
