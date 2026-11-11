@@ -42,3 +42,10 @@ Owner approval and date:
 Rollback reference:
 Known issues:
 ```
+
+## Owner-directed milestone workflow (2026-11-11)
+- Owner explicitly declares a **milestone build**, **stable build**, or **move-on / frozen baseline** in conversation. These declarations are authoritative for status; do not silently promote test builds.
+- On each declaration, immediately commit available source and milestone metadata to GitHub, preserving previous baselines; record version, source commit, ZIP/hash if available, hardware test notes, owner approval and rollback path.
+- A milestone is not automatically stable; stable requires explicit owner designation. Moving on freezes the current explicitly approved baseline and starts subsequent work separately.
+- For each new test build, archive source before delivery. For each owner milestone, update this register and link the exact GitHub commit. Never claim that an unavailable ZIP was archived.
+- This is an **event-driven in-chat workflow**, not autonomous monitoring of conversations. When the owner says milestone/stable/move on in a conversation with GitHub access, perform the update then; if the source is inaccessible, record metadata and clearly flag the missing source.
