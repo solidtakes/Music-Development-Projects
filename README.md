@@ -2,6 +2,10 @@
 
 Shared GitHub workspace for ChatGPT, Codex Web, and Codex Desktop.
 
+## Unified MIDI Fighter Twister development
+
+The two historical MIDI Fighter Twister Python project records remain separate for compatibility, while their work is coordinated in the [MIDI Fighter Twister Master Development](midi-fighter-twister/README.md) index: **Bank 1**, **Bank 2**, **Bank 3**, **Bank 4**, and a fifth **Experimental Lab** for shared LED, animation, meter and device prototypes. Each Bank retains its own tested versions and rollback paths; experiments are never automatically merged into working scripts.
+
 ## Four separate projects
 
 1. [MIDI Fighter Twister — Main Python Script](mft-main-python/PROJECT_STATUS.md)
