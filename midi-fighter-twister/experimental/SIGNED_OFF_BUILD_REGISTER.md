@@ -1,16 +1,44 @@
-# MIDI Fighter Twister — Build Reference and Sign-off Register
+# MIDI Fighter Twister — Canonical Build and Sign-off Register
 
 Updated: 2026-11-11
 
-## Selected Channel Mixer / MIX-001
-- Designated source archive: `MF_Sel_Track_Mode_v1_0_COMPAT_FIX.zip` (user supplied exact filename)
-- Status: **reference designated; hardware sign-off not independently confirmed in this conversation**
-- Source ZIP: not yet available from current chat/Library or verified GitHub source tree
-- SHA-256: pending
-- Latest source lineage note: consolidated chronology says `v1.0 Stable` and `Compatibility Fix` have identical main Python source but different ZIP packages.
-- Planned experimental extraction: `mfcolumn mix ch 1` — E1/E5/E9/E13 only
-- Experimental ZIP naming: `mfcolumn mix ch 1.zip`; internal Ableton Remote Script folder: `mfcolumn mix ch 1`
-- Experimental status: not built / not hardware tested
+## Rules (effective immediately)
+1. Every new build must have its complete source committed to GitHub **before** being offered for hardware testing. A download link alone is not an archive.
+2. Keep three separate pointers per module: **reference source**, **latest experimental**, and **last explicitly hardware-approved**. Never infer approval from filename or successful syntax tests.
+3. Preserve the exact source filename, internal Ableton Remote Script folder, ZIP filename, source commit, SHA-256 of ZIP when available, test notes, and owner approval.
+4. Never overwrite a signed-off build. Each new version gets an immutable versioned directory or Git tag. Never merge experimental code automatically.
+5. ZIP archives must be stored in GitHub or an accessible GitHub Release when the available integration supports binary uploads. The currently connected GitHub file-write tools support **UTF-8 text only**; therefore ZIP archival is **pending until a binary-capable upload path is available**. Do not mark a ZIP backed up merely because its filename appears here.
+6. For each handoff, check that the committed source can be fetched back, and report source availability separately from ZIP availability.
+7. Use the same descriptive build name for the ZIP and its internal Ableton script folder; append a version to the ZIP only when needed without renaming the stable internal folder.
 
-## Policy
-Record every future build with exact ZIP and internal folder names, source SHA-256 and Git commit, test results, hardware observation, and explicit owner approval. Keep reference, latest experimental, and last hardware-signed-off builds as distinct fields. Never infer hardware sign-off from filename, timestamp, or version number. Never overwrite a signed-off archive or merge experimental code automatically.
+## MIX-001 — mfcolumn mix ch 1
+- **Reference source filename:** `MF_Sel_Track_Mode_v1_0_COMPAT_FIX.zip`
+- **Reference status:** user-designated source; actual bytes not recovered; SHA-256 pending
+- **Historical comparison:** v1.0 Stable and Compatibility Fix reportedly have identical main Python source but different ZIP packages; do not treat them as byte-identical
+- **Last hardware-approved source:** not yet established in this register
+- **Latest experimental:** `mfcolumn mix ch 1.zip`, reconstructed v0.1; user reported **does not work**; **REJECTED**, not signed off
+- **Target hardware:** Column 1 E1/E5/E9/E13 only; remaining encoders inactive
+- **Source Git commit:** pending recovery of original working code
+- **Internal Ableton folder:** `mfcolumn mix ch 1`
+- **Next action:** recover exact original source, verify mappings and compatibility, create versioned isolated source directory and test ZIP, commit source before delivery
+- **Production protection:** no existing production scripts modified
+
+## Build entry template
+```
+Module:
+Reference source:
+Reference SHA-256:
+Build version:
+Git source path:
+Git commit:
+ZIP filename:
+ZIP SHA-256:
+ZIP archival URL (verified, or pending):
+Ableton internal folder:
+MIDI channel/CC mapping:
+Static/syntax test result:
+Hardware test result:
+Owner approval and date:
+Rollback reference:
+Known issues:
+```
