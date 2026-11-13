@@ -2,6 +2,8 @@
 
 Status: **BLOCKED ON SOURCE RECOVERY — review evidence, no installable repair candidate.**
 
+Current-request revalidation: see [REVALIDATION.md](REVALIDATION.md) for the fresh 29-head audit, repeated offline checks and additional accepted-SP1 comparison. Original inventory below records the initial audit.
+
 Issue: https://github.com/solidtakes/Music-Development-Projects/issues/15
 
 Issue 15 explicitly requires: “If source is missing, report the missing artifact and stop before speculative reconstruction.” That gate applies. No Bank 4 production source, diagnostic correction, parameter mapping, executable ZIP or implementation diff has been invented. The isolated review branch adds only this directory. No Banks 1–3, PR 14, accepted MF2Bank Beta 1, shared routing, colors, firmware settings or Native Mode activation are changed. This is a partial engineering handoff, not completion of the requested repair.

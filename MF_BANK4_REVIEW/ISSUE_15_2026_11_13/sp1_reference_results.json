@@ -1,0 +1,17 @@
+{
+  "reference_commit": "372690b15751bbd5bd5c6287cf88fdf89d9dd89e",
+  "archive_path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/MF_SEQ_BETA_2_3_SP1_SCALE_PERFORMANCE_REVIEW.zip",
+  "archive_sha256": "223601c89dc84653e706e9027a5904c450d2e3fcfce87b2e02db07de06b7b180",
+  "source_sha256": "f1dff03e7ec0af128a2ae609cd9d1e5cb268888e2ab0d77209c0693063dbfa9a",
+  "constants": {
+    "ROT_CHANNEL": 11,
+    "PUSH_CHANNEL": 10,
+    "FIRST_CC": 32
+  },
+  "checks": {
+    "archive_hash_crc": "PASS",
+    "exact_rgb_ring_32_message_frame": "PASS",
+    "unchanged_frame_suppression": "PASS"
+  },
+  "scope": "Extracted accepted SP1 helper contracts only. Bank 4 implementation and hardware remain unavailable."
+}
