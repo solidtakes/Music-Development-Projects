@@ -1,0 +1,380 @@
+{
+  "scope": "All objects reachable from fetched refs; archive members inspected without executing them. No inaccessible owner files or old ChatGPT attachments available.",
+  "refs": [
+    "origin 8dec01a410e69d07c45b350086a27d072e6fb70a",
+    "origin/archive/mft-single-channel-v0.5.11 2bc8907b76eaad234d768d8f17cfb54c9cb904fa",
+    "origin/automation/aira-pr2-15m-monitor 1514083fe8065635278ba3cc536e73e2fa7179fa",
+    "origin/bento/bank2-sequencer-v150-review-20261112 7e6786c80160b20e2f6419f104a2150284981ea6",
+    "origin/bento/bank4-approved-palette-rule-20261112 0da5da2faf901fa1f36ed966d4513c33cbc58da3",
+    "origin/bento/beta-v2-freeze-20261112 4f9f8cd3ee0da218f88d0f4e220e230e5e43d9e1",
+    "origin/bento/step2-api-research-20261112 1b240a35f8a18b7df324b6904354cc4bb79ccf81",
+    "origin/chatgpt/demora-offline-artifacts-2026-11-08 febfd9be2a22fc6edebd3a2eb5606bf47c22c394",
+    "origin/codex/aira-m9n-b-source-only c437e0977e0b9d13ce4dbba39e31fbbc1eba5ed8",
+    "origin/codex/aira-m9p-integration-plan 5fbb504e5e7284b0decf66621aec3c29c3dee38f",
+    "origin/codex/bank4-issue15-audit-20261113 8a4b475ecec76eceb5052d1563f726906306e881",
+    "origin/codex/bento-v0.1.10 4664390648de0125954255544cc8d60d60e7353b",
+    "origin/codex/chatgpt-handoff-test-20261107 327c3de429eca0a9e37f90832ddf9cfa25240d14",
+    "origin/codex/demora-lifecycle-etl-evidence 1d6528e1954c1bac075a18bffb18a1ffbf102108",
+    "origin/codex/github-10min-report-watch-20261107 6381fcc19ec3fecb518fa46c9b53909ee829d674",
+    "origin/codex/mackie-issue5-research-20261110 00feb36cb8492561ba734154ff36bce1b760c847",
+    "origin/codex/radikal-issue4-research-20261110 25e7bdc0a55a198fda168e7da69d86f426e537c2",
+    "origin/experiment/mft-single-channel-v0.5.12 119456cbe9400609f35b52ad3429e3deb6029aba",
+    "origin/experimental/mft-col-001-banks-1-3 933d40c4e0d31841da9c420ea5b0d34051113b65",
+    "origin/main 8dec01a410e69d07c45b350086a27d072e6fb70a",
+    "origin/mf-seq/beta2-bank3-milestone-20261113 020d752bd2c431352567b9f7fd48b8d99c0762ad",
+    "origin/mf-seq/beta2.1-freeze-20261113 8bf6bf71e1fa78df2130a26be58f63c5d40e1224",
+    "origin/mf-seq/beta2.3-freeze-20261113 33cb440328c6226bf26c09fc60eac33f0530c7d3",
+    "origin/mf-seq/beta2.3-scale-perf-review-20261113 372690b15751bbd5bd5c6287cf88fdf89d9dd89e",
+    "origin/mf-seq/beta3-follow-default-on-exp1-20261113 695b30337d9e47255181de954fdc885de3dd259b",
+    "origin/mf-seq/codex-beta2.3-investigation-20261113 0f411aacd889bd23b369ff70ff6cefe9ef5a0bbb",
+    "origin/research/mft-native-midi-led-protocol-20261113 a301cd7bcb1a7cc3f82124f40d79ed2d76a379fd",
+    "origin/research/sac2k-mcu-reference 452ad8d9e32fd18bdcb1023e684f27b5e2c0434e",
+    "origin/twister/experimental-version-archive 57f2ffecb97884aa2aaf61b68141e2ff48b5f183"
+  ],
+  "candidate_blobs": [
+    {
+      "git_blob": "edcfcb8ad3863f0ddcaed5228aa1d18630d2ae00",
+      "path": "MF_BANK4_REVIEW/ISSUE_15_2026_11_13/verify_protocol.py",
+      "bytes": 6921,
+      "sha256": "c490938dc75d3cced67d91cb7bbb47b00824e3b01b92cbe114e9346608699ebc"
+    },
+    {
+      "git_blob": "3a0919c598518d02fd9111d144f80b788a35f427",
+      "path": "MF_BANK4_REVIEW/ISSUE_15_2026_11_13/verify_sp1_reference.py",
+      "bytes": 2020,
+      "sha256": "fb7abada0ba7b0b7e267b8c09c8d1e623cd2551bb6d6266b6df122d86d0008a5"
+    },
+    {
+      "git_blob": "18283f1b0e3e4eeb7c99d67548f36248a7935d7f",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_TEST18_SOURCE/MF_SEQ/MF_SEQ.py",
+      "bytes": 60538,
+      "sha256": "270460564e5fb765ef4e7d86e4fefb5c2b69926445d9bec66358160c69d6c1a8"
+    },
+    {
+      "git_blob": "4007d62b7c9bb54fa94dd2901e93cbf255d85ed2",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_TEST18_SOURCE/MF_SEQ_BETA_2_3_FROZEN_TEST18.zip",
+      "bytes": 14971,
+      "sha256": "38f3682e107742f68ef4ecd6400145bfc153afd86b1c8ad45618618daef16e8c"
+    },
+    {
+      "git_blob": "13c349ad102da46bfdd06cf9d2b2ee108f3d3ec9",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/MF_SEQ_BETA_3_FOLLOW_ON_EXP1.zip",
+      "bytes": 16531,
+      "sha256": "f3875f5bc4693f3bdc817e7d8ac99484003045ec322983fb7af836cf47c8bc89"
+    },
+    {
+      "git_blob": "e5e8a6297059d7068c020222cab56c93ea6cccd0",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/build.py",
+      "bytes": 1044,
+      "sha256": "7856e25df623533589511dcfbcfe786e9bda21a59a53b1f68575603cfc324d62"
+    },
+    {
+      "git_blob": "6ebdf4ba153e9bb6d50ccd1df51553698ad39a53",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/follow_tests.py",
+      "bytes": 4372,
+      "sha256": "97babfb1dc7190d5e9cfa62a95117f3eeb7e9d956c102cbf56969cdff861e59c"
+    },
+    {
+      "git_blob": "1ce9318801dd2d5dae8e7d097184f92556d24897",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/harness.py",
+      "bytes": 5038,
+      "sha256": "d20068f7792a21dfcfc1316f49d8a4e5173ecc7e15a28313645690c0b7fb6aba"
+    },
+    {
+      "git_blob": "24ca1fbcb3510ff4a67454f9afa8424cf457baed",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/run_tests.py",
+      "bytes": 1941,
+      "sha256": "c89eca4fd524155edf5ce60e0fef8883c3c9468a5e1c8d8fa2a6e3688cca3c38"
+    },
+    {
+      "git_blob": "69a71509c79564e83c607a9135fbd5efa9f86799",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/scale_tests.py",
+      "bytes": 7733,
+      "sha256": "1200d48c9b8e7b9818355fdd0e98b4298aa8cd7efcac739ae5a7737e51b97d63"
+    },
+    {
+      "git_blob": "cb95eecbf10eff1e2cfbba458ee41cf98ce9ab7d",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/source/MF_SEQ/MF_SEQ.py",
+      "bytes": 62443,
+      "sha256": "3b9c075bfd56ca7677b51ab8aad9076a3184e0233eff7f8edd8aef39b42e9d6d"
+    },
+    {
+      "git_blob": "42422b218f3a77e80d409e6fd81f589770e3a030",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/source/MF_SEQ/__init__.py",
+      "bytes": 91,
+      "sha256": "3eb0b17f311f4abf6cab2d31e9508d2412238e94b69faf9417c4deac14f4613f"
+    },
+    {
+      "git_blob": "b2636e05136546bea2c88ac875a6893d8cca448b",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/source/MF_SEQ/scale_sync.py",
+      "bytes": 8013,
+      "sha256": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397"
+    },
+    {
+      "git_blob": "94b0b811247d602271402ca68acb71398d040706",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/sp1_regressions.py",
+      "bytes": 6670,
+      "sha256": "a9d0051fb1d7f43d61ff86830f4adac8a31b32c6c457d636ea9116ba81194ca5"
+    },
+    {
+      "git_blob": "ea7a1612ea4bceb7804177c038a43b6cbf0c56f9",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/MF_SEQ_BETA_2_3_S1_SCALE_SYNC_REVIEW.zip",
+      "bytes": 16390,
+      "sha256": "94cd8cd58b08071fff282622bc8e51c35a38441ae08000d938260290547c783a"
+    },
+    {
+      "git_blob": "96ab1486476898963d87a87e6e9cd0771d479daf",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/MF_SEQ_BETA_2_3_SP1_SCALE_PERFORMANCE_REVIEW.zip",
+      "bytes": 16742,
+      "sha256": "223601c89dc84653e706e9027a5904c450d2e3fcfce87b2e02db07de06b7b180"
+    },
+    {
+      "git_blob": "cda50db9184057377d733ddacb53dfdfef80532a",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/benchmark.py",
+      "bytes": 3457,
+      "sha256": "29936346fca03add4af250451c017307d1a4439c782bd6f176aa73b2a78b44d4"
+    },
+    {
+      "git_blob": "cbf94ea1a765d3f02aa94ce844228f40f2c68faa",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/combined/MF_SEQ/MF_SEQ.py",
+      "bytes": 62444,
+      "sha256": "f1dff03e7ec0af128a2ae609cd9d1e5cb268888e2ab0d77209c0693063dbfa9a"
+    },
+    {
+      "git_blob": "96472776e0e2a3b36e9e8360c8669beb87a30e8b",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/probe_tests.py",
+      "bytes": 1308,
+      "sha256": "38d26b532589069bdc60ca2fa1a0162ad277461353770f8f918d3b7c04fa169a"
+    },
+    {
+      "git_blob": "4b57a360d9c25f3f26460d264a79c7627560d04a",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/prototype/MF_SEQ/MF_SEQ.py",
+      "bytes": 62544,
+      "sha256": "34864451dd65d6500cc841d824725531f65d52123e92b858d002ff7a81b3bfc9"
+    },
+    {
+      "git_blob": "145f3fff6b9c7e85e46f478b7abe727e102b314d",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/research/cc_lane_probe.py",
+      "bytes": 2322,
+      "sha256": "fd83796b20ad34702ecc87a0dc0098ae0f080a8e17f8104ac9fe31bfdadb0783"
+    },
+    {
+      "git_blob": "1f92c499ae7521ca71294e4bf04dc9e353e18106",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/research/test_research.py",
+      "bytes": 3200,
+      "sha256": "22a1486ed494f79f40f31c14bc856c46dd647be3e9438818f073ab1e9fee5d6d"
+    },
+    {
+      "git_blob": "aa88f4f7ebbfe4676e77fb24e6ad94ecd8e56431",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/research/timing_model.py",
+      "bytes": 1932,
+      "sha256": "f55a8949a663307d9f7ce946b912ca6740766bb610b2c02b0c02e670e61c2d92"
+    },
+    {
+      "git_blob": "32fa9284f8d172051f5eb11357654250aa3cd2ca",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/runtime_probe.py",
+      "bytes": 2966,
+      "sha256": "425cc10113f5db72f275d12fbc4378a356818ee5efac5d4c3fd9e4b476c7d858"
+    },
+    {
+      "git_blob": "d1ac2d5b23bbc8dca53cf9eafb5fb604f4cf9a47",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/scale/MF_SEQ/MF_SEQ.py",
+      "bytes": 60425,
+      "sha256": "e3c8690d086b1e2fc34e3ff1730e83499e86d3fa6ba611329e205a9f85b869d1"
+    },
+    {
+      "git_blob": "5613367ac917a0ca957c77d0759754906e0a4f18",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/verify_baseline.py",
+      "bytes": 1386,
+      "sha256": "f8940d047ca1f1bcd13a238ce760e256155aafb7ed724faff4306eb0b6fd9643"
+    },
+    {
+      "git_blob": "1db634d090c53a43f7f20c9e209f0e4f71216976",
+      "path": "MF_SEQ_STANDALONE_REVIEW/v1.5.0/MF_SEQ_V1.4.9_E1_E16_VIEW_GESTURE_TEST.zip",
+      "bytes": 7957,
+      "sha256": "65c88cb585d7dca3a424f800d2969e00fa5fa7a814b9b392c2c42f3523db49e4"
+    },
+    {
+      "git_blob": "7c75ed436ff7d5cb5fa955e3fa46da1ce40ca2e5",
+      "path": "MF_SEQ_STANDALONE_REVIEW/v1.5.0/MF_SEQ_V1.5.0_OPTIMIZATION_REVIEW.zip",
+      "bytes": 7545,
+      "sha256": "d82a6ce47ac9c57ad33fcfe2d551019ac9fdb7013860bd59c68ccb3661448301"
+    },
+    {
+      "git_blob": "4f95b3aae3d6c0d2a4fa4f82bbef822b9497641a",
+      "path": "MF_SEQ_STANDALONE_REVIEW/v1.5.0/baseline/MF_SEQ/MF_SEQ.py",
+      "bytes": 26910,
+      "sha256": "8e4ff43eaa6a0fa30487b069e01cd2780781e0788d49016bd684f7d865d6954d"
+    },
+    {
+      "git_blob": "f3a65e70eec45bdda856f23a01cb4ae4d6a79b0f",
+      "path": "MF_SEQ_STANDALONE_REVIEW/v1.5.0/candidate/MF_SEQ/MF_SEQ.py",
+      "bytes": 28131,
+      "sha256": "937f66320c68d4f7b15883a62a43bc99cb0ba3089db58b62a57e87c6eea9ee92"
+    },
+    {
+      "git_blob": "11a80764f9335a53de82d683fb9027615e649204",
+      "path": "MF_SEQ_STANDALONE_REVIEW/v1.5.0/verify.py",
+      "bytes": 13496,
+      "sha256": "da9a19bdcfb90107086606d128e3eed4fd475d137b89f5101d173b1d0ccd6473"
+    },
+    {
+      "git_blob": "c9b41af9e15ba6338afc1d8674369fb3814842e4",
+      "path": "midi-fighter-twister/experimental/COL-001/mfcolor calibration/__init__.py",
+      "bytes": 133,
+      "sha256": "0373b54f859a3e87e7ffd756d390f972fad8f05d929d75e40f504f57f2b4acb4"
+    },
+    {
+      "git_blob": "fe6c85e6b817318e81277de3d2a302f7cfd1bada",
+      "path": "midi-fighter-twister/experimental/COL-001/mfcolor calibration/color_surface.py",
+      "bytes": 1621,
+      "sha256": "654a2086aa0dc0988051de7454eeb756572350475ad5cac4b88afe8051006305"
+    },
+    {
+      "git_blob": "40648d8c2645e5acf0fbd7bf40ff70b3060a4a9e",
+      "path": "midi-fighter-twister/experimental/COL-001/mfcolor calibration/color_surface.py",
+      "bytes": 900,
+      "sha256": "2bff05decf205c13c79e16c02e5c137c53eac00dbc9e1fbf92715deec92b1687"
+    },
+    {
+      "git_blob": "616fd52c21a0842e359c121c719f67214da172d3",
+      "path": "aira-apple-silicon-driver/simulators/m9k/scenarios.py",
+      "bytes": 1346,
+      "sha256": "5bd8909d8fa2304c3aa5023bc03fd2c40ac0511bc5adb64ba33bd773e35d84fc"
+    },
+    {
+      "git_blob": "6bebbdf0f28f8c4c06d94d24ba2da622ac21944d",
+      "path": "aira-apple-silicon-driver/simulators/m9k/simulator.py",
+      "bytes": 19849,
+      "sha256": "ff5b74c0579f370bc7888f9cff933bc1dce8dc681e6d6e7f03882993d7f6be34"
+    },
+    {
+      "git_blob": "d97700bbc6a03307488c2c195bf44f2653445242",
+      "path": "aira-apple-silicon-driver/simulators/m9k/test_mutations.py",
+      "bytes": 5447,
+      "sha256": "dcff00213cc10b94a40d8af507162df936d643ec1a0f2d85eac3ec4c6510d67b"
+    },
+    {
+      "git_blob": "0c7d86d484f2c146851d5060afefce25c05d100a",
+      "path": "aira-apple-silicon-driver/simulators/m9k/test_simulator.py",
+      "bytes": 17254,
+      "sha256": "e1b4f0e27034756904642236e5078419c1c87c057a9f607879eeb755bfcad4e8"
+    },
+    {
+      "git_blob": "3a0498c8bb234c5bbd9ad72045c36b7fa329fb27",
+      "path": "aira-apple-silicon-driver/simulators/m9n_b/arithmetic.py",
+      "bytes": 2161,
+      "sha256": "4c65ae4527ff5aea96f82fdc1035a35fc2d2d74cd4c1bf8d99a3a89bcc233f45"
+    },
+    {
+      "git_blob": "78b089b1d5dafa1a2b50e86d0127013573e0c04d",
+      "path": "aira-apple-silicon-driver/simulators/m9n_b/benchmark.py",
+      "bytes": 2135,
+      "sha256": "6e8549b80393c513c15c3ed51dc27773bf13495b48970a3037442de205b6d25a"
+    },
+    {
+      "git_blob": "f0e69594ab30416faa8bdb00cf457d3f46288b3a",
+      "path": "aira-apple-silicon-driver/simulators/m9n_b/events.py",
+      "bytes": 1468,
+      "sha256": "91325e0886ed2cb8dee927e7fa7f93d5a936299e0b5c9d0a94dfd31857ed442f"
+    },
+    {
+      "git_blob": "28ce4d738fe76cca2fe1c150a11232b5c6c77c74",
+      "path": "aira-apple-silicon-driver/simulators/m9n_b/model.py",
+      "bytes": 25293,
+      "sha256": "e23e2f2a00bf821692a8d0054c9d325d64133fcc32aa7c3e145344f01fd3a3dc"
+    },
+    {
+      "git_blob": "d33cea4d395c54ec8f4db964d85f9fc1856957a9",
+      "path": "aira-apple-silicon-driver/simulators/m9n_b/records.py",
+      "bytes": 1739,
+      "sha256": "dd1449bf732769d4792217eafaf5727b3b24a8bafc277212297bca1208ad6e67"
+    },
+    {
+      "git_blob": "50020356e2b12b7966180ebcd6c629aec8225550",
+      "path": "aira-apple-silicon-driver/simulators/m9n_b/test_model.py",
+      "bytes": 21694,
+      "sha256": "0e9015cdbb1e470b2222b31886667f42decfb532d085db2e181614ff30354a79"
+    },
+    {
+      "git_blob": "482fb0545b821154ef3f7e80a2de5d93089d527b",
+      "path": "aira-apple-silicon-driver/simulators/m9n_b/test_mutations.py",
+      "bytes": 6191,
+      "sha256": "27f36bfe940132c2b598bec730e081dca464fdc2c5f755023eec03e72536ce8e"
+    }
+  ],
+  "archives": [
+    {
+      "git_blob": "4007d62b7c9bb54fa94dd2901e93cbf255d85ed2",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_TEST18_SOURCE/MF_SEQ_BETA_2_3_FROZEN_TEST18.zip",
+      "bytes": 14971,
+      "sha256": "38f3682e107742f68ef4ecd6400145bfc153afd86b1c8ad45618618daef16e8c",
+      "members": [
+        "MF_SEQ/MF_SEQ.py",
+        "MF_SEQ/__init__.py",
+        "README_TEST18.txt",
+        "SHA256_MF_SEQ_py.txt"
+      ]
+    },
+    {
+      "git_blob": "13c349ad102da46bfdd06cf9d2b2ee108f3d3ec9",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_3_FOLLOW_ON_EXP1_2026_11_13/MF_SEQ_BETA_3_FOLLOW_ON_EXP1.zip",
+      "bytes": 16531,
+      "sha256": "f3875f5bc4693f3bdc817e7d8ac99484003045ec322983fb7af836cf47c8bc89",
+      "members": [
+        "MF_SEQ/MF_SEQ.py",
+        "MF_SEQ/__init__.py",
+        "MF_SEQ/scale_sync.py"
+      ]
+    },
+    {
+      "git_blob": "ea7a1612ea4bceb7804177c038a43b6cbf0c56f9",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/MF_SEQ_BETA_2_3_S1_SCALE_SYNC_REVIEW.zip",
+      "bytes": 16390,
+      "sha256": "94cd8cd58b08071fff282622bc8e51c35a38441ae08000d938260290547c783a",
+      "members": [
+        "MF_SEQ/MF_SEQ.py",
+        "MF_SEQ/__init__.py",
+        "MF_SEQ/scale_sync.py"
+      ]
+    },
+    {
+      "git_blob": "96ab1486476898963d87a87e6e9cd0771d479daf",
+      "path": "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/MF_SEQ_BETA_2_3_SP1_SCALE_PERFORMANCE_REVIEW.zip",
+      "bytes": 16742,
+      "sha256": "223601c89dc84653e706e9027a5904c450d2e3fcfce87b2e02db07de06b7b180",
+      "members": [
+        "MF_SEQ/MF_SEQ.py",
+        "MF_SEQ/__init__.py",
+        "MF_SEQ/scale_sync.py"
+      ]
+    },
+    {
+      "git_blob": "1db634d090c53a43f7f20c9e209f0e4f71216976",
+      "path": "MF_SEQ_STANDALONE_REVIEW/v1.5.0/MF_SEQ_V1.4.9_E1_E16_VIEW_GESTURE_TEST.zip",
+      "bytes": 7957,
+      "sha256": "65c88cb585d7dca3a424f800d2969e00fa5fa7a814b9b392c2c42f3523db49e4",
+      "members": [
+        "MF_SEQ/MF_SEQ.py",
+        "MF_SEQ/__init__.py",
+        "CHANGELOG_TEST.md"
+      ]
+    },
+    {
+      "git_blob": "7c75ed436ff7d5cb5fa955e3fa46da1ce40ca2e5",
+      "path": "MF_SEQ_STANDALONE_REVIEW/v1.5.0/MF_SEQ_V1.5.0_OPTIMIZATION_REVIEW.zip",
+      "bytes": 7545,
+      "sha256": "d82a6ce47ac9c57ad33fcfe2d551019ac9fdb7013860bd59c68ccb3661448301",
+      "members": [
+        "MF_SEQ/MF_SEQ.py",
+        "MF_SEQ/__init__.py"
+      ]
+    }
+  ],
+  "selection_token_hits": [],
+  "available_material_directories": {
+    "/workspace/library-files": [],
+    "/workspace/shared": [],
+    "/workspace/scratch": []
+  }
+}
