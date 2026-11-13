@@ -1,0 +1,255 @@
+{
+  "repository": "solidtakes/Music-Development-Projects",
+  "scope": "all fetched branch heads and reachable object path names; no guarantee of deleted/unreachable or external attachment availability",
+  "refs": [
+    {
+      "ref": "origin/archive/mft-single-channel-v0.5.11",
+      "commit": "2bc8907b76eaad234d768d8f17cfb54c9cb904fa",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/automation/aira-pr2-15m-monitor",
+      "commit": "1514083fe8065635278ba3cc536e73e2fa7179fa",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/bento/bank2-sequencer-v150-review-20261112",
+      "commit": "7e6786c80160b20e2f6419f104a2150284981ea6",
+      "bank4_config_log_candidates": [
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": [
+        "MF_SEQ_STANDALONE_REVIEW/v1.5.0/MF_SEQ_V1.4.9_E1_E16_VIEW_GESTURE_TEST.zip",
+        "MF_SEQ_STANDALONE_REVIEW/v1.5.0/MF_SEQ_V1.5.0_OPTIMIZATION_REVIEW.zip",
+        "MF_SEQ_STANDALONE_REVIEW/v1.5.0/baseline/MF_SEQ/MF_SEQ.py",
+        "MF_SEQ_STANDALONE_REVIEW/v1.5.0/baseline/MF_SEQ/__init__.py",
+        "MF_SEQ_STANDALONE_REVIEW/v1.5.0/candidate/MF_SEQ/MF_SEQ.py",
+        "MF_SEQ_STANDALONE_REVIEW/v1.5.0/candidate/MF_SEQ/__init__.py",
+        "MF_SEQ_STANDALONE_REVIEW/v1.5.0/verify.py"
+      ]
+    },
+    {
+      "ref": "origin/bento/bank4-approved-palette-rule-20261112",
+      "commit": "0da5da2faf901fa1f36ed966d4513c33cbc58da3",
+      "bank4_config_log_candidates": [
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/bento/beta-v2-freeze-20261112",
+      "commit": "4f9f8cd3ee0da218f88d0f4e220e230e5e43d9e1",
+      "bank4_config_log_candidates": [
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/bento/step2-api-research-20261112",
+      "commit": "1b240a35f8a18b7df324b6904354cc4bb79ccf81",
+      "bank4_config_log_candidates": [
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/chatgpt/demora-offline-artifacts-2026-11-08",
+      "commit": "febfd9be2a22fc6edebd3a2eb5606bf47c22c394",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/codex/aira-m9n-b-source-only",
+      "commit": "c437e0977e0b9d13ce4dbba39e31fbbc1eba5ed8",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/codex/aira-m9p-integration-plan",
+      "commit": "5fbb504e5e7284b0decf66621aec3c29c3dee38f",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/codex/bento-v0.1.10",
+      "commit": "4664390648de0125954255544cc8d60d60e7353b",
+      "bank4_config_log_candidates": [
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/codex/chatgpt-handoff-test-20261107",
+      "commit": "327c3de429eca0a9e37f90832ddf9cfa25240d14",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/codex/demora-lifecycle-etl-evidence",
+      "commit": "1d6528e1954c1bac075a18bffb18a1ffbf102108",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/codex/github-10min-report-watch-20261107",
+      "commit": "6381fcc19ec3fecb518fa46c9b53909ee829d674",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/codex/mackie-issue5-research-20261110",
+      "commit": "00feb36cb8492561ba734154ff36bce1b760c847",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/codex/radikal-issue4-research-20261110",
+      "commit": "25e7bdc0a55a198fda168e7da69d86f426e537c2",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/experiment/mft-single-channel-v0.5.12",
+      "commit": "119456cbe9400609f35b52ad3429e3deb6029aba",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/experimental/mft-col-001-banks-1-3",
+      "commit": "933d40c4e0d31841da9c420ea5b0d34051113b65",
+      "bank4_config_log_candidates": [
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": [
+        "midi-fighter-twister/experimental/COL-001/mfcolor calibration/__init__.py",
+        "midi-fighter-twister/experimental/COL-001/mfcolor calibration/color_surface.py"
+      ]
+    },
+    {
+      "ref": "origin/main",
+      "commit": "8dec01a410e69d07c45b350086a27d072e6fb70a",
+      "bank4_config_log_candidates": [
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/mf-seq/beta2-bank3-milestone-20261113",
+      "commit": "020d752bd2c431352567b9f7fd48b8d99c0762ad",
+      "bank4_config_log_candidates": [
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/mf-seq/beta2.1-freeze-20261113",
+      "commit": "8bf6bf71e1fa78df2130a26be58f63c5d40e1224",
+      "bank4_config_log_candidates": [
+        "MF_SHARED_RESEARCH/HANDOFF_BANK_4_DEVICE_SPECIFIC_NATIVE_LED_2026-11-13.md",
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/mf-seq/beta2.3-freeze-20261113",
+      "commit": "33cb440328c6226bf26c09fc60eac33f0530c7d3",
+      "bank4_config_log_candidates": [
+        "MF_SHARED_RESEARCH/HANDOFF_BANK_4_DEVICE_SPECIFIC_NATIVE_LED_2026-11-13.md",
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/mf-seq/beta2.3-scale-perf-review-20261113",
+      "commit": "372690b15751bbd5bd5c6287cf88fdf89d9dd89e",
+      "bank4_config_log_candidates": [
+        "MF_SHARED_RESEARCH/HANDOFF_BANK_4_DEVICE_SPECIFIC_NATIVE_LED_2026-11-13.md",
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": [
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/MF_SEQ_BETA_2_3_S1_SCALE_SYNC_REVIEW.zip",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/MF_SEQ_BETA_2_3_SP1_SCALE_PERFORMANCE_REVIEW.zip",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/benchmark.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/combined/MF_SEQ/MF_SEQ.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/combined/MF_SEQ/__init__.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/combined/MF_SEQ/scale_sync.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/harness.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/probe_tests.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/prototype/MF_SEQ/MF_SEQ.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/prototype/MF_SEQ/__init__.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/regressions.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/research/cc_lane_probe.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/research/test_research.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/research/timing_model.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/runtime_probe.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/scale/MF_SEQ/MF_SEQ.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/scale/MF_SEQ/__init__.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/scale/MF_SEQ/scale_sync.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/scale_tests.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_INVESTIGATION_2026_11_13/verify_baseline.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_TEST18_SOURCE/MF_SEQ/MF_SEQ.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_TEST18_SOURCE/MF_SEQ_BETA_2_3_FROZEN_TEST18.zip"
+      ]
+    },
+    {
+      "ref": "origin/mf-seq/codex-beta2.3-investigation-20261113",
+      "commit": "0f411aacd889bd23b369ff70ff6cefe9ef5a0bbb",
+      "bank4_config_log_candidates": [
+        "MF_SHARED_RESEARCH/HANDOFF_BANK_4_DEVICE_SPECIFIC_NATIVE_LED_2026-11-13.md",
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": [
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_TEST18_SOURCE/MF_SEQ/MF_SEQ.py",
+        "MF_SEQ_STANDALONE_REVIEW/BETA_2_3_TEST18_SOURCE/MF_SEQ_BETA_2_3_FROZEN_TEST18.zip"
+      ]
+    },
+    {
+      "ref": "origin/research/mft-native-midi-led-protocol-20261113",
+      "commit": "a301cd7bcb1a7cc3f82124f40d79ed2d76a379fd",
+      "bank4_config_log_candidates": [
+        "MF_SHARED_RESEARCH/HANDOFF_BANK_4_DEVICE_SPECIFIC_NATIVE_LED_2026-11-13.md",
+        "mft-alternate-python/BANK4_MONO_MELODIC_SEQUENCER_2026-11-10.md",
+        "midi-fighter-twister/bank-4/PROJECT_STATUS.md"
+      ],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/research/sac2k-mcu-reference",
+      "commit": "452ad8d9e32fd18bdcb1023e684f27b5e2c0434e",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    },
+    {
+      "ref": "origin/twister/experimental-version-archive",
+      "commit": "57f2ffecb97884aa2aaf61b68141e2ff48b5f183",
+      "bank4_config_log_candidates": [],
+      "music_python_zip_paths": []
+    }
+  ],
+  "historical_target_path_matches": [],
+  "releases_api_result": [],
+  "missing": [
+    "complete Bank 4 selected-device implementation",
+    "diagnostic v0.4.1 ZIP",
+    "diagnostic v0.4.2 ZIP",
+    "historical Live log bytes",
+    "2026 all rel cchold(1).mfs",
+    "exact installed experimental firmware identity",
+    "accepted MF2Bank Beta 1 source ZIP",
+    "exact working Bento comparison ZIP"
+  ]
+}
