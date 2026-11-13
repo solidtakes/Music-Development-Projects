@@ -1,0 +1,11 @@
+--- accepted-SP1/MF_SEQ/MF_SEQ.py
++++ experimental/MF_SEQ/MF_SEQ.py
+@@ -79,7 +79,7 @@
+         self._param_turn_accum = 0
+         self._loop_origin = None
+         self._loop_clip = None
+-        self._follow_playback = False
++        self._follow_playback = True
+         self._follow_was_playing = False
+         self._follow_manual_pause = False
+         self._tick_count = 0

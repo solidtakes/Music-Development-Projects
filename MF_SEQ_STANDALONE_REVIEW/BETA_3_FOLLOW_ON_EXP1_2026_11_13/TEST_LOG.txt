@@ -1,0 +1,49 @@
+=== follow_tests.py ===
+test_all_press_pairs_and_leds_differential_with_same_follow_setting (__main__.FollowTests.test_all_press_pairs_and_leds_differential_with_same_follow_setting) ... ok
+test_clip_replace_remove_reinsert_and_off_persistence (__main__.FollowTests.test_clip_replace_remove_reinsert_and_off_persistence) ... ok
+test_initialization_and_reload_without_fixture_override (__main__.FollowTests.test_initialization_and_reload_without_fixture_override) ... ok
+test_loop_wrap_origins_lengths_meter_and_live_loop_change (__main__.FollowTests.test_loop_wrap_origins_lengths_meter_and_live_loop_change) ... ok
+test_manual_chord_and_rotary_suspend_until_restart (__main__.FollowTests.test_manual_chord_and_rotary_suspend_until_restart) ... ok
+test_off_holds_page_and_on_resumes (__main__.FollowTests.test_off_holds_page_and_on_resumes) ... ok
+test_only_runtime_difference_is_initial_default (__main__.FollowTests.test_only_runtime_difference_is_initial_default) ... ok
+test_toggle_both_release_orders_and_no_note_edits (__main__.FollowTests.test_toggle_both_release_orders_and_no_note_edits) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 3.229s
+
+OK
+
+=== sp1_regressions.py ===
+test_all_ordered_press_pairs_differential (__main__.Regression.test_all_ordered_press_pairs_differential) ... ok
+test_cache_refresh_hook_transport_and_read_fail_retry (__main__.Regression.test_cache_refresh_hook_transport_and_read_fail_retry) ... ok
+test_frozen_chords_order_release_and_follow_manual_pause (__main__.Regression.test_frozen_chords_order_release_and_follow_manual_pause) ... ok
+test_frozen_input_functions_and_palette (__main__.Regression.test_frozen_input_functions_and_palette) ... ok
+test_local_edits_native_vector_and_no_stale_note_cache (__main__.Regression.test_local_edits_native_vector_and_no_stale_note_cache) ... ok
+test_long_note_all_modes_and_non_four_four (__main__.Regression.test_long_note_all_modes_and_non_four_four) ... ok
+test_one_ring_reassertion_after_color_pass (__main__.Regression.test_one_ring_reassertion_after_color_pass) ... ok
+test_playback_differential_matrix_every_sample (__main__.Regression.test_playback_differential_matrix_every_sample) ... ok
+test_stop_restart_shifted_loop_clip_change_and_external_edit (__main__.Regression.test_stop_restart_shifted_loop_clip_change_and_external_edit) ... ok
+test_unambiguous_one_callback_and_disconnect (__main__.Regression.test_unambiguous_one_callback_and_disconnect) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 2.054s
+
+OK
+
+=== scale_tests.py ===
+test_api_unavailable_blocks_not_c_major (__main__.ScaleTests.test_api_unavailable_blocks_not_c_major) ... ok
+test_fold_highlight_not_used_and_invalid_intervals_fail_closed (__main__.ScaleTests.test_fold_highlight_not_used_and_invalid_intervals_fail_closed) ... ok
+test_metadata_preserved_by_off_pitch_edit (__main__.ScaleTests.test_metadata_preserved_by_off_pitch_edit) ... ok
+test_missing_listeners_poll_bound_and_immediate_edit (__main__.ScaleTests.test_missing_listeners_poll_bound_and_immediate_edit) ... ok
+test_no_duplicates_selection_rebind_disconnect_and_reload (__main__.ScaleTests.test_no_duplicates_selection_rebind_disconnect_and_reload) ... ok
+test_notifications_never_retune_or_redraw_or_read_notes (__main__.ScaleTests.test_notifications_never_retune_or_redraw_or_read_notes) ... ok
+test_on_off_root_and_major_minor_dorian_next_edit (__main__.ScaleTests.test_on_off_root_and_major_minor_dorian_next_edit) ... ok
+test_pitch_bounds_and_transport_state (__main__.ScaleTests.test_pitch_bounds_and_transport_state) ... ok
+test_song_proxy_requires_correct_detail_clip (__main__.ScaleTests.test_song_proxy_requires_correct_detail_clip) ... ok
+test_song_replacement_and_foreign_listener_preservation (__main__.ScaleTests.test_song_replacement_and_foreign_listener_preservation) ... ok
+test_source_reproduction_off_regression (__main__.ScaleTests.test_source_reproduction_off_regression) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.043s
+
+OK
