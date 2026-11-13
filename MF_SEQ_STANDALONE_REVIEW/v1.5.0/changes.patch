@@ -1,0 +1,176 @@
+--- baseline/MF_SEQ/MF_SEQ.py
++++ candidate/MF_SEQ/MF_SEQ.py
+@@ -1,4 +1,4 @@
+-"""MF SEQ V1.4.8 experimental - prioritized playhead and cached note/ring rendering; preserves V1.3 gestures.
++"""MF SEQ V1.5.0 review candidate - bounded rendering work; V1.4.9 gestures.
+ No Live 13 Step Sequencer API dependencies. No interaction with other Twister banks.
+ """
+ from __future__ import absolute_import
+@@ -45,9 +45,7 @@
+         self._press_order = []
+         self._last_leds = [None] * STEPS
+         self._last_clip = None
+-        self._last_slot = None
+         self._last_playhead = -1
+-        self._last_note_signature = None
+         self._cached_colors = [OFF] * STEPS
+         self._cached_rings = [0] * STEPS
+         self._last_pitch_view = None
+@@ -57,10 +55,12 @@
+         self._tick_count = 0
+         self._dirty = True
+         self._last_error = None
++        self._disconnected = False
+         self.request_rebuild_midi_map()
+         self.schedule_message(1, self._tick)
+ 
+     def disconnect(self):
++        self._disconnected = True
+         try:
+             for step in range(STEPS):
+                 self._led(step, OFF)
+@@ -207,8 +207,15 @@
+     def _bar_beats(self, clip):
+         # Live MIDI note positions are in quarter-note beats.
+         try:
+-            numerator = int(getattr(clip, 'signature_numerator', self.song().signature_numerator))
+-            denominator = int(getattr(clip, 'signature_denominator', self.song().signature_denominator))
++            numerator = getattr(clip, 'signature_numerator', None)
++            denominator = getattr(clip, 'signature_denominator', None)
++            if numerator is None or denominator is None:
++                song = self.song()
++                if numerator is None:
++                    numerator = song.signature_numerator
++                if denominator is None:
++                    denominator = song.signature_denominator
++            numerator, denominator = int(numerator), int(denominator)
+             if numerator > 0 and denominator in (1, 2, 4, 8, 16, 32):
+                 return numerator * 4.0 / denominator
+         except Exception:
+@@ -440,12 +447,23 @@
+         return 1 + int(round((max(MIN_PITCH, min(MAX_PITCH, int(pitch))) - MIN_PITCH)
+                              * 126.0 / float(MAX_PITCH - MIN_PITCH)))
+ 
++    @staticmethod
++    def _same_clip(left, right):
++        # Live wrappers may be distinct Python objects for one LOM object.
++        # Equality is scoped to this comparison; never retain a native pointer.
++        try:
++            return left is right or (left is not None and right is not None and left == right)
++        except Exception:
++            return False  # Uncertain/deleted object: refresh rather than reuse.
++
+     def _tick(self):
++        if self._disconnected:
++            return
+         try:
+             self._tick_count += 1
+             clip = self._target()
+             pitch_view = self._ring_view == 'pitch'
+-            if clip is not self._last_clip:
++            if not self._same_clip(clip, self._last_clip):
+                 # Page is a user-selected 16-step editing bank, not a property
+                 # of the transient Python clip wrapper. Live may return a new
+                 # wrapper every tick; never reset the page on this comparison.
+@@ -453,7 +471,6 @@
+                 # bar, as on common banked hardware step sequencers.
+                 self._last_clip = clip
+                 self._dirty = True
+-                self._last_note_signature = None
+                 self._last_playhead = -1
+                 self._cached_colors = [OFF] * STEPS
+                 self._cached_rings = [0] * STEPS
+@@ -466,15 +483,20 @@
+                 try:
+                     if getattr(clip, 'is_playing', False):
+                         loop_start = float(getattr(clip, 'loop_start', 0.0))
+-                        pos = (float(clip.playing_position) - loop_start) % max(self._step_beats(clip), float(getattr(clip, 'loop_end', BAR_BEATS)) - loop_start)
+-                        absolute_step = int(pos / self._step_beats(clip))
++                        step_beats = self._step_beats(clip)
++                        pos = (float(clip.playing_position) - loop_start) % max(step_beats, float(getattr(clip, 'loop_end', BAR_BEATS)) - loop_start)
++                        absolute_step = int(pos / step_beats)
+                         if self._page * STEPS <= absolute_step < (self._page + 1) * STEPS:
+                             position = absolute_step - self._page * STEPS
+                 except Exception as exc:
+                     self._report('Playhead read failed: {}'.format(exc))
++            needs_scan = (self._dirty or pitch_view != self._last_pitch_view or
++                          self._tick_count - self._last_note_scan_tick >= 4)
+             old_position = self._last_playhead
+             if position != old_position:
+-                if 0 <= old_position < STEPS:
++                # A scan below restores the old step using its fresh color.
++                # Avoid sending its stale cached color immediately beforehand.
++                if 0 <= old_position < STEPS and not needs_scan:
+                     self._led(old_position, self._cached_colors[old_position])
+                 if 0 <= position < STEPS:
+                     self._led(position, BLUE)
+@@ -483,8 +505,6 @@
+             # Read notes at most every four ticks during steady playback,
+             # but immediately after any local edit, clip change or ring-mode
+             # change. Periodic scans still pick up external piano-roll edits.
+-            needs_scan = (self._dirty or pitch_view != self._last_pitch_view or
+-                          self._tick_count - self._last_note_scan_tick >= 4)
+             if needs_scan:
+                 self._last_note_scan_tick = self._tick_count
+                 self._last_pitch_view = pitch_view
+@@ -493,35 +513,41 @@
+                 if clip is not None:
+                     try:
+                         notes = self._read(clip)
++                        # Snapshot timing once per scan, including non-4/4 meters.
++                        bar_beats = self._bar_beats(clip)
++                        step_beats = bar_beats / float(STEPS)
++                        page_start = float(getattr(clip, 'loop_start', 0.0)) + self._page * bar_beats
++                        page_end = page_start + bar_beats
++                        step_times = [page_start + step * step_beats for step in range(STEPS)]
+                         ordered_notes = sorted(notes, key=lambda n: (float(n.start_time), int(n.note_id)))
+                         for n in ordered_notes:
+                             start = float(n.start_time)
+                             end = start + float(n.duration)
+-                            if start < self._page_start(clip) and end > self._page_start(clip):
++                            if start < page_start and end > page_start:
+                                 for step in range(STEPS):
+-                                    if self._step_time(clip, step) < end - 0.0001:
++                                    if step_times[step] < end - 0.0001:
+                                         colors[step] = HELD
+                                         rings[step] = self._note_to_ring(n, pitch_view)
+-                            if start < self._page_start(clip) - 0.0001 or start >= self._page_start(clip) + self._bar_beats(clip) - 0.0001:
++                            if start < page_start - 0.0001 or start >= page_end - 0.0001:
+                                 continue
+-                            idx = int(round((start - self._page_start(clip)) / self._step_beats(clip)))
+-                            if idx >= STEPS or abs(start - self._step_time(clip, idx)) > 0.001:
++                            idx = int(round((start - page_start) / step_beats))
++                            if idx >= STEPS or abs(start - (page_start + idx * step_beats)) > 0.001:
+                                 continue
+                             ring_value = self._note_to_ring(n, pitch_view)
+                             if rings[idx] == 0:
+                                 rings[idx] = ring_value
+                             for step in range(idx + 1, STEPS):
+-                                if self._step_time(clip, step) < end - 0.0001:
++                                if step_times[step] < end - 0.0001:
+                                     if colors[step] != NOTE_START:
+                                         colors[step] = HELD
+                                     if rings[step] == 0:
+                                         rings[step] = ring_value
+                         for n in ordered_notes:
+                             start = float(n.start_time)
+-                            if start < self._page_start(clip) - 0.0001 or start >= self._page_start(clip) + self._bar_beats(clip) - 0.0001:
++                            if start < page_start - 0.0001 or start >= page_end - 0.0001:
+                                 continue
+-                            idx = int(round((start - self._page_start(clip)) / self._step_beats(clip)))
+-                            if idx >= STEPS or abs(start - self._step_time(clip, idx)) > 0.001:
++                            idx = int(round((start - page_start) / step_beats))
++                            if idx >= STEPS or abs(start - (page_start + idx * step_beats)) > 0.001:
+                                 continue
+                             colors[idx] = NOTE_START
+                             rings[idx] = self._note_to_ring(n, pitch_view)
+@@ -541,7 +567,8 @@
+                     self._white_ring(step, ring)
+                 self._dirty = False
+         finally:
+-            self.schedule_message(1, self._tick)
++            if not self._disconnected:
++                self.schedule_message(1, self._tick)
+ 
+     def _report(self, message):
+         if message != self._last_error:
