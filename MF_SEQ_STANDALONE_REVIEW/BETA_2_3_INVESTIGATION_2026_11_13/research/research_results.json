@@ -1,0 +1,6 @@
+{
+  "scope": "Offline models only; no Live save/reload or MIDI output validation",
+  "groups": 5,
+  "failures": 0,
+  "errors": 0
+}

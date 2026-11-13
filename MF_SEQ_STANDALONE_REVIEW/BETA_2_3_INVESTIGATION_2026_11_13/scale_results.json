@@ -1,0 +1,6 @@
+{
+  "scope": "Observable mocks for Clip/Song properties and listener contracts, not actual Live runtime validation",
+  "groups": 11,
+  "failures": 0,
+  "errors": 0
+}

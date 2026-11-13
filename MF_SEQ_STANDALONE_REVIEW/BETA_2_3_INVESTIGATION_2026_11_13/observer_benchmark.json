@@ -1,0 +1,194 @@
+{
+  "scope": "Same synthetic 60s playback, mock Clip scale properties plus working mock listeners; no actual Live API validation",
+  "cases": [
+    {
+      "bpm": 120,
+      "bars": 4,
+      "poll_hz": 10,
+      "seconds": 60,
+      "origin": 0.0,
+      "ticks": 600,
+      "property_reads": 67950,
+      "note_vector_reads": 150,
+      "midi_sends": 1454,
+      "duplicate_sends": 0,
+      "full_render_passes": 150,
+      "led_call_attempts": 3240,
+      "ring_call_attempts": 2400,
+      "page_changes": 29,
+      "expected_step_positions": 480,
+      "observed_step_positions": 480,
+      "missed_step_positions": 0,
+      "observation_latency_ms_p50": 37.49999999999876,
+      "observation_latency_ms_max": 75.00000000000284,
+      "mock_tick_us_p50": 9.89,
+      "mock_tick_us_p95": 478.249,
+      "max_pending_callbacks": 1,
+      "windows_10s": [
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 254,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        }
+      ],
+      "name": "baseline"
+    },
+    {
+      "bpm": 120,
+      "bars": 4,
+      "poll_hz": 10,
+      "seconds": 60,
+      "origin": 0.0,
+      "ticks": 600,
+      "property_reads": 67955,
+      "note_vector_reads": 150,
+      "midi_sends": 1454,
+      "duplicate_sends": 0,
+      "full_render_passes": 150,
+      "led_call_attempts": 3240,
+      "ring_call_attempts": 2400,
+      "page_changes": 29,
+      "expected_step_positions": 480,
+      "observed_step_positions": 480,
+      "missed_step_positions": 0,
+      "observation_latency_ms_p50": 37.49999999999876,
+      "observation_latency_ms_max": 75.00000000000284,
+      "mock_tick_us_p50": 9.84,
+      "mock_tick_us_p95": 421.815,
+      "max_pending_callbacks": 1,
+      "windows_10s": [
+        {
+          "note_vectors": 25,
+          "property_reads": 11330,
+          "midi": 254,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11325,
+          "midi": 240,
+          "scheduled": 100
+        }
+      ],
+      "name": "scale_S1"
+    },
+    {
+      "bpm": 120,
+      "bars": 4,
+      "poll_hz": 10,
+      "seconds": 60,
+      "origin": 0.0,
+      "ticks": 600,
+      "property_reads": 67505,
+      "note_vector_reads": 150,
+      "midi_sends": 1454,
+      "duplicate_sends": 0,
+      "full_render_passes": 30,
+      "led_call_attempts": 1410,
+      "ring_call_attempts": 480,
+      "page_changes": 29,
+      "expected_step_positions": 480,
+      "observed_step_positions": 480,
+      "missed_step_positions": 0,
+      "observation_latency_ms_p50": 37.49999999999876,
+      "observation_latency_ms_max": 75.00000000000284,
+      "mock_tick_us_p50": 8.3125,
+      "mock_tick_us_p95": 438.569,
+      "max_pending_callbacks": 1,
+      "windows_10s": [
+        {
+          "note_vectors": 25,
+          "property_reads": 11255,
+          "midi": 254,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11250,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11250,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11250,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11250,
+          "midi": 240,
+          "scheduled": 100
+        },
+        {
+          "note_vectors": 25,
+          "property_reads": 11250,
+          "midi": 240,
+          "scheduled": 100
+        }
+      ],
+      "name": "scale_performance_SP1"
+    }
+  ]
+}

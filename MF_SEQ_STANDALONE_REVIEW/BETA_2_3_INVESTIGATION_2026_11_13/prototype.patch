@@ -1,0 +1,273 @@
+--- baseline/MF_SEQ/MF_SEQ.py
++++ prototype/MF_SEQ/MF_SEQ.py
+@@ -1,9 +1,13 @@
+-"""MF SEQ Beta V2 Test 18 - Bank 3 direct bar selection and playback follow.
++"""MF SEQ Beta 2.3 performance prototype P1 - derived from frozen Test 18; review only.
+ No Live 13 Step Sequencer API dependencies. No interaction with other Twister banks.
+ """
+ from __future__ import absolute_import
+ from _Framework.ControlSurface import ControlSurface
+ import Live
++from collections import namedtuple
++
++_DisplayNote = namedtuple(
++    '_DisplayNote', 'start_time duration note_id pitch velocity probability')
+ 
+ ROT_CHANNEL = 11  # MIDI channel 12, zero based
+ PUSH_CHANNEL = 10 # MIDI channel 11, zero based
+@@ -57,6 +61,10 @@
+         self._cached_rings = [0] * STEPS
+         self._last_pitch_view = None  # legacy name; now tracks the entire ring mode
+         self._last_note_scan_tick = -100
++        self._last_note_read_tick = -100
++        self._display_notes = None
++        self._notes_dirty = True
++        self._last_display_context = None
+         self._page = 0
+         self._ring_view = 'velocity'  # retained for existing ring calculation
+         self._edit_mode = 'notes'  # notes, velocity, pitch, length, cc1
+@@ -79,6 +87,15 @@
+         self._disconnected = False
+         self.request_rebuild_midi_map()
+         self.schedule_message(1, self._tick)
++
++    def refresh_state(self):
++        super(MF_SEQ, self).refresh_state()
++        if hasattr(self, '_last_leds'):
++            self._last_leds = [None] * STEPS
++            self._last_white_rings = [None] * STEPS
++            self._last_display_context = None
++            self._dirty = True
++            self._notes_dirty = True
+ 
+     def disconnect(self):
+         self._disconnected = True
+@@ -534,6 +551,7 @@
+                 duration=float(self._step_beats(clip) / 2.0), velocity=100.0, mute=False)
+             clip.add_new_notes((spec,))
+         self._dirty = True
++        self._notes_dirty = True
+         return True
+ 
+     def _extend_note(self, start_step, end_step):
+@@ -599,6 +617,7 @@
+                     duration=float(end - pos), velocity=100.0, mute=False)
+                 clip.add_new_notes((spec,))
+             self._dirty = True
++            self._notes_dirty = True
+         except Exception as exc:
+             self._report('Mono tie overwrite failed: {}: {}'.format(type(exc).__name__, exc))
+ 
+@@ -643,6 +662,7 @@
+                 self._report('Split insertion failed; rollback also failed: {}'.format(rollback_exc))
+             raise
+         self._dirty = True
++        self._notes_dirty = True
+         return True
+ 
+     def _toggle(self, step, clip=None):
+@@ -663,6 +683,7 @@
+                 # Never leave an inaccessible different-pitch note underneath.
+                 clip.remove_notes_by_id(tuple(sorted(set(e[2] for e in overlaps))))
+                 self._dirty = True
++                self._notes_dirty = True
+                 return
+             self._write_toggle(clip, (), step)
+         except Exception as exc:
+@@ -693,6 +714,7 @@
+             # Preserve the native vector returned by Live.
+             modifier(notes)
+             self._dirty = True
++            self._notes_dirty = True
+             self.show_message('MF SEQ | Step {} | Velocity: {}/127'.format(step + 1, int(round(new_velocity))))
+         except Exception as exc:
+             self._report('Velocity edit failed safely: {}: {}'.format(type(exc).__name__, exc))
+@@ -721,6 +743,7 @@
+                 return
+             modify(full_notes)
+             self._dirty = True
++            self._notes_dirty = True
+             self.show_message('MF SEQ | Step {} | Chance: {}%'.format(step + 1, int(round(note.probability * 100))))
+         except Exception as exc:
+             self._report('Probability edit blocked safely: {}: {}'.format(type(exc).__name__, exc))
+@@ -752,6 +775,7 @@
+             note.probability = next_value
+             modify(notes)
+             self._dirty = True
++            self._notes_dirty = True
+             self.show_message('MF SEQ | Step {} | Chance preset: {}%'.format(
+                 step + 1, int(round(next_value * 100))))
+         except Exception as exc:
+@@ -923,6 +947,7 @@
+             if remove_ids:
+                 clip.remove_notes_by_id(tuple(sorted(set(remove_ids))))
+             self._dirty = True
++            self._notes_dirty = True
+             labels = ('1/128', '1/64', '1/32', '3/64', '1/16', '3/32', '1/8', '1/4', '1/2')
+             self.show_message('MF SEQ: Step {} length {}'.format(step + 1, labels[new_index]))
+         except Exception as exc:
+@@ -977,6 +1002,7 @@
+             note.pitch = int(new_pitch)
+             modifier(notes)  # Original native MidiNoteVector, never a list.
+             self._dirty = True
++            self._notes_dirty = True
+             self.show_message('MF SEQ: Step {} pitch {} (MIDI {})'.format(step + 1, self._pitch_name(new_pitch), new_pitch))
+         except Exception as exc:
+             self._report('Pitch edit failed safely: {}: {}'.format(type(exc).__name__, exc))
+@@ -1066,53 +1092,62 @@
+                 self._cc1_unavailable_reported = False
+                 self._dirty = True
+                 self._last_playhead = -1
++                self._display_notes = None
++                self._notes_dirty = True
++                self._last_display_context = None
+                 self._cached_colors = [OFF] * STEPS
+                 self._cached_brightness = [RGB_BRIGHTNESS_START] * STEPS
+                 self._last_rgb_brightness = [None] * STEPS
+                 self._cached_rings = [0] * STEPS
+                 self._last_white_rings = [None] * STEPS
+ 
+-            # Follow only on a change of playback bar; respect shortened loops.
+-            playing = bool(clip is not None and getattr(clip, 'is_playing', False))
+-            if playing and not self._follow_was_playing:
+-                self._follow_manual_pause = False
++            # Snapshot playback/loop/meter once for Follow and playhead. No
++            # faster clock is implied: this still uses the existing scheduler.
++            playing = False
++            position = -1
++            bar_beats = BAR_BEATS
++            step_beats = BAR_BEATS / STEPS
++            origin = 0.0
++            loop_start = 0.0
++            loop_end = BAR_BEATS
++            pos = 0.0
++            try:
++                if clip is not None:
++                    playing = bool(getattr(clip, 'is_playing', False))
++                    bar_beats = self._bar_beats(clip)
++                    step_beats = bar_beats / float(STEPS)
++                    loop_start = float(clip.loop_start)
++                    loop_end = float(clip.loop_end)
++                    origin = (self._loop_origin if self._loop_origin is not None and
++                              self._same_clip(clip, self._loop_clip) else loop_start)
++                    if playing:
++                        pos = loop_start + ((float(clip.playing_position) - loop_start) %
++                                            max(step_beats, loop_end - loop_start))
++                if playing and not self._follow_was_playing:
++                    self._follow_manual_pause = False
++                if playing and loop_end > loop_start and self._follow_playback and not self._follow_manual_pause:
++                    follow_page = int((pos - origin + 0.00001) / bar_beats)
++                    if 0 <= follow_page < MAX_PAGES and follow_page != self._page:
++                        self._page = follow_page
++                        self._dirty = True
++                        self._last_playhead = -1
++                if playing:
++                    absolute_step = int((pos - origin) / step_beats)
++                    if self._page * STEPS <= absolute_step < (self._page + 1) * STEPS:
++                        position = absolute_step - self._page * STEPS
++            except Exception as exc:
++                self._report('Playback snapshot failed: {}'.format(exc))
+             self._follow_was_playing = playing
+-            if playing and self._follow_playback and not self._follow_manual_pause:
+-                try:
+-                    bar_beats = self._bar_beats(clip)
+-                    origin = self._content_origin(clip)
+-                    loop_a = float(clip.loop_start)
+-                    loop_b = float(clip.loop_end)
+-                    length = loop_b - loop_a
+-                    if length > 0 and bar_beats > 0:
+-                        playpos = float(clip.playing_position)
+-                        within = loop_a + ((playpos - loop_a) % length)
+-                        follow_page = int((within - origin + 0.00001) / bar_beats)
+-                        if 0 <= follow_page < MAX_PAGES and follow_page != self._page:
+-                            self._page = follow_page
+-                            self._dirty = True
+-                            self._last_playhead = -1
+-                except Exception as exc:
+-                    self._report('Follow playback failed: {}'.format(exc))
+-
+-            # Fast path: calculate playhead BEFORE reading MIDI notes or sending
+-            # any ring feedback. The only messages on most ticks are the two
+-            # inner RGB changes for old and new playhead steps.
+-            position = -1
+-            if clip is not None:
+-                try:
+-                    if getattr(clip, 'is_playing', False):
+-                        loop_start = float(getattr(clip, 'loop_start', 0.0))
+-                        step_beats = self._step_beats(clip)
+-                        loop_length = max(step_beats, float(getattr(clip, 'loop_end', BAR_BEATS)) - loop_start)
+-                        pos = loop_start + ((float(clip.playing_position) - loop_start) % loop_length)
+-                        absolute_step = int((pos - self._content_origin(clip)) / step_beats)
+-                        if self._page * STEPS <= absolute_step < (self._page + 1) * STEPS:
+-                            position = absolute_step - self._page * STEPS
+-                except Exception as exc:
+-                    self._report('Playhead read failed: {}'.format(exc))
+-            needs_scan = (self._dirty or ring_mode != self._last_pitch_view or
+-                          self._tick_count - self._last_note_scan_tick >= 4)
++            context = (self._page, playing, loop_start, loop_end, origin, bar_beats)
++            if context != self._last_display_context:
++                self._last_display_context = context
++                self._dirty = True
++            # Poll notes at the frozen four-tick interval, independently of page
++            # changes. Cache primitive display data only; edits always read a
++            # fresh native vector. Periodic reads still detect piano-roll edits.
++            notes_due = (self._notes_dirty or
++                         self._tick_count - self._last_note_read_tick >= 4)
++            needs_scan = self._dirty or ring_mode != self._last_pitch_view or notes_due
+             old_position = self._last_playhead
+             if position != old_position:
+                 # A scan below restores the old step using its fresh color.
+@@ -1130,19 +1165,35 @@
+             # change. Periodic scans still pick up external piano-roll edits.
+             if needs_scan:
+                 self._last_note_scan_tick = self._tick_count
++                previous_ring_mode = self._last_pitch_view
+                 self._last_pitch_view = ring_mode
+                 colors = [OFF] * STEPS
+                 rings = [0] * STEPS
+                 if clip is not None:
+                     try:
+-                        notes = self._read(clip)
+-                        # Snapshot timing once per scan, including non-4/4 meters.
+-                        bar_beats = self._bar_beats(clip)
+-                        step_beats = bar_beats / float(STEPS)
+-                        page_start = self._content_origin(clip) + self._page * bar_beats
++                        if notes_due:
++                            self._last_note_read_tick = self._tick_count
++                            self._notes_dirty = False
++                            snapshot = tuple(sorted((
++                                _DisplayNote(float(n.start_time), float(n.duration), int(n.note_id),
++                                             int(n.pitch), float(n.velocity),
++                                             float(getattr(n, 'probability', 1.0)))
++                                for n in self._read(clip)),
++                                key=lambda n: (n.start_time, n.note_id)))
++                            notes_changed = snapshot != self._display_notes
++                            self._display_notes = snapshot
++                        else:
++                            notes_changed = False
++                        if not notes_changed and not self._dirty and ring_mode == previous_ring_mode:
++                            # Playhead overlay must restore the old step because
++                            # we deferred it while waiting for this scan result.
++                            if old_position != position and 0 <= old_position < STEPS:
++                                self._led(old_position, self._cached_colors[old_position])
++                            return
++                        page_start = origin + self._page * bar_beats
+                         page_end = page_start + bar_beats
+                         step_times = [page_start + step * step_beats for step in range(STEPS)]
+-                        ordered_notes = sorted(notes, key=lambda n: (float(n.start_time), int(n.note_id)))
++                        ordered_notes = self._display_notes or ()
+                         for n in ordered_notes:
+                             start = float(n.start_time)
+                             end = start + float(n.duration)
+@@ -1222,11 +1273,6 @@
+                     if step in self._ring_reassert_steps:
+                         self._last_white_rings[step] = None
+                     self._white_ring(step, ring)
+-                # Reassert note-start white ring after the RGB/brightness pass.
+-                for step in tuple(self._ring_reassert_steps):
+-                    if 0 <= step < STEPS and rings[step] > 0:
+-                        self._last_white_rings[step] = None
+-                        self._white_ring(step, rings[step])
+                 self._ring_reassert_steps.clear()
+                 self._dirty = False
+         finally:

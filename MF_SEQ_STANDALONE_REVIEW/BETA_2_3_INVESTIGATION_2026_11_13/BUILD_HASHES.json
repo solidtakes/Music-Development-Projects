@@ -1,0 +1,16 @@
+{
+  "scale": {
+    "MF_SEQ.py": "e3c8690d086b1e2fc34e3ff1730e83499e86d3fa6ba611329e205a9f85b869d1",
+    "__init__.py": "3eb0b17f311f4abf6cab2d31e9508d2412238e94b69faf9417c4deac14f4613f",
+    "scale_sync.py": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397"
+  },
+  "prototype": {
+    "MF_SEQ.py": "34864451dd65d6500cc841d824725531f65d52123e92b858d002ff7a81b3bfc9",
+    "__init__.py": "3eb0b17f311f4abf6cab2d31e9508d2412238e94b69faf9417c4deac14f4613f"
+  },
+  "combined": {
+    "MF_SEQ.py": "f1dff03e7ec0af128a2ae609cd9d1e5cb268888e2ab0d77209c0693063dbfa9a",
+    "__init__.py": "3eb0b17f311f4abf6cab2d31e9508d2412238e94b69faf9417c4deac14f4613f",
+    "scale_sync.py": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397"
+  }
+}
