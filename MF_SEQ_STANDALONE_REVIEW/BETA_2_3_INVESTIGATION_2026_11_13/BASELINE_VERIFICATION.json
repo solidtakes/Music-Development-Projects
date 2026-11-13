@@ -1,0 +1,8 @@
+{
+  "zip_sha256": "38f3682e107742f68ef4ecd6400145bfc153afd86b1c8ad45618618daef16e8c",
+  "source_sha256": "270460564e5fb765ef4e7d86e4fefb5c2b69926445d9bec66358160c69d6c1a8",
+  "zip_crc": "PASS",
+  "layout": "PASS",
+  "syntax": "PASS (host Python only)",
+  "hardware": "owner-accepted freeze; no new hardware testing"
+}
