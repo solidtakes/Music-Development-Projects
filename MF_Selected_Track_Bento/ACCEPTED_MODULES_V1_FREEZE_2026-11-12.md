@@ -1,27 +1,53 @@
-# Bento accepted module freeze registry — 2026-11-12
+# Bento — CURRENT WORKING MODEL / v1 freeze registry
 
-## Provenance
-Reference complete-script snapshot: `Bento_v2.1_EXP_Transport1_Repairs.zip`, SHA-256 `44b58be9a12a2ef4bd7afa35e594ccc63914726f2d5d950db93b1b9137fa6672`. This document **does not** upload the source ZIP or isolate independently installable modules. Keep the full ZIP separately as the reproducible reference. Frozen v0.1.32 Beta v2.0 baseline remains unchanged.
+Updated 2026-11-12 at user's explicit direction. This registry is the authoritative **current working behavior baseline** for subsequent builds. Freeze means preserve the current user-accepted functionality, NOT a claim of complete edge-case certification or a new code artifact. Source code/ZIP has not been uploaded by this documentation commit.
 
-## Track Mixer v1 — ACCEPTED / FROZEN
-Hardware accepted: E3 single press = Mute; E4 single press = Record Arm; hold E4 + tap E3 = Pan Reset; hold E3 + tap E4 = Solo. No unintended release actions. Future work must preserve exact gestures. Cross-track held-button regression passed. E1+E16 navigation with Mixer in column four is not yet explicitly hardware-confirmed.
+## FROZEN v1 — Track Mixer (working)
+- E3 single press = Mute.
+- E4 single press = Record Arm.
+- Hold E4 + tap E3 = Pan Reset.
+- Hold E3 + tap E4 = Solo.
+- No unintended release actions.
+- Preserve current colors, track switching, hold/twist behavior, and current working controls; don't silently remap.
 
-## Device Controls v1 — FROZEN (USER CONFIRMED)
-Accepted existing behavior to preserve: power yellow on/off, second encoder press next bank of four parameters, third encoder previous device, fourth next device. Codex audit found no skipped parameter at 32/33; bank labels disagree with overlapping four-parameter paging. Correct labels without silently changing parameter stride/indexing. Further hardware boundary testing required.
+## FROZEN v1 — Device Controls (working)
+- Power button yellow on/off.
+- E2 (second from top) press = next bank of four parameters.
+- E3 press = previous device.
+- E4 press = next device.
+- Preserve current encoder positions, parameter mapping, colors, and existing bank behavior.
+- Prior 32/33 banking label concern remains a test/repair item; do not silently change the parameter stride or mapping. Fix labeling only after verification.
 
-## FX Sends v1 — FROZEN (USER CONFIRMED)
-Preserve startup light-purple color 104, unavailable sends off, working bank behavior, and shared consecutive assignment. User reported no issues with FX banking after track changes on v2.1. Codex found offset clamping defect in v0.1.32; verify corrected behavior on edge cases before final acceptance.
+## FROZEN v1 — FX Sends (working)
+- Startup light-purple LED color MIDI value 104.
+- Unavailable sends off.
+- Shared consecutive assignment and current working banking behavior across track changes.
+- Preserve colors, offsets and button behavior. Edge-case offset clamping remains eligible for regression-tested bug repair without redesign.
 
-## Regression and change-control rules
-- Preserve all frozen mappings and LEDs unless user explicitly authorizes change.
-- Repair safety bugs without changing expected user-facing gestures; test chords in both press/release orders, track/module changes while held, and Mixer in column four.
-- Test Device banks near 29–36, one/multiple Device columns, short/final banks, device selection.
-- Test FX track changes with different send counts and module-column reassignment.
-- New experimental builds: one new feature, one fine-tune, safe regression-tested repairs, and one measured optimization when feasible.
-- Transport 1 remains experimental; Transport 2 and Scene Launcher are v2 scope; VU/Beat is existing and needs repair.
-- These are hardware-accepted behaviors or provisional freeze notes, **not claims that the modules are independently isolated or all edge cases certified**.
+## BETA — Clip Launcher (near acceptance, NOT frozen)
+- Preserve working launch-on-release behavior, clip colors and cross-track safety.
+- User confirmed that holding a clip, switching tracks, and releasing does NOT launch on the new track.
+- Proposed stop gesture hold E3 + tap E4 in Clip module remains pending hardware verification. Reverse order is not a stop gesture; no accidental launch on release after consumed chord.
+- Freeze only after explicit user signoff.
 
-## Current status clarification — user decision 2026-11-12
-- **Track Mixer v1, Device Controls v1, FX Sends v1: FROZEN**, preserving behavior of the last accepted build. These freezes supersede prior provisional status labels. They are frozen for now, not claims of exhaustive hardware edge-case certification.
-- **VU meter: BETA / NOT FROZEN AS AN IMPLEMENTATION.** Selected Track and Master VU display designs are documented and approved, but user requires hands-on testing before accepting or freezing the VU module as a v1 working build. Do not describe VU as hardware-accepted/frozen code. Design records remain reference requirements for beta testing.
-- Do not silently change any frozen v1 module. Any changes require explicit user authorization. Preserve existing script snapshot and keep source ZIP status distinct from documentation commits.
+## BETA — VU display (DESIGN approved, NOT hardware tested/frozen as a working build)
+- **Selected Track VU**: approved RGB color progression plus white four-segment binary (0/127) ladder representing selected-track MIDI activity.
+- **Master VU**: same RGB color progression and white four-segment binary (0/127) ladder, but white follows Master AUDIO level.
+- RGB stages for both: all green first; top 3 yellow; top 2 orange; top 1 red; bottom remains green at higher stages.
+- White ladder bottom E4 -> E3 -> E2 -> E1; each ring strictly 0 or 127, never partial.
+- Exact calibration thresholds, true MIDI event capture and hardware behavior remain to be tested. Do NOT label these working modules as v1 frozen until user tests and approves.
+- Detailed approved designs: SELECTED_TRACK_VU_RGB_AND_WHITE_V1_FROZEN_2026-11-12.md; MASTER_VU_V1_FROZEN_NEXT_BUILD_2026-11-12.md. 'FROZEN' in these design document names refers to approved DESIGN, not hardware acceptance.
+
+## EXPERIMENTAL — Transport 1 / Transport 2
+- Transport 1 under testing; Transport 2 E2 gestures approved for development but not yet implemented.
+- Neither is a frozen working v1 module.
+
+## Change control / no regression
+1. The three working v1 modules (Track Mixer, Device Controls, FX Sends) are FROZEN. No gesture, mapping, color, or behavioral redesign without explicit user approval.
+2. Clip Launcher and VU remain BETA; retain approved designs while testing and repairing.
+3. Future builds must start from the last verified working source, preserve the current working model, and compare against this registry before release.
+4. Record every intentional change and regression result; distinguish source ZIP, code commit, design approval, and hardware verification.
+5. Never claim a GitHub documentation commit uploads the current Python script or ZIP. No automatic merges.
+
+## Baseline provenance and caveat
+Previously documented source snapshot: Bento_v2.1_EXP_Transport1_Repairs.zip, previously reported SHA-256 44b58be9a12a2ef4bd7afa35e594ccc63914726f2d5d950db93b1b9137fa6672. This hash/source was not independently reverified in this update. The previously frozen v0.1.32 Beta v2.0 baseline remains separately documented. Source availability must be verified before building.
