@@ -1,0 +1,19 @@
+{
+  "scope": "Mock Live contracts only; hardware and real Live runtime NOT RUN",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "suites": [
+    {
+      "suite": "follow_tests.py",
+      "exit_code": 0
+    },
+    {
+      "suite": "sp1_regressions.py",
+      "exit_code": 0
+    },
+    {
+      "suite": "scale_tests.py",
+      "exit_code": 0
+    }
+  ],
+  "passed": true
+}
