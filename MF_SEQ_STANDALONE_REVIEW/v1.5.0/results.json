@@ -1,0 +1,196 @@
+{
+  "scope": "Mock Python Live API only; no Ableton, MIDI driver, USB or hardware timing.",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "regressions": [
+    {
+      "test": "Immediate E1, double taps, both chord release orders, modes and four-bar cap",
+      "result": "PASS"
+    },
+    {
+      "test": "Velocity, scale pitch, held turn, reversal, ties, ambiguous notes, native vectors",
+      "result": "PASS"
+    },
+    {
+      "test": "Exact MIDI forwarding, rejected input and steady LED deduplication",
+      "result": "PASS"
+    },
+    {
+      "test": "External edit polling, clip change, audio rejection and empty-slot creation",
+      "result": "PASS"
+    },
+    {
+      "test": "60 seeded render comparisons: meters, ties, chords, off-grid notes, pages and modes",
+      "result": "PASS"
+    },
+    {
+      "test": "20,000-tick soak, one callback chain, queued callback after disconnect and failure path",
+      "result": "PASS"
+    },
+    {
+      "test": "Transient note-read failure preserves display and callback chain",
+      "result": "PASS"
+    },
+    {
+      "test": "Dirty scan plus playhead move: identical final LEDs, four messages reduced to three",
+      "result": "PASS"
+    },
+    {
+      "test": "Meter fallback and invalid signatures",
+      "result": "PASS"
+    },
+    {
+      "test": "Conservative clip comparison and absent double-click machinery",
+      "result": "PASS"
+    }
+  ],
+  "workloads": [
+    {
+      "build": "v1.4.9",
+      "equivalent_fresh_wrappers": false,
+      "ticks": 2000,
+      "note_reads": 500,
+      "clip_timing_property_reads": 632000,
+      "song_signature_reads": 491000,
+      "midi_messages": 1030,
+      "midi_after_disconnect_callback": 32,
+      "pending_before_disconnect": 1,
+      "pending_after_disconnect": 1,
+      "max_pending": 1,
+      "windows_500_ticks": [
+        {
+          "property_reads": 158000,
+          "note_reads": 125,
+          "midi": 280
+        },
+        {
+          "property_reads": 158000,
+          "note_reads": 125,
+          "midi": 250
+        },
+        {
+          "property_reads": 158000,
+          "note_reads": 125,
+          "midi": 250
+        },
+        {
+          "property_reads": 158000,
+          "note_reads": 125,
+          "midi": 250
+        }
+      ],
+      "mock_tick_us_p50": 5.818,
+      "mock_tick_us_p95": 868.917
+    },
+    {
+      "build": "v1.5.0",
+      "equivalent_fresh_wrappers": false,
+      "ticks": 2000,
+      "note_reads": 500,
+      "clip_timing_property_reads": 17500,
+      "song_signature_reads": 0,
+      "midi_messages": 1030,
+      "midi_after_disconnect_callback": 0,
+      "pending_before_disconnect": 1,
+      "pending_after_disconnect": 0,
+      "max_pending": 1,
+      "windows_500_ticks": [
+        {
+          "property_reads": 4375,
+          "note_reads": 125,
+          "midi": 280
+        },
+        {
+          "property_reads": 4375,
+          "note_reads": 125,
+          "midi": 250
+        },
+        {
+          "property_reads": 4375,
+          "note_reads": 125,
+          "midi": 250
+        },
+        {
+          "property_reads": 4375,
+          "note_reads": 125,
+          "midi": 250
+        }
+      ],
+      "mock_tick_us_p50": 3.976,
+      "mock_tick_us_p95": 108.583
+    },
+    {
+      "build": "v1.4.9",
+      "equivalent_fresh_wrappers": true,
+      "ticks": 2000,
+      "note_reads": 2000,
+      "clip_timing_property_reads": 2480000,
+      "song_signature_reads": 1940000,
+      "midi_messages": 1030,
+      "midi_after_disconnect_callback": 32,
+      "pending_before_disconnect": 1,
+      "pending_after_disconnect": 1,
+      "max_pending": 1,
+      "windows_500_ticks": [
+        {
+          "property_reads": 620000,
+          "note_reads": 500,
+          "midi": 280
+        },
+        {
+          "property_reads": 620000,
+          "note_reads": 500,
+          "midi": 250
+        },
+        {
+          "property_reads": 620000,
+          "note_reads": 500,
+          "midi": 250
+        },
+        {
+          "property_reads": 620000,
+          "note_reads": 500,
+          "midi": 250
+        }
+      ],
+      "mock_tick_us_p50": 856.6435,
+      "mock_tick_us_p95": 1216.149
+    },
+    {
+      "build": "v1.5.0",
+      "equivalent_fresh_wrappers": true,
+      "ticks": 2000,
+      "note_reads": 500,
+      "clip_timing_property_reads": 17500,
+      "song_signature_reads": 0,
+      "midi_messages": 1030,
+      "midi_after_disconnect_callback": 0,
+      "pending_before_disconnect": 1,
+      "pending_after_disconnect": 0,
+      "max_pending": 1,
+      "windows_500_ticks": [
+        {
+          "property_reads": 4375,
+          "note_reads": 125,
+          "midi": 280
+        },
+        {
+          "property_reads": 4375,
+          "note_reads": 125,
+          "midi": 250
+        },
+        {
+          "property_reads": 4375,
+          "note_reads": 125,
+          "midi": 250
+        },
+        {
+          "property_reads": 4375,
+          "note_reads": 125,
+          "midi": 250
+        }
+      ],
+      "mock_tick_us_p50": 4.747,
+      "mock_tick_us_p95": 108.634
+    }
+  ]
+}
