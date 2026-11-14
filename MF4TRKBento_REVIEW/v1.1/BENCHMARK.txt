@@ -1,0 +1,11 @@
+PASS: MIDI addresses, gestures, highlight and failure path, RGB priorities, clip state/position, scene launch, send retry, refresh, teardown.
+baseline moving clips, 80 simulated host ticks: 532 send attempts
+candidate moving clips, 80 simulated host ticks: 448 send attempts
+scan      False v1.0.1   sends=17.0 wall_us=56.36 cpu_us=52.08
+scan      False v1.1 EXP sends=0.0 wall_us=10.43 cpu_us=10.42
+scan      True  v1.0.1   sends=33.0 wall_us=100.63 cpu_us=98.96
+scan      True  v1.1 EXP sends=0.0 wall_us=11.81 cpu_us=10.42
+scheduled False v1.0.1   sends=17.0 wall_us=66.70 cpu_us=67.71
+scheduled False v1.1 EXP sends=0.0 wall_us=7.00 cpu_us=5.21
+scheduled True  v1.0.1   sends=33.0 wall_us=117.56 cpu_us=119.79
+scheduled True  v1.1 EXP sends=0.0 wall_us=8.43 cpu_us=5.21
