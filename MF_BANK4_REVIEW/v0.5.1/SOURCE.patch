@@ -1,0 +1,127 @@
+--- a/v0.5.0/build_candidate.py
++++ b/v0.5.1/build_candidate.py
+@@ -4,9 +4,9 @@
+ import zipfile
+ 
+ ROOT = Path(__file__).resolve().parent
+-archive = ROOT / 'MF_Bank4_Selected_Device_v0.5.0_Rebuild_Candidate.zip'
++archive = ROOT / 'MF_Bank4_Selected_Device_v0.5.1_Rebuild_Candidate.zip'
+ paths = [(p, str(p.relative_to(ROOT/'source'))) for p in sorted((ROOT/'source').rglob('*.py'))]
+-paths += [(ROOT/name, name) for name in ('README.md', 'PARAMETER_MAPPING.md', 'HARDWARE_CHECKLIST.md')]
++paths += [(ROOT/name, name) for name in ('README.md', 'PARAMETER_MAPPING.md', 'HARDWARE_CHECKLIST.md', 'INPUT_PATH_FIX.md', 'REFERENCES.md', 'DIAGNOSTIC_COMPARISON.md')]
+ with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+     for path, member in paths:
+         info = zipfile.ZipInfo(member, date_time=(2026,11,13,0,0,0))
+--- a/v0.5.0/source/MF_Bank4_Selected_Device_v050/__init__.py
++++ b/v0.5.1/source/MF_Bank4_Selected_Device_v051/__init__.py
+@@ -1,4 +1,4 @@
+-"""Bank 4 Selected Device Controls v0.5.0 — new rebuild candidate."""
++"""Bank 4 Selected Device Controls v0.5.1 — new rebuild candidate."""
+ from .surface import Bank4Surface
+ 
+ 
+--- a/v0.5.0/source/MF_Bank4_Selected_Device_v050/mapping.py
++++ b/v0.5.1/source/MF_Bank4_Selected_Device_v051/mapping.py
+@@ -1,5 +1,5 @@
+-"""Proposed v0.5.0 mappings. Resolve names at runtime; never guess indexes."""
+-VERSION = '0.5.0 Rebuild Candidate'
++"""Proposed v0.5.1 mappings. Resolve names at runtime; never guess indexes."""
++VERSION = '0.5.1 Rebuild Candidate'
+ FIRST_CC = 48
+ RGB_STATUS = 0xBA  # human channel 11
+ RING_STATUS = 0xBB  # human channel 12
+--- a/v0.5.0/source/MF_Bank4_Selected_Device_v050/surface.py
++++ b/v0.5.1/source/MF_Bank4_Selected_Device_v051/surface.py
+@@ -17,7 +17,7 @@
+         # A single owned polling chain; callbacks after disconnect are inert.
+         self.schedule_message(5, self._bank4_tick)
+         try:
+-            self.show_message('Bank 4 ' + VERSION + ' — hardware validation pending')
++            self.show_message('Bank 4 ' + VERSION + ' loaded')
+         except Exception:
+             pass
+ 
+@@ -38,7 +38,14 @@
+ 
+     def receive_midi(self, midi_bytes):
+         if getattr(self, '_bank4_alive', False) and self._bank4 is not None:
+-            self._bank4.receive(midi_bytes)
++            with self.component_guard():
++                self._bank4.receive(midi_bytes)
++
++    def receive_midi_chunk(self, midi_chunk):
++        # Live's batch entry point is separate from receive_midi in v2.
++        # Route every event through our same scoped handler, in original order.
++        for midi_bytes in midi_chunk:
++            self.receive_midi(midi_bytes)
+ 
+     def refresh_state(self):
+         super(Bank4Surface, self).refresh_state()
+--- a/v0.5.0/tests/test_bank4.py
++++ b/v0.5.1/tests/test_bank4.py
+@@ -30,6 +30,9 @@
+         self.sent.append(msg)
+         return True
+     def schedule_message(self, delay, callback): self.scheduled.append((delay, callback))
++    def receive_midi_chunk(self, midi_chunk):
++        # Model framework's separate batch path: it does NOT call receive_midi.
++        self.unhandled_batch = tuple(midi_chunk)
+     def request_rebuild_midi_map(self): self.rebuild_requested = True
+     def build_midi_map(self, handle): pass
+     def show_message(self, text): pass
+@@ -39,9 +42,9 @@
+ for name in ('ableton', 'ableton.v2', 'ableton.v2.control_surface'):
+     sys.modules[name] = types.ModuleType(name)
+ sys.modules['ableton.v2.control_surface'].ControlSurface = Base
+-pkg = importlib.import_module('MF_Bank4_Selected_Device_v050')
+-Controller = importlib.import_module('MF_Bank4_Selected_Device_v050.controller').Controller
+-mapping = importlib.import_module('MF_Bank4_Selected_Device_v050.mapping')
++pkg = importlib.import_module('MF_Bank4_Selected_Device_v051')
++Controller = importlib.import_module('MF_Bank4_Selected_Device_v051.controller').Controller
++mapping = importlib.import_module('MF_Bank4_Selected_Device_v051.mapping')
+ 
+ class Observable:
+     def __init__(self, **values):
+@@ -214,6 +217,42 @@
+         self.assertTrue(all(s in (0xBA,0xBB) and 48<=cc<=63 and 0<=v<=127 for s,cc,v in self.sent))
+ 
+ class AdapterTests(unittest.TestCase):
++    def test_batched_rotation_reaches_controller(self):
++        song,track=fixture(device())
++        surface=pkg.create_instance(types.SimpleNamespace(song=song,handle=lambda:42))
++        p=track.view.selected_device.parameters[0]
++        surface.receive_midi_chunk(((0xBB,48,65),(0xBB,48,65),(0xBB,48,63)))
++        self.assertEqual(p.writes,3)
++        self.assertEqual(p.value,.5+1/128)
++        surface.disconnect()
++
++    def test_batched_scope_order_and_after_disconnect(self):
++        song,track=fixture(device())
++        surface=pkg.create_instance(types.SimpleNamespace(song=song,handle=lambda:42))
++        p=track.view.selected_device.parameters[0]
++        p.value=1
++        before=p.writes
++        surface.receive_midi_chunk(((0xBB,48,65),(0xBB,48,63),(0xBA,48,127),
++                                   (0xBB,47,65),(0xBB,48,1)))
++        self.assertEqual(p.writes,before+2)
++        self.assertEqual(p.value,1-1/128)
++        surface.disconnect();before=p.writes;count=len(surface.sent)
++        surface.receive_midi_chunk(((0xBB,48,65),))
++        self.assertEqual(p.writes,before);self.assertEqual(len(surface.sent),count)
++
++    def test_batched_and_single_paths_match(self):
++        instances=[]
++        for unused in range(2):
++            song,track=fixture(device())
++            surface=pkg.create_instance(types.SimpleNamespace(song=song,handle=lambda:42))
++            instances.append((surface,track.view.selected_device.parameters[0]))
++        frame=((0xBB,48,65),(0xBB,48,65),(0xBB,48,63))
++        for message in frame:instances[0][0].receive_midi(message)
++        instances[1][0].receive_midi_chunk(frame)
++        self.assertEqual(instances[0][0].sent,instances[1][0].sent)
++        self.assertEqual(instances[0][1].value,instances[1][1].value)
++        for surface,p in instances:surface.disconnect()
++
+     def test_entry_forwarding_refresh_tick_disconnect(self):
+         song,track=fixture(device())
+         ci=types.SimpleNamespace(song=song,handle=lambda:42)
