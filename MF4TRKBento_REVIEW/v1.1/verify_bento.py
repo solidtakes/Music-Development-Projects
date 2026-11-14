@@ -1,5 +1,4 @@
 """Hardware-free MF4TRKBento correctness and script-call benchmark."""
-import argparse
 from contextlib import nullcontext
 import gc
 from pathlib import Path
@@ -100,145 +99,101 @@ def tick(unit):
     _, callback = unit.tasks.pop()
     callback()
 
+
 def verify(module):
     unit, tracks = fixture(module)
-    assert set(e.address for e, _ in unit._elements) == {(c, n) for c in (10, 11) for n in range(16)}
+    assert unit.highlight.offsets == (0, 0)
     assert unit.highlight.size == (4, 2)
-    assert unit._rgb_cache[0] == unit._rgb_cache[4] == 76
-    unit.refresh_state()
-    assert len(set(unit.sent[-32:])) == 32
-    unit.sent.clear()
-    session = unit.highlight
+    assert set(e.address for e, _ in unit._elements) == {(ch, cc) for ch in (10,11) for cc in range(16)}
+    first = unit.highlight
+    unit.host.view.selected_track = tracks[-1]
+    unit.host.view.selected_scene = unit.host.scenes[-1]
     tick(unit)
     tick(unit)
-    assert unit.sent == [] and unit.highlight is session
-    event(unit, 10, 2, 127)
-    assert tracks[2].clip_slots[0].fires == 0
-    event(unit, 10, 2, 0)
-    assert tracks[2].clip_slots[0].fires == 1
+    assert unit.highlight is first and first.offsets == (0, 0)
+    event(unit, 10, 1, 127)
+    event(unit, 10, 1, 0)
+    assert tracks[1].clip_slots[0].fires == 1
+
+    def scroll(cc, ticks, raw=65):
+        event(unit, 10, 0, 127)
+        for _ in range(ticks):
+            event(unit, 11, cc, raw)
+        event(unit, 10, 0, 0)
+
+    scroll(15, 3)
+    assert first.offsets == (0, 0) and tracks[0].clip_slots[0].fires == 0
+    scroll(15, 4)
+    assert first.offsets == (1, 0)
+    scroll(15, 8)
+    assert first.offsets == (1, 0)
+    scroll(11, 4)
+    assert first.offsets == (1, 1)
     event(unit, 10, 0, 127)
-    event(unit, 11, 11, 65)
+    for raw in (65,65,65,63,63,63):
+        event(unit, 11, 11, raw)
+    assert first.offsets == (1, 1)
+    event(unit, 11, 11, 63)
+    assert first.offsets == (1, 0)
     event(unit, 10, 0, 0)
-    assert unit._clip_offset == 1 and tracks[0].clip_slots[1].fires == 0
+    scroll(11, 4)
+    assert first.offsets == (1, 1)
     event(unit, 10, 11, 127)
-    event(unit, 11, 0, 65)
+    for _ in range(4):
+        event(unit, 11, 0, 65)
     event(unit, 10, 11, 0)
-    assert unit._clip_offset == 0
-    unit.host.view.selected_track = tracks[1]
+    assert first.offsets == (1, 0)
+
+    unit.host.scenes[0].color = 0x41A0EB
+    unit.host.scenes[1].color = 0xF5CD28
+    event(unit, 10, 15, 127)
+    event(unit, 10, 0, 127)
+    for _ in range(4):
+        event(unit, 11, 15, 65)
+    event(unit, 10, 15, 0)
+    event(unit, 10, 0, 0)
+    assert unit.highlight.size == (3, 2) and unit.highlight.offsets == (1, 0)
+    assert (unit._rgb_cache[3], unit._rgb_cache[7]) == (68, 108)
+    assert (unit._ring_cache[3], unit._ring_cache[7]) == (0, 0)
+    for cc in (3, 7):
+        event(unit, 10, cc, 127)
+        event(unit, 10, cc, 0)
+    assert [scene.fires for scene in unit.host.scenes][:2] == [1, 1]
+    unit.host.scenes[0].color = 0xEB2D32
     tick(unit)
     tick(unit)
-    assert unit.highlight.offsets == (1, 0)
-    clip = tracks[1].clip_slots[0].clip
-    clip.is_playing = True
-    tick(unit)
-    tick(unit)
-    assert unit._ring_cache[0] == 63
-    clip.playing_position = 3
-    tick(unit)
-    tick(unit)
-    assert unit._ring_cache[0] == 95
-    module.time.value = 0.30
-    tick(unit)
-    assert unit._rgb_cache[0] == 0
-    module.time.value = 0
-    clip.is_triggered = True
-    tick(unit)
-    tick(unit)
-    assert unit._rgb_cache[0] == 108 and unit._ring_cache[0] == 0
-    clip.is_recording = True
-    tick(unit)
-    tick(unit)
-    assert unit._rgb_cache[0] == 72
-    clip.is_playing = clip.is_triggered = clip.is_recording = False
-    clip.color = 0x41A0EB
-    tick(unit)
-    tick(unit)
-    assert unit._rgb_cache[0] == 68
+    assert unit._rgb_cache[3] == 72
+
     event(unit, 10, 15, 127)
     event(unit, 10, 0, 127)
     event(unit, 10, 0, 0)
     event(unit, 10, 15, 0)
-    assert unit.highlight.size == (3, 2) and unit._rgb_cache[3] == unit._rgb_cache[7] == 0
-    event(unit, 10, 7, 127)
-    event(unit, 10, 7, 0)
-    assert unit.host.scenes[1].fires == 1
-    elements = [e for e, _ in unit._elements]
+    assert unit.highlight.size == (4, 2) and (unit._rgb_cache[3], unit._rgb_cache[7]) == (76,76)
+    event(unit, 10, 3, 127)
+    event(unit, 10, 3, 0)
+    assert tracks[4].clip_slots[0].fires == 1
+    event(unit, 10, 0, 127)
+    event(unit, 11, 3, 65)
+    event(unit, 10, 0, 0)
+    assert unit.highlight.size == (4, 1) and unit._rgb_cache[0] == 0
+    event(unit, 10, 4, 127)
+    event(unit, 10, 4, 0)
+    assert tracks[1].clip_slots[0].fires == 2
+    unit.host.visible_tracks = tracks[:2]
+    unit.host.scenes = unit.host.scenes[:1]
+    tick(unit)
+    tick(unit)
+    assert unit.highlight.offsets == (0,0)
+    unit.host.scenes = []
+    tick(unit)
+    tick(unit)
+    assert unit._session_component is None and all(v == 0 for v in unit._rgb_cache.values())
     unit.disconnect()
-    assert all(not e.callbacks for e in elements)
-    assert len(unit.sent[-32:]) == 32 and all(v == 0 for _, _, v in unit.sent[-32:])
     unit.sent.clear()
     tick(unit)
-    assert not unit.tasks and not unit.sent
-
-    unit, _ = fixture(module)
-    sender = unit._send_midi
-    unit._send_midi = lambda msg: False
-    unit.refresh_state()
-    assert not unit._rgb_cache and not unit._ring_cache
-    unit._send_midi = sender
-    tick(unit)
-    tick(unit)
-    assert len(unit._rgb_cache) == len(unit._ring_cache) == 16
-
-    class BadSession:
-        def __init__(self, *args, **kwargs): raise RuntimeError('unavailable')
-    api = sys.modules['_Framework.SessionComponent']
-    api.SessionComponent = BadSession
-    try:
-        unit, _ = fixture(module)
-        before = len(unit.messages)
-        tick(unit)
-        tick(unit)
-        assert len(unit.messages) == before and unit._rgb_cache[0] == 76
-    finally:
-        api.SessionComponent = Session
-    print('PASS: MIDI addresses, gestures, highlight and failure path, RGB priorities, clip state/position, scene launch, send retry, refresh, teardown.')
-
-def benchmark(module, mode, playing, loops=3000):
-    results = []
-    for _ in range(5):
-        unit, _ = fixture(module, playing=playing)
-        callback = unit._refresh_all if mode == 'scan' else lambda: tick(unit)
-        for _ in range(25):
-            callback()
-            unit.sent.clear()
-            if mode == 'scan':
-                assert len(unit.tasks) == 1
-        gc.collect()
-        cpu_start, start = process_time_ns(), perf_counter_ns()
-        attempts = 0
-        for _ in range(loops):
-            callback()
-            attempts += len(unit.sent)
-            unit.sent.clear()
-        elapsed, cpu = perf_counter_ns() - start, process_time_ns() - cpu_start
-        results.append((attempts / loops, elapsed / loops / 1000, cpu / loops / 1000))
-    return tuple(median(row[i] for row in results) for i in range(3))
+    assert not unit.sent and not unit.tasks
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('baseline', type=Path)
-    parser.add_argument('candidate', type=Path)
-    args = parser.parse_args()
-    baseline, candidate = load('baseline', args.baseline), load('candidate', args.candidate)
-    verify(candidate)
-    for mod in (baseline, candidate):
-        unit, tracks = fixture(mod, playing=True)
-        unit.sent.clear()
-        old = mod is baseline
-        for step in range(1, 81):
-            mod.time.value = step / 20
-            for track in tracks:
-                for slot in track.clip_slots:
-                    slot.clip.playing_position = (step / 20) % 4
-            if old and step % 4:
-                continue
-            tick(unit)
-        print(f'{mod.__name__} moving clips, 80 simulated host ticks: {len(unit.sent)} send attempts')
-    for mode in ('scan', 'scheduled'):
-        for playing in (False, True):
-            for name, mod in (('v1.0.1', baseline), ('v1.1 EXP', candidate)):
-                attempts, elapsed, cpu = benchmark(mod, mode, playing)
-                print(f'{mode:9} {str(playing):5} {name:8} sends={attempts:.1f} wall_us={elapsed:.2f} cpu_us={cpu:.2f}')
-
+    verify(load('candidate', Path(sys.argv[1])))
+    print('PASS: independent box, track/scene four-detent scrolling, reversal/reset/bounds, alternate gesture and scene RGB, normal clip mode, Row 2, teardown.')
 

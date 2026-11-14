@@ -1,4 +1,4 @@
-# MF4TRKBento v1.1 EXP — two-row modular scaffold with RClip
+# MF4TRKBento v1.2 EXP — two-row modular scaffold with RClip
 # Built from the user's Selected Track Bento v2.2 and Four Track Mode v0.9 references.
 # Row 1: RClip. Row 2: Blank placeholder.
 # MIDI Fighter Twister: rotary ch12 (zero-based 11), push ch11 (zero-based 10).
@@ -9,6 +9,7 @@ import time
 
 
 class MF4TRKBento(ControlSurface):
+    SCROLL_DETENTS = 4
     ROTARY_CH = 11
     PUSH_CH = 10
     ROWS = ((0, 1, 2, 3), (4, 5, 6, 7))
@@ -30,7 +31,10 @@ class MF4TRKBento(ControlSurface):
         self._turn_accum = [0] * 16
         self._row_modules = ["RClip", "Blank"]
         self._alt_mode = False
-        self._clip_offset = 0
+        self._track_offset = 0
+        self._scene_offset = 0
+        self._scroll_steps = {"track": 0, "scene": 0}
+        self._alternate_press = False
         self._closed = False
         self._clip_frame = {}
         self._ticks_until_scan = 0
@@ -52,8 +56,8 @@ class MF4TRKBento(ControlSurface):
                     self._elements.append((element, callback))
         self._refresh_all()
         self.schedule_message(1, self._tick)
-        self.show_message("MF4TRKBento v1.1 EXP | Row 1 RClip / Row 2 Blank")
-        self.log_message("MF4TRKBento v1.1 EXP loaded")
+        self.show_message("MF4TRKBento v1.2 EXP | Row 1 RClip / Row 2 Blank")
+        self.log_message("MF4TRKBento v1.2 EXP loaded")
 
     def _make_rotary(self, cc):
         return lambda value: self._rotary(cc, value)
@@ -102,18 +106,16 @@ class MF4TRKBento(ControlSurface):
                 self._turn_accum[row] = 0
                 self._cycle_module(row, step)
             return
-        # RClip box vertical scrolling: E1 held + E12 turn up; E12 held + E1 turn down.
-        # The scroll gesture is intentionally reserved for the clip grid and does not
-        # fire a clip when the modifier is held.
-        if self._row_modules[0] == "RClip":
-            if cc == 11 and self._held[0]:
+        if not self._active_rows():
+            return
+        if self._held[0] and not self._alternate_press and cc in (11, 15):
+            self._consumed[0] = True
+            self._scroll_grid("scene" if cc == 11 else "track", step)
+        elif cc == 0 and self._held[11] and not self._alternate_press:
+            self._consumed[11] = True
+            if self._held[0]:
                 self._consumed[0] = True
-                self._scroll_clip_box(step)
-                return
-            if cc == 0 and self._held[11]:
-                self._consumed[11] = True
-                self._scroll_clip_box(-step)
-                return
+            self._scroll_grid("scene", -step)
 
     def _push(self, cc, raw):
         if self._closed:
@@ -124,6 +126,12 @@ class MF4TRKBento(ControlSurface):
             return
         self._held[cc] = down
 
+        if cc in (0, 11) and not down:
+            self._scroll_steps["scene"] = 0
+        if cc == 0 and not down:
+            self._scroll_steps["track"] = 0
+            self._alternate_press = False
+
         # Consume modifier releases so gestures never accidentally launch clips.
         if not down and self._consumed[cc]:
             self._consumed[cc] = False
@@ -132,8 +140,8 @@ class MF4TRKBento(ControlSurface):
         # Alternate mode: hold E16 and tap E1. E16 is a global modifier.
         if cc == 0 and down and self._held[15]:
             self._consumed[0] = True
+            self._alternate_press = True
             self._alt_mode = not self._alt_mode
-            self._clip_offset = min(self._clip_offset, self._max_clip_offset())
             self.show_message("MF4TRKBento | " + ("3 Clips + Scene" if self._alt_mode else "4 Clips"))
             self._refresh_all()
             return
@@ -144,7 +152,8 @@ class MF4TRKBento(ControlSurface):
 
         row = self._row_for_cc(cc)
         if row is not None and self._held[self.ROWS[row][0]] and cc == self.ROWS[row][-1]:
-            # Last encoder push is suppressed during module selection.
+            # Suppress the release even if the modifier lifts first.
+            self._consumed[cc] = down
             return
 
         if row is not None and self._row_modules[row] == "RClip":
@@ -153,7 +162,8 @@ class MF4TRKBento(ControlSurface):
             if not down:
                 column = cc % 4
                 if self._alt_mode and column == 3:
-                    self._launch_scene(self._clip_offset + row)
+                    self._clamp_offsets(self._visible_tracks(), self._scenes())
+                    self._launch_scene(self._scene_index(row))
                 else:
                     self._launch_clip(column, row)
             return
@@ -173,66 +183,58 @@ class MF4TRKBento(ControlSurface):
         except Exception:
             return ()
 
-    def _selected_track(self):
+    def _scenes(self):
         try:
-            return self.song().view.selected_track
-        except Exception:
-            return None
-
-    def _track_for_column(self, column):
-        tracks = self._visible_tracks()
-        selected = self._selected_track()
-        try:
-            start = tracks.index(selected)
-        except ValueError:
-            start = 0
-        index = start + column
-        return tracks[index] if 0 <= index < len(tracks) else None
-
-    def _clip_slot(self, column, scene_index):
-        track = self._track_for_column(column)
-        try:
-            slots = tuple(track.clip_slots) if track is not None else ()
-            return slots[scene_index] if 0 <= scene_index < len(slots) else None
-        except Exception:
-            return None
-
-    def _scene_count(self):
-        try:
-            return len(tuple(self.song().scenes))
-        except Exception:
-            return 0
+            return tuple(self.song().scenes)
+        except (AttributeError, RuntimeError, TypeError):
+            return ()
 
     def _clip_count(self):
         return 3 if self._alt_mode else 4
 
-    def _active_clip_rows(self):
-        return sum(1 for module in self._row_modules if module == "RClip")
+    def _active_rows(self):
+        return [row for row, module in enumerate(self._row_modules) if module == "RClip"]
 
-    def _max_clip_offset(self):
-        return max(0, self._scene_count() - max(1, self._active_clip_rows()))
+    def _scene_index(self, row):
+        return self._scene_offset + self._active_rows().index(row)
 
-    def _scroll_clip_box(self, direction):
-        old = self._clip_offset
-        self._clip_offset = max(0, min(self._max_clip_offset(), old + direction))
-        if self._clip_offset != old:
-            self.show_message("RClip | Slots %d-%d" %
-                              (self._clip_offset + 1, self._clip_offset + self._clip_count()))
+    def _clamp_offsets(self, tracks, scenes):
+        self._track_offset = max(0, min(self._track_offset, len(tracks) - self._clip_count()))
+        self._scene_offset = max(0, min(self._scene_offset, len(scenes) - max(1, len(self._active_rows()))))
+
+    def _scroll_grid(self, axis, step):
+        prior = self._scroll_steps[axis]
+        total = prior + step if prior * step > 0 else step
+        self._scroll_steps[axis] = total
+        if abs(total) < self.SCROLL_DETENTS:
+            return
+        self._scroll_steps[axis] = 0
+        old = (self._track_offset, self._scene_offset)
+        if axis == "track":
+            self._track_offset += step
+        else:
+            self._scene_offset += step
+        self._clamp_offsets(self._visible_tracks(), self._scenes())
+        if old != (self._track_offset, self._scene_offset):
+            for cc, held in enumerate(self._held):
+                if held:
+                    self._consumed[cc] = True
+            self.show_message("RClip | Track %d / Scene %d" % (self._track_offset + 1, self._scene_offset + 1))
             self._refresh_all()
 
     def _launch_clip(self, column, row):
-        # RClip is horizontal: one clip per track, across up to four tracks.
-        # Each RClip module row addresses the corresponding scene row vertically.
-        scene_index = self._clip_offset + row
-        slot = self._clip_slot(column, scene_index)
-        if slot is None:
+        tracks, scenes = self._visible_tracks(), self._scenes()
+        self._clamp_offsets(tracks, scenes)
+        index = self._track_offset + column
+        if index >= len(tracks):
             return
+        track = tracks[index]
         try:
-            if slot.has_clip:
-                slot.fire()
-            else:
-                track = self._track_for_column(column)
-                if (track is not None and bool(getattr(track, "arm", False))) or bool(getattr(slot, "has_stop_button", False)):
+            slots = track.clip_slots
+            scene_index = self._scene_index(row)
+            if scene_index < min(len(slots), len(scenes)):
+                slot = slots[scene_index]
+                if slot.has_clip or bool(getattr(track, "arm", False)) or bool(getattr(slot, "has_stop_button", False)):
                     slot.fire()
         except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
             self.log_message("MF4TRKBento RClip launch error: %s" % exc)
@@ -248,9 +250,9 @@ class MF4TRKBento(ControlSurface):
         except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
             self.log_message("MF4TRKBento scene launch error: %s" % exc)
 
-    def _clip_color(self, clip):
+    def _palette_color(self, item):
         try:
-            rgb = int(clip.color) & 0xFFFFFF
+            rgb = int(item.color) & 0xFFFFFF
         except (AttributeError, RuntimeError, TypeError, ValueError):
             return self.CLIP_COLOR_FALLBACK
         if rgb not in self._color_cache:
@@ -263,22 +265,16 @@ class MF4TRKBento(ControlSurface):
             )[0]
         return self._color_cache[rgb]
 
-    def _refresh_highlight(self, tracks, selected):
-        # Highlight box follows the horizontal track grid and stacked scene rows.
-        # A dedicated SessionComponent is created only while RClip occupies row 1.
-        if self._row_modules[0] != "RClip":
+    def _refresh_highlight(self, rows, tracks, scenes):
+        if not rows or not tracks or not scenes:
             self._close_highlight()
             self._highlight_error = None
             return
-        active_rows = max(1, self._active_clip_rows())
-        size = (self._clip_count(), active_rows)
-        track_offset = None
+        size = (self._clip_count(), len(rows))
+        track_offset = self._track_offset
         configuring = False
         try:
-            if selected not in tracks:
-                return
-            track_offset = tracks.index(selected)
-            if self._highlight_error in ((size, track_offset, None), (size, track_offset, self._clip_offset)):
+            if self._highlight_error in ((size, track_offset, None), (size, track_offset, self._scene_offset)):
                 return
             if self._session_component is None or self._session_size != size:
                 configuring = True
@@ -296,36 +292,40 @@ class MF4TRKBento(ControlSurface):
                     component.set_enabled(True)
                 configuring = False
                 self._last_highlight = None
-            state = (track_offset, self._clip_offset)
+            state = (track_offset, self._scene_offset)
             if state != self._last_highlight:
-                self._session_component.set_offsets(track_offset, self._clip_offset)
+                self._session_component.set_offsets(track_offset, self._scene_offset)
                 self._last_highlight = state
             self._highlight_error = None
         except Exception as exc:
-            error = (size, track_offset, None if configuring else self._clip_offset)
+            error = (size, track_offset, None if configuring else self._scene_offset)
             if error != self._highlight_error:
                 self.log_message("MF4TRKBento highlight unavailable: %s" % exc)
                 self._highlight_error = error
             self._close_highlight()
 
     def _scan_clips(self):
-        tracks = self._visible_tracks()
-        selected = self._selected_track()
-        start = tracks.index(selected) if selected in tracks else 0
-        rows = [row for row, module in enumerate(self._row_modules) if module == "RClip"]
+        tracks, scenes = self._visible_tracks(), self._scenes()
+        self._clamp_offsets(tracks, scenes)
+        rows = self._active_rows()
         frame = {}
-        if rows:
-            for col, track in enumerate(tracks[start:start + self._clip_count()]):
-                try:
-                    slots = tuple(track.clip_slots)
-                except (AttributeError, RuntimeError, TypeError):
-                    continue
-                for row in rows:
-                    index = self._clip_offset + row
-                    if index < len(slots):
-                        frame[self.ROWS[row][col]] = self._clip_state(slots[index])
+        start = self._track_offset
+        for col, track in enumerate(tracks[start:start + self._clip_count()]):
+            try:
+                slots = tuple(track.clip_slots)
+            except (AttributeError, RuntimeError, TypeError):
+                continue
+            for rank, row in enumerate(rows):
+                index = self._scene_offset + rank
+                if index < min(len(slots), len(scenes)):
+                    frame[self.ROWS[row][col]] = self._clip_state(slots[index])
+        if self._alt_mode:
+            for rank, row in enumerate(rows):
+                index = self._scene_offset + rank
+                if index < len(scenes):
+                    frame[self.ROWS[row][3]] = (self._palette_color(scenes[index]), 0, None)
         self._clip_frame = frame
-        self._refresh_highlight(tracks, selected)
+        self._refresh_highlight(rows, tracks, scenes)
 
     def _clip_state(self, slot):
         try:
@@ -336,7 +336,7 @@ class MF4TRKBento(ControlSurface):
                 return (72, 8, None)
             if bool(getattr(clip, "is_triggered", False)):
                 return (108, 8, None)
-            color = self._clip_color(clip)
+            color = self._palette_color(clip)
             if bool(getattr(clip, "is_playing", False)):
                 return (color, 4, clip)
             return (color, 0, None)
@@ -394,6 +394,10 @@ class MF4TRKBento(ControlSurface):
         self._session_size = None
         self._last_highlight = None
         if component is not None:
+            try:
+                self.set_highlighting_session_component(None)
+            except Exception:
+                pass
             try:
                 component.set_enabled(False)
             except Exception:
