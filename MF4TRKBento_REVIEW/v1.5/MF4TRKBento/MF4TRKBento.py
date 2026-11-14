@@ -1,4 +1,4 @@
-# MF4TRKBento v1.4 EXP - five focused work packages including vertical Arm chords
+# MF4TRKBento v1.5 EXP
 # Experimental hardware-test build. Bank 2 MIDI routing retained from v1.2.
 from _Framework.ControlSurface import ControlSurface
 from _Framework.ButtonElement import ButtonElement
@@ -16,12 +16,14 @@ class MF4TRKBento(ControlSurface):
     PUSH_CH = 10     # Twister channel 11 (zero-based)
     SCROLL_DETENTS = 4
     ROWS = ((0, 1, 2, 3), (4, 5, 6, 7), (8, 9, 10, 11), (12, 13, 14, 15))
-    MODULES = ("RClip", "Arm", "Solo", "Pan", "Mute", "Sends")
+    MODULES = ("RClip", "Arm", "Solo", "Pan", "Mute", "Sends", "Stop")
+    STOP_HOLD_SECONDS = 0.5
+    STOP_COLOR = 72
     ARM_COLOR = 72       # solid red available / flashing red armed
-    SOLO_COLOR = 68      # solid light blue available / flashing blue soloed
+    SOLO_COLOR = 68      # solid blue available / flashing blue soloed
     MUTE_MONITOR_AUTO_OFF = 108  # yellow regardless of mute state
     MUTE_MONITOR_IN = 68        # blue while monitor IN
-    SEND_COLORS = (32, 96, 68, 108)  # Send A/B/C/D row identities
+    SEND_COLOR = 96
     PAN_COLOR = 68       # light blue, normal track pan
     MASTER_PAN_COLOR = 96 # purple, master pan
     SCENE_OCCUPIED = 108 # yellow
@@ -41,11 +43,11 @@ class MF4TRKBento(ControlSurface):
         self._elements = []
         self._held = [False] * 16
         self._consumed = [False] * 16
-        self._turn_accum = [0] * 4
+        self._stop_press = [None] * 16
         # Blank removed. One RClip row is available immediately; other rows
         # start in harmless stateful modules, and can all be cycled.
         self._row_modules = ["RClip", "Pan", "Mute", "Sends"]
-        self._arm_chord = set()
+        self._multi_chord = set()
         # A consumed cross-row chord must never execute the ordinary release action.
         self._vertical_chord = set()
         self._alt_mode = False
@@ -74,8 +76,8 @@ class MF4TRKBento(ControlSurface):
                     self._elements.append((element, callback))
         self._refresh_all()
         self.schedule_message(1, self._tick)
-        self.show_message("MF4TRKBento v1.4 EXP | RClip/Pan/Mute/Sends")
-        self.log_message("MF4TRKBento v1.4 EXP loaded - CC0-15 unchanged")
+        self.show_message("MF4TRKBento v1.5 EXP | RClip/Arm/Solo/Pan/Mute/Sends/Stop")
+        self.log_message("MF4TRKBento v1.5 EXP loaded - CC0-15 unchanged")
 
     def _make_rotary(self, cc):
         return lambda value: self._rotary(cc, value)
@@ -149,19 +151,14 @@ class MF4TRKBento(ControlSurface):
         # E1 is the global clip-grid navigation modifier. It takes priority
         # over Row 3/Row 4 module-switch gestures when both modifiers are held.
         if self._held[0] and not self._alternate_press and cc in (11, 15) and self._active_rows():
-            self._consumed[0] = True
-            self._consumed[cc] = self._held[cc] or self._consumed[cc]
+            self._consume_held()
             self._scroll_grid("scene" if cc == 11 else "track", step)
             return
         row = self._row_for_cc(cc)
         first, last = self.ROWS[row][0], self.ROWS[row][-1]
         if self._held[first] and cc == last:
-            self._consumed[first] = True
-            self._consumed[last] = self._held[last] or self._consumed[last]
-            self._turn_accum[row] += step
-            if abs(self._turn_accum[row]) >= 1:
-                self._turn_accum[row] = 0
-                self._cycle_module(row, step)
+            self._consume_held()
+            self._cycle_module(row, step)
             return
         if self._row_modules[row] == "Pan":
             self._turn_pan(row, cc % 4, step)
@@ -175,6 +172,8 @@ class MF4TRKBento(ControlSurface):
         if down == self._held[cc]:
             return
         self._held[cc] = down
+        stop_press = self._stop_press[cc]
+        self._stop_press[cc] = None
         if cc == 0 and not down:
             self._scroll_steps["track"] = 0
             self._scroll_steps["scene"] = 0
@@ -182,7 +181,7 @@ class MF4TRKBento(ControlSurface):
         if cc == 11 and not down:
             self._scroll_steps["scene"] = 0
         if not down:
-            self._arm_chord.discard(cc)
+            self._multi_chord.discard(cc)
             self._vertical_chord.discard(cc)
         if not down and self._consumed[cc]:
             self._consumed[cc] = False
@@ -190,8 +189,7 @@ class MF4TRKBento(ControlSurface):
 
         # E16 held FIRST, then E1 pressed: change alternate mode.
         if cc == 0 and down and self._held[15]:
-            self._consumed[0] = True
-            self._consumed[15] = True
+            self._consume_held()
             self._alternate_press = True
             self._alt_mode = not self._alt_mode
             self._clamp_offsets(self._visible_tracks(), self._scenes())
@@ -210,30 +208,34 @@ class MF4TRKBento(ControlSurface):
         # No wraparound: Arm on the top row has no valid above pair.
         if down and self._dispatch_vertical_arm_chord(cc):
             return
-        # A second Arm press while another Arm encoder is held forms a chord.
-        # Chord presses arm all participating tracks without disarming other
-        # armed tracks. Release events are consumed; ordinary single presses
-        # continue to arm *exclusively* on release.
-        if down and self._row_modules[row] == "Arm" and not (self._alt_mode and cc % 4 == 3):
-            partners = [index for index in self.ROWS[row]
-                        if index != cc and self._held[index]
-                        and not (self._alt_mode and index % 4 == 3)
-                        and (not self._consumed[index] or index in self._arm_chord)]
-            if partners:
-                chord = partners + [cc]
-                self._arm_chord.update(chord)
-                for button in chord:
-                    self._consumed[button] = True
-                self._multi_arm(chord)
-                return
-        if cc == last and self._held[first]:
-            # Row's first encoder is held for module cycling, not launching.
-            self._consumed[cc] = down or self._consumed[cc]
-            return
-        if down:
-            return
         module = self._row_modules[row]
         col = cc % 4
+        if down and module in ("Arm", "Solo") and col < self._clip_count():
+            pending = [index for index in self.ROWS[row]
+                       if index != cc and self._held[index]
+                       and index % 4 < self._clip_count()
+                       and (not self._consumed[index] or index in self._multi_chord)]
+            flag = "arm" if module == "Arm" else "solo"
+            targets = self._multi_targets(pending + [cc], flag) if pending else {}
+            if cc in targets and len(targets) > 1:
+                chord = list(targets)
+                self._multi_chord.update(chord)
+                for button in chord:
+                    self._consumed[button] = True
+                self._set_multiple_tracks(targets.values(), flag)
+                return
+        if cc == last and self._held[first]:
+            if down:
+                self._consumed[cc] = True
+                if module == "Stop":
+                    self._consumed[first] = True
+            return
+        if down:
+            if module == "Stop":
+                target = self._stop_target(col)
+                if target is not None:
+                    self._stop_press[cc] = (time.monotonic(), target)
+            return
         if module == "RClip":
             self._clamp_offsets(self._visible_tracks(), self._scenes())
             if self._alt_mode and col == 3:
@@ -244,12 +246,24 @@ class MF4TRKBento(ControlSurface):
             if not (self._alt_mode and col == 3):
                 if module == "Arm":
                     self._toggle_exclusive_arm(col)
+                elif module == "Solo":
+                    self._toggle_exclusive_solo(col)
                 else:
-                    self._toggle_track_flag(col, "solo" if module == "Solo" else "mute")
+                    self._toggle_track_flag(col, "mute")
         elif module == "Pan":
             self._reset_pan(col)
-        elif module == "Sends" and not (self._alt_mode and col == 3):
-            self._reset_send(row, col)
+        elif module == "Stop" and stop_press is not None:
+            pressed_at, target = stop_press
+            if time.monotonic() - pressed_at < self.STOP_HOLD_SECONDS:
+                self._stop_clips(col, target)
+
+    def _consume_held(self):
+        for cc, held in enumerate(self._held):
+            if held:
+                self._consumed[cc] = True
+        self._multi_chord.clear()
+        self._vertical_chord.clear()
+
 
     def _dispatch_vertical_arm_chord(self, pressed):
         # Called only for fresh key-down. The two gesture directions must not
@@ -260,12 +274,12 @@ class MF4TRKBento(ControlSurface):
         if row > 0 and self._row_modules[row] == "Arm":
             # Above held first, Arm button tapped -> MUTE.
             above = pressed - 4
-            if self._held[above]:
+            if self._held[above] and self._can_partner_vertical(above):
                 candidate, action = above, "mute"
         if candidate is None and row < 3 and self._row_modules[row + 1] == "Arm":
             # Arm held first, above button tapped -> SOLO.
             below_arm = pressed + 4
-            if self._held[below_arm]:
+            if self._held[below_arm] and self._can_partner_vertical(below_arm):
                 candidate, action = below_arm, "solo"
         if candidate is None:
             return False
@@ -277,6 +291,9 @@ class MF4TRKBento(ControlSurface):
         self._vertical_chord.update((pressed, candidate))
         self._toggle_track_flag(arm_cc % 4, action)
         return True
+
+    def _can_partner_vertical(self, cc):
+        return not self._consumed[cc] or cc in self._vertical_chord
 
     def _cycle_module(self, row, direction):
         current = self.MODULES.index(self._row_modules[row])
@@ -307,9 +324,6 @@ class MF4TRKBento(ControlSurface):
             self._scene_offset += step
         self._clamp_offsets(self._visible_tracks(), self._scenes())
         if (self._track_offset, self._scene_offset) != old:
-            for i, held in enumerate(self._held):
-                if held:
-                    self._consumed[i] = True
             self.show_message("RClip | Track %d / Scene %d" %
                               (self._track_offset + 1, self._scene_offset + 1))
             self._refresh_all()
@@ -365,15 +379,62 @@ class MF4TRKBento(ControlSurface):
             self.log_message("MF4TRKBento exclusive arm error: %s" % exc)
         self._refresh_all()
 
-    def _multi_arm(self, buttons):
+    def _toggle_exclusive_solo(self, col):
+        target = self._track_for_column(col)
+        if target is None:
+            return
+        try:
+            if target.solo:
+                target.solo = False
+            else:
+                # song.tracks includes folded tracks and excludes returns and Master.
+                for other in self.song().tracks:
+                    if other != target and other.solo:
+                        other.solo = False
+                target.solo = True
+        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            self.log_message("MF4TRKBento exclusive solo error: %s" % exc)
+        self._refresh_all()
+
+    def _multi_targets(self, buttons, flag):
+        tracks = self._visible_tracks()
+        targets = {}
         for cc in buttons:
-            track = self._track_for_column(cc % 4)
-            if track is None or not bool(getattr(track, "can_be_armed", False)):
+            index = self._track_offset + cc % 4
+            if index >= len(tracks):
                 continue
+            track = tracks[index]
             try:
-                track.arm = True
+                if flag != "arm" or track.can_be_armed:
+                    targets[cc] = track
+            except (AttributeError, RuntimeError, TypeError, ValueError):
+                continue
+        return targets
+
+    def _set_multiple_tracks(self, tracks, flag):
+        for track in tracks:
+            try:
+                setattr(track, flag, True)
             except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
-                self.log_message("MF4TRKBento multi-arm error: %s" % exc)
+                self.log_message("MF4TRKBento multi-%s error: %s" % (flag, exc))
+        self._refresh_all()
+
+    def _stop_target(self, col):
+        if self._alt_mode and col == 3:
+            # Use a stable marker for the global command rather than a Live proxy.
+            return self
+        return self._track_for_column(col)
+
+    def _stop_clips(self, col, target):
+        try:
+            if self._stop_target(col) != target:
+                return
+            if target is self:
+                self.song().stop_all_clips()
+            else:
+                target.stop_all_clips()
+        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            self.log_message("MF4TRKBento stop error: %s" % exc)
         self._refresh_all()
 
     def _send_index(self, row):
@@ -404,16 +465,6 @@ class MF4TRKBento(ControlSurface):
                 parameter.value = max(minimum, min(maximum, float(parameter.value) + step * delta))
         except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
             self.log_message("MF4TRKBento send turn error: %s" % exc)
-        self._refresh_all()
-
-    def _reset_send(self, row, col):
-        parameter = self._send_parameter(row, col)
-        if parameter is None:
-            return
-        try:
-            parameter.value = max(float(parameter.min), min(float(parameter.max), 0.0))
-        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
-            self.log_message("MF4TRKBento send reset error: %s" % exc)
         self._refresh_all()
 
     def _pan_parameter(self, col):
@@ -484,13 +535,13 @@ class MF4TRKBento(ControlSurface):
         except (AttributeError, RuntimeError, TypeError, ValueError):
             return (0, 0, None, False)
 
-    def _scene_state(self, index, tracks):
+    def _scene_state(self, index, tracks, slot_lists=None):
         """Aggregate a scene across song tracks; never use the scene's static color."""
         recording = queued = playing = occupied = False
         candidates = []
-        for track in tracks:
+        for track_index, track in enumerate(tracks):
             try:
-                slots = track.clip_slots
+                slots = track.clip_slots if slot_lists is None else slot_lists[track_index]
                 if index < 0 or index >= len(slots):
                     continue
                 slot = slots[index]
@@ -510,7 +561,7 @@ class MF4TRKBento(ControlSurface):
                             candidates.append((length, clip))
                     except (AttributeError, RuntimeError, TypeError, ValueError, OverflowError):
                         pass
-            except (AttributeError, RuntimeError, TypeError, ValueError):
+            except (AttributeError, IndexError, RuntimeError, TypeError, ValueError):
                 continue
         clip_reference = max(candidates, key=lambda item: item[0])[1] if candidates else None
         if recording:
@@ -560,8 +611,15 @@ class MF4TRKBento(ControlSurface):
         tracks, scenes = self._visible_tracks(), self._scenes()
         self._clamp_offsets(tracks, scenes)
         frame = {}
+        window = tracks[self._track_offset:self._track_offset + self._clip_count()]
+        columns = window + (None,) * (4 - len(window))
+        mixers = {}
+        pan_parameters = {}
+        send_parameters = {}
         rclip_rows = self._active_rows()
         all_scene_tracks = self._all_tracks() if self._alt_mode and rclip_rows else ()
+        scene_slots = [self._slot_list(track) for track in all_scene_tracks]
+        clip_slots = [self._slot_list(track) for track in columns] if rclip_rows else ()
         for row, module in enumerate(self._row_modules):
             if module == "RClip":
                 index = self._scene_offset + rclip_rows.index(row)
@@ -569,11 +627,10 @@ class MF4TRKBento(ControlSurface):
                     continue
                 for col, cc in enumerate(self.ROWS[row]):
                     if self._alt_mode and col == 3:
-                        frame[cc] = self._scene_state(index, all_scene_tracks)
+                        frame[cc] = self._scene_state(index, all_scene_tracks, scene_slots)
                         continue
-                    track = self._track_for_column(col)
                     try:
-                        frame[cc] = self._clip_state(track.clip_slots[index]) if track is not None else (0, 0, None, False)
+                        frame[cc] = self._clip_state(clip_slots[col][index])
                     except (AttributeError, IndexError, RuntimeError, TypeError):
                         frame[cc] = (0, 0, None, False)
             elif module in ("Arm", "Solo"):
@@ -582,7 +639,7 @@ class MF4TRKBento(ControlSurface):
                 for col, cc in enumerate(self.ROWS[row]):
                     if self._alt_mode and col == 3:
                         continue
-                    track = self._track_for_column(col)
+                    track = columns[col]
                     try:
                         if track is not None:
                             if module == "Arm" and not bool(getattr(track, "can_be_armed", False)):
@@ -595,7 +652,7 @@ class MF4TRKBento(ControlSurface):
                 for col, cc in enumerate(self.ROWS[row]):
                     if self._alt_mode and col == 3:
                         continue
-                    track = self._track_for_column(col)
+                    track = columns[col]
                     if track is None:
                         continue
                     try:
@@ -607,10 +664,15 @@ class MF4TRKBento(ControlSurface):
                         pass
             elif module == "Pan":
                 for col, cc in enumerate(self.ROWS[row]):
-                    p = self._pan_parameter(col)
-                    if p is None:
+                    if columns[col] is None and not (self._alt_mode and col == 3):
                         continue
                     try:
+                        if col not in pan_parameters:
+                            if self._alt_mode and col == 3:
+                                pan_parameters[col] = self.song().master_track.mixer_device.panning
+                            else:
+                                pan_parameters[col] = self._frame_mixer(col, columns, mixers).panning
+                        p = pan_parameters[col]
                         minimum, maximum, val = float(p.min), float(p.max), float(p.value)
                         pos = int(round(127.0 * (val - minimum) / (maximum - minimum))) if maximum > minimum else 64
                         color = self.MASTER_PAN_COLOR if self._alt_mode and col == 3 else self.PAN_COLOR
@@ -619,34 +681,56 @@ class MF4TRKBento(ControlSurface):
                         pass
             elif module == "Sends":
                 send_index = self._send_index(row)
-                color = self.SEND_COLORS[min(send_index, len(self.SEND_COLORS) - 1)]
                 for col, cc in enumerate(self.ROWS[row]):
-                    if self._alt_mode and col == 3:
-                        continue
-                    parameter = self._send_parameter(row, col)
-                    if parameter is None:
+                    if columns[col] is None:
                         continue
                     try:
+                        if col not in send_parameters:
+                            send_parameters[col] = tuple(self._frame_mixer(col, columns, mixers).sends)
+                        sends = send_parameters[col]
+                        if send_index >= len(sends):
+                            continue
+                        parameter = sends[send_index]
                         minimum = float(parameter.min)
                         maximum = float(parameter.max)
                         value = float(parameter.value)
                         if maximum > minimum:
                             ring = int(round(127.0 * (value - minimum) / (maximum - minimum)))
-                            frame[cc] = (color, 0, max(0, min(127, ring)), False)
+                            frame[cc] = (self.SEND_COLOR, 0, max(0, min(127, ring)), False)
                     except (AttributeError, RuntimeError, TypeError, ValueError, ZeroDivisionError):
                         pass
+            elif module == "Stop":
+                for col, cc in enumerate(self.ROWS[row]):
+                    if columns[col] is not None or (self._alt_mode and col == 3):
+                        frame[cc] = (self.STOP_COLOR, 0, None, False)
         self._frame = frame
         self._refresh_highlight(rclip_rows, tracks, scenes)
 
+    @staticmethod
+    def _slot_list(track):
+        try:
+            return track.clip_slots if track is not None else ()
+        except (AttributeError, RuntimeError, TypeError):
+            return ()
+
+    @staticmethod
+    def _frame_mixer(col, columns, mixers):
+        if col not in mixers:
+            mixers[col] = columns[col].mixer_device
+        return mixers[col]
+
     def _render_frame(self, update_rings):
         now = time.monotonic()
-        beat = self._beat_position() if self._alt_mode else 0.0
+        beat = None
+        ring_samples = {}
         for cc in range(16):
             color, rate, ring_data, scene = self._frame.get(cc, (0, 0, None, False))
             if scene and rate:
                 # Playing: green 1/4-note flash. Queued: pink 1/16-note.
                 # Recording: red 1/16-note. Stopped occupied: solid yellow.
                 # Empty scene: completely dark.
+                if beat is None:
+                    beat = self._beat_position()
                 is_off = int(beat * rate) % 2 == 1
             else:
                 # Leave previously accepted RClip flashing cadence intact.
@@ -658,7 +742,10 @@ class MF4TRKBento(ControlSurface):
                 elif isinstance(ring_data, (int, float)):
                     ring = ring_data
                 else:
-                    ring = self._playing_ring(ring_data)
+                    key = id(ring_data)
+                    if key not in ring_samples:
+                        ring_samples[key] = self._playing_ring(ring_data)
+                    ring = ring_samples[key]
                 self._ring(cc, ring)
 
     def _refresh_all(self):
@@ -676,7 +763,7 @@ class MF4TRKBento(ControlSurface):
             else:
                 self._render_frame(update_rings=False)
         except Exception as exc:
-            self.log_message("MF4TRKBento v1.4 refresh error: %s" % exc)
+            self.log_message("MF4TRKBento v1.5 refresh error: %s" % exc)
         if not self._closed:
             self.schedule_message(1, self._tick)
 
@@ -757,7 +844,8 @@ class MF4TRKBento(ControlSurface):
                 pass
         self._elements.clear()
         self._frame.clear()
-        self._arm_chord.clear()
+        self._stop_press.clear()
+        self._multi_chord.clear()
         self._vertical_chord.clear()
         for cc in range(16):
             try:

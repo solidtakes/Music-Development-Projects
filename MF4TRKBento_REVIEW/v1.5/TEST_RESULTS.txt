@@ -1,0 +1,17 @@
+test_absent_and_nonarmable_controls_cannot_form_chords (__main__.Matrix.test_absent_and_nonarmable_controls_cannot_form_chords) ... ok
+test_cache_retries_explicit_send_failure_and_cleanup (__main__.Matrix.test_cache_retries_explicit_send_failure_and_cleanup) ... ok
+test_clip_release_and_master_pan (__main__.Matrix.test_clip_release_and_master_pan) ... ok
+test_every_module_reachable_every_row (__main__.Matrix.test_every_module_reachable_every_row) ... ok
+test_midi_sends_and_mute (__main__.Matrix.test_midi_sends_and_mute) ... ok
+test_single_and_multiple_arm_solo_all_rows (__main__.Matrix.test_single_and_multiple_arm_solo_all_rows) ... ok
+test_stop_consumption_and_target_binding (__main__.Matrix.test_stop_consumption_and_target_binding) ... ok
+test_stop_per_track_and_global_in_each_row (__main__.Matrix.test_stop_per_track_and_global_in_each_row) ... ok
+test_vertical_chords_all_supported_rows_and_columns (__main__.Matrix.test_vertical_chords_all_supported_rows_and_columns) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.006s
+
+OK
+PASS: seven modules/no Blank; scene 5-state colors; four rows, scrolling, alt; Arm/Solo colors & exclusive/multi arm; monitoring Mute; Sends A/B, alt disable; bidirectional vertical chords; stable LED cache; cleanup
+PASS: scene green/pink/red flashing transitions, stopped yellow, empty off, active scene ring
+Python compile: 6 source/test files passed. Original v1.4 smoke/animation script also passed. Live/Twister pending.
