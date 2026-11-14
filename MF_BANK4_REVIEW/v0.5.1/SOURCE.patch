@@ -1,0 +1,85 @@
+--- a/v0.5.0/build_candidate.py
++++ b/v0.5.1/build_candidate.py
+@@ -7 +7 @@
+-archive = ROOT / 'MF_Bank4_Selected_Device_v0.5.0_Rebuild_Candidate.zip'
++archive = ROOT / 'MF_Bank4_Selected_Device_v0.5.1_Rebuild_Candidate.zip'
+@@ -9 +9 @@
+-paths += [(ROOT/name, name) for name in ('README.md', 'PARAMETER_MAPPING.md', 'HARDWARE_CHECKLIST.md')]
++paths += [(ROOT/name, name) for name in ('README.md', 'PARAMETER_MAPPING.md', 'HARDWARE_CHECKLIST.md', 'INPUT_PATH_FIX.md', 'REFERENCES.md', 'DIAGNOSTIC_COMPARISON.md')]
+--- a/v0.5.0/source/MF_Bank4_Selected_Device_v050/__init__.py
++++ b/v0.5.1/source/MF_Bank4_Selected_Device_v051/__init__.py
+@@ -1 +1 @@
+-"""Bank 4 Selected Device Controls v0.5.0 — new rebuild candidate."""
++"""Bank 4 Selected Device Controls v0.5.1 — new rebuild candidate."""
+--- a/v0.5.0/source/MF_Bank4_Selected_Device_v050/mapping.py
++++ b/v0.5.1/source/MF_Bank4_Selected_Device_v051/mapping.py
+@@ -1,2 +1,2 @@
+-"""Proposed v0.5.0 mappings. Resolve names at runtime; never guess indexes."""
+-VERSION = '0.5.0 Rebuild Candidate'
++"""Proposed v0.5.1 mappings. Resolve names at runtime; never guess indexes."""
++VERSION = '0.5.1 Rebuild Candidate'
+--- a/v0.5.0/source/MF_Bank4_Selected_Device_v050/surface.py
++++ b/v0.5.1/source/MF_Bank4_Selected_Device_v051/surface.py
+@@ -20 +20 @@
+-            self.show_message('Bank 4 ' + VERSION + ' — hardware validation pending')
++            self.show_message('Bank 4 ' + VERSION + ' loaded')
+@@ -41 +41,8 @@
+-            self._bank4.receive(midi_bytes)
++            with self.component_guard():
++                self._bank4.receive(midi_bytes)
++
++    def receive_midi_chunk(self, midi_chunk):
++        # Live's batch entry point is separate from receive_midi in v2.
++        # Route every event through our same scoped handler, in original order.
++        for midi_bytes in midi_chunk:
++            self.receive_midi(midi_bytes)
+--- a/v0.5.0/tests/test_bank4.py
++++ b/v0.5.1/tests/test_bank4.py
+@@ -32,0 +33,3 @@
++    def receive_midi_chunk(self, midi_chunk):
++        # Model framework's separate batch path: it does NOT call receive_midi.
++        self.unhandled_batch = tuple(midi_chunk)
+@@ -42,3 +45,3 @@
+-pkg = importlib.import_module('MF_Bank4_Selected_Device_v050')
+-Controller = importlib.import_module('MF_Bank4_Selected_Device_v050.controller').Controller
+-mapping = importlib.import_module('MF_Bank4_Selected_Device_v050.mapping')
++pkg = importlib.import_module('MF_Bank4_Selected_Device_v051')
++Controller = importlib.import_module('MF_Bank4_Selected_Device_v051.controller').Controller
++mapping = importlib.import_module('MF_Bank4_Selected_Device_v051.mapping')
+@@ -216,0 +220,36 @@
++    def test_batched_rotation_reaches_controller(self):
++        song,track=fixture(device())
++        surface=pkg.create_instance(types.SimpleNamespace(song=song,handle=lambda:42))
++        p=track.view.selected_device.parameters[0]
++        surface.receive_midi_chunk(((0xBB,48,65),(0xBB,48,65),(0xBB,48,63)))
++        self.assertEqual(p.writes,3)
++        self.assertEqual(p.value,.5+1/128)
++        surface.disconnect()
++
++    def test_batched_scope_order_and_after_disconnect(self):
++        song,track=fixture(device())
++        surface=pkg.create_instance(types.SimpleNamespace(song=song,handle=lambda:42))
++        p=track.view.selected_device.parameters[0]
++        p.value=1
++        before=p.writes
++        surface.receive_midi_chunk(((0xBB,48,65),(0xBB,48,63),(0xBA,48,127),
++                                   (0xBB,47,65),(0xBB,48,1)))
++        self.assertEqual(p.writes,before+2)
++        self.assertEqual(p.value,1-1/128)
++        surface.disconnect();before=p.writes;count=len(surface.sent)
++        surface.receive_midi_chunk(((0xBB,48,65),))
++        self.assertEqual(p.writes,before);self.assertEqual(len(surface.sent),count)
++
++    def test_batched_and_single_paths_match(self):
++        instances=[]
++        for unused in range(2):
++            song,track=fixture(device())
++            surface=pkg.create_instance(types.SimpleNamespace(song=song,handle=lambda:42))
++            instances.append((surface,track.view.selected_device.parameters[0]))
++        frame=((0xBB,48,65),(0xBB,48,65),(0xBB,48,63))
++        for message in frame:instances[0][0].receive_midi(message)
++        instances[1][0].receive_midi_chunk(frame)
++        self.assertEqual(instances[0][0].sent,instances[1][0].sent)
++        self.assertEqual(instances[0][1].value,instances[1][1].value)
++        for surface,p in instances:surface.disconnect()
++

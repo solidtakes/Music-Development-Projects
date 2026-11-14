@@ -1,0 +1,6 @@
+{
+  "firmware_groups": 7,
+  "reference_python_groups": 4,
+  "bank4_tests": "NOT RUN: source unavailable",
+  "hardware": "NOT RUN"
+}

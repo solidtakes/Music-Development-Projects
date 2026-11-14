@@ -1,0 +1,564 @@
+diff --git a/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/__init__.py b/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/__init__.py
+new file mode 100644
+index 0000000..a352018
+--- /dev/null
++++ b/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/__init__.py
+@@ -0,0 +1,6 @@
++"""Bank 4 Selected Device Controls v0.5.0 — new rebuild candidate."""
++from .surface import Bank4Surface
++
++
++def create_instance(c_instance):
++    return Bank4Surface(c_instance)
+diff --git a/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/controller.py b/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/controller.py
+new file mode 100644
+index 0000000..0aabd10
+--- /dev/null
++++ b/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/controller.py
+@@ -0,0 +1,213 @@
++"""Standalone standard-mode Bank 4 prototype. Original implementation, no Live import."""
++import math
++from .mapping import FIRST_CC, RGB_STATUS, RING_STATUS, PROFILES
++
++
++def read(obj, name, default=None):
++    try:
++        return getattr(obj, name)
++    except Exception:
++        return default
++
++
++class Controller:
++    """Owns only its listeners, 16 mappings and Bank 4 CC output.
++
++    Polling is a fallback for unavailable observable APIs, not another focus source.
++    All methods run on the Remote Script's main thread.
++    """
++    def __init__(self, song, send):
++        self.song = song
++        self.send = send
++        self.closed = False
++        self.device = None
++        self.track = None
++        self.slots = [None] * 16
++        self.colors = (0,) * 16
++        self.listeners = []
++        self.rgb_cache = [None] * 16
++        self.ring_cache = [None] * 16
++        self.signature = None
++        self.parameter_inventory = []
++        self.binding_report = []
++        self.error_count = 0
++        self._busy = False
++
++    def _listen(self, obj, prop):
++        add = read(obj, 'add_' + prop + '_listener')
++        remove = read(obj, 'remove_' + prop + '_listener')
++        has = read(obj, prop + '_has_listener')
++        if not callable(add) or not callable(remove):
++            return
++        callback = self.sync
++        try:
++            # Never adopt/remove a preexisting subscription.
++            if callable(has) and has(callback):
++                return
++            add(callback)
++            self.listeners.append((obj, prop, callback))
++        except Exception:
++            self.error_count += 1
++
++    def _detach(self):
++        owned, self.listeners = self.listeners, []
++        for obj, prop, callback in owned:
++            try:
++                remove = read(obj, 'remove_' + prop + '_listener')
++                if callable(remove):
++                    remove(callback)
++            except Exception:
++                # Deleted Live objects may already have invalidated subscriptions.
++                self.error_count += 1
++
++    def _context(self):
++        view = read(self.song, 'view')
++        track = read(view, 'selected_track')
++        device = read(read(track, 'view'), 'selected_device')
++        class_name = read(device, 'class_name', '')
++        try:
++            params = tuple(read(device, 'parameters', ()))
++        except Exception:
++            params = ()
++        # Original names avoid user-renamed parameters when host exposes them.
++        names = tuple(read(p, 'original_name') or read(p, 'name', '') for p in params)
++        signature = (id(track), id(device), class_name,
++                     tuple((id(p), name) for p, name in zip(params, names)))
++        return track, device, class_name, params, names, signature
++
++    def sync(self, *unused):
++        if self.closed or self._busy:
++            return
++        self._busy = True
++        try:
++            track, device, kind, params, names, signature = self._context()
++            if signature != self.signature:
++                self._detach()
++                self.signature = signature
++                self.track, self.device = track, device
++                profile, self.colors = PROFILES.get(kind, (((),) * 16, (0,) * 16))
++                self.slots = [None] * 16
++                self.parameter_inventory = [
++                    {'index': j, 'name': name, 'bounds': self.bounds(p),
++                     'enabled': bool(read(p, 'is_enabled', False)),
++                     'quantized': bool(read(p, 'is_quantized', False))}
++                    for j, (p, name) in enumerate(zip(params, names))]
++                self.binding_report = []
++                for i, aliases in enumerate(profile):
++                    matches = [(j, p) for j, (p, name) in enumerate(zip(params, names))
++                               if name in aliases]
++                    if len(matches) == 1:
++                        j, parameter = matches[0]
++                        self.slots[i] = parameter
++                        state = 'bound'
++                    else:
++                        j = None
++                        state = 'ambiguous' if matches else 'unavailable'
++                    self.binding_report.append({'encoder': i + 1, 'aliases': aliases,
++                                                'index': j, 'state': state})
++                self._listen(read(self.song, 'view'), 'selected_track')
++                self._listen(read(track, 'view'), 'selected_device')
++                self._listen(track, 'devices')
++                self._listen(device, 'parameters')
++                for parameter in self.slots:
++                    if parameter is not None:
++                        self._listen(parameter, 'value')
++                # Invalidate on context changes even for an identical palette.
++                self.invalidate()
++            self.render()
++        finally:
++            self._busy = False
++
++    @staticmethod
++    def bounds(parameter):
++        try:
++            lo, hi, value = (float(getattr(parameter, key)) for key in ('min', 'max', 'value'))
++            if not all(math.isfinite(v) for v in (lo, hi, value)) or hi <= lo:
++                return None
++            return lo, hi, min(hi, max(lo, value))
++        except Exception:
++            return None
++
++    def _emit(self, status, index, value, cache):
++        if cache[index] == value:
++            return
++        try:
++            result = self.send((status, FIRST_CC + index, value))
++            # None is accepted for hosts whose send method has no return value.
++            if result is not False:
++                cache[index] = value
++        except Exception:
++            self.error_count += 1
++
++    def invalidate(self):
++        self.rgb_cache = [None] * 16
++        self.ring_cache = [None] * 16
++
++    def render(self):
++        if self.closed:
++            return
++        for i, parameter in enumerate(self.slots):
++            bounds = self.bounds(parameter)
++            enabled = bool(read(parameter, 'is_enabled', False))
++            value = 0
++            if bounds and enabled:
++                lo, hi, current = bounds
++                value = int(round(127.0 * (current - lo) / (hi - lo)))
++            self._emit(RGB_STATUS, i, self.colors[i], self.rgb_cache)
++            self._emit(RING_STATUS, i, value, self.ring_cache)
++
++    def receive(self, message):
++        if self.closed:
++            return
++        # Sync before every write, protecting rapid selection changes even if a
++        # host doesn't provide selection listeners. Pushes are intentionally inert.
++        self.sync()
++        try:
++            if len(message) != 3 or message[0] != RING_STATUS:
++                return
++            status, cc, delta = message
++            if not all(isinstance(v, int) and 0 <= v <= 127 for v in (cc, delta)):
++                return
++            if not FIRST_CC <= cc < FIRST_CC + 16 or delta not in (0x3F, 0x41):
++                return
++            parameter = self.slots[cc - FIRST_CC]
++            if not read(parameter, 'is_enabled', False):
++                return
++            bounds = self.bounds(parameter)
++            if bounds is None:
++                return
++            lo, hi, current = bounds
++            direction = -1 if delta == 0x3F else 1
++            if read(parameter, 'is_quantized', False):
++                value = round(current) + direction
++            else:
++                # Proposed sensitivity: 128 ticks over the raw host range.
++                value = current + direction * (hi - lo) / 128.0
++            parameter.value = min(hi, max(lo, value))
++            self.render()
++        except Exception:
++            # Invalid/deleted or read-only host objects fail closed; no fallback.
++            self.error_count += 1
++            self.signature = None
++            self.sync()
++
++    def refresh(self):
++        if not self.closed:
++            self.invalidate()
++            self.sync()
++
++    def close(self):
++        if self.closed:
++            return
++        self.closed = True
++        self._detach()
++        # Only Bank 4 addresses. Zero's visible meaning depends on saved config.
++        for i in range(16):
++            for status in (RGB_STATUS, RING_STATUS):
++                try:
++                    self.send((status, FIRST_CC + i, 0))
++                except Exception:
++                    self.error_count += 1
++        self.slots = [None] * 16
++        self.device = self.track = self.song = None
++        self.send = None
+diff --git a/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/mapping.py b/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/mapping.py
+new file mode 100644
+index 0000000..6fde79b
+--- /dev/null
++++ b/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/mapping.py
+@@ -0,0 +1,28 @@
++"""Proposed v0.5.0 mappings. Resolve names at runtime; never guess indexes."""
++VERSION = '0.5.0 Rebuild Candidate'
++FIRST_CC = 48
++RGB_STATUS = 0xBA  # human channel 11
++RING_STATUS = 0xBB  # human channel 12
++# Each tuple contains explicit alternative host names for one encoder slot.
++EQ = tuple((('{}'.format(i) + ' Frequency A',),
++            ('{}'.format(i) + ' Gain A',)) for i in range(1, 9))
++EQ = tuple(slot for pair in EQ for slot in pair)
++FILTER = (
++    ('Frequency',), ('Resonance',), ('Filter Type',),
++    ('Filter Circuit - LP/HP', 'Filter Circuit'), ('Drive',),
++    ('LFO Amount',), ('LFO Frequency', 'LFO Freq', 'LFO Rate'),
++    ('Env. Modulation', 'Env Modulation', 'Env Amount'),
++) + ((),) * 8
++COMPRESSOR = (
++    ('Threshold',), ('Ratio',), ('Attack',), ('Release',),
++    ('Knee',), ('Makeup',), ('Dry/Wet',), ('Output Gain', 'Output'),
++    ('Auto Release',), ('LookAhead', 'Lookahead'),
++    ('Model',), ('Envelope',), ('S/C EQ On',),
++    ('S/C EQ Freq',), ('S/C EQ Gain',), ('S/C Listen',),
++)
++PROFILES = {
++    'Eq8': (EQ, (68,) * 16),
++    'AutoFilter': (FILTER, (108,) * 8 + (0,) * 8),
++    'Compressor2': (COMPRESSOR, (72,) * 16),
++    'Compressor': (COMPRESSOR, (72,) * 16),
++}
+diff --git a/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/surface.py b/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/surface.py
+new file mode 100644
+index 0000000..4ebf707
+--- /dev/null
++++ b/MF_BANK4_REVIEW/v0.5.0/source/MF_Bank4_Selected_Device_v050/surface.py
+@@ -0,0 +1,55 @@
++"""Live adapter. No appointed-device following, global routing or SysEx."""
++import Live
++from ableton.v2.control_surface import ControlSurface
++from .controller import Controller
++from .mapping import VERSION
++
++
++class Bank4Surface(ControlSurface):
++    def __init__(self, c_instance):
++        super(Bank4Surface, self).__init__(c_instance)
++        self._bank4 = None
++        self._bank4_alive = True
++        with self.component_guard():
++            self._bank4 = Controller(self.song, self._bank4_send)
++            self._bank4.sync()
++        self.request_rebuild_midi_map()
++        # A single owned polling chain; callbacks after disconnect are inert.
++        self.schedule_message(5, self._bank4_tick)
++        try:
++            self.show_message('Bank 4 ' + VERSION + ' — hardware validation pending')
++        except Exception:
++            pass
++
++    def _bank4_send(self, message):
++        return self._send_midi(message, optimized=False)
++
++    def build_midi_map(self, midi_map_handle):
++        super(Bank4Surface, self).build_midi_map(midi_map_handle)
++        for cc in range(48, 64):
++            Live.MidiMap.forward_midi_cc(
++                self._c_instance.handle(), midi_map_handle, 11, cc)
++
++    def _bank4_tick(self):
++        if not self._bank4_alive:
++            return
++        self._bank4.sync()
++        self.schedule_message(5, self._bank4_tick)
++
++    def receive_midi(self, midi_bytes):
++        if getattr(self, '_bank4_alive', False) and self._bank4 is not None:
++            self._bank4.receive(midi_bytes)
++
++    def refresh_state(self):
++        super(Bank4Surface, self).refresh_state()
++        controller = getattr(self, '_bank4', None)
++        if controller is not None:
++            controller.refresh()
++
++    def disconnect(self):
++        self._bank4_alive = False
++        try:
++            if self._bank4 is not None:
++                self._bank4.close()
++        finally:
++            super(Bank4Surface, self).disconnect()
+diff --git a/MF_BANK4_REVIEW/v0.5.0/tests/test_bank4.py b/MF_BANK4_REVIEW/v0.5.0/tests/test_bank4.py
+new file mode 100644
+index 0000000..38d252c
+--- /dev/null
++++ b/MF_BANK4_REVIEW/v0.5.0/tests/test_bank4.py
+@@ -0,0 +1,232 @@
++"""Inert Live mocks: run with python3 -m unittest discover -s tests -v."""
++import importlib
++import json
++from pathlib import Path
++import sys
++import types
++import unittest
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT / 'source'))
++FORWARDED = []
++live = types.ModuleType('Live')
++live.MidiMap = types.SimpleNamespace(forward_midi_cc=lambda *a: FORWARDED.append(a))
++sys.modules['Live'] = live
++
++class Base:
++    def __init__(self, ci):
++        self._c_instance = ci
++        self.song = ci.song
++        self.sent = []
++        self.scheduled = []
++        self.base_disconnected = False
++    def component_guard(self):
++        class Guard:
++            def __enter__(self): pass
++            def __exit__(self, *a): pass
++        return Guard()
++    def _send_midi(self, msg, optimized=True):
++        assert optimized is False
++        self.sent.append(msg)
++        return True
++    def schedule_message(self, delay, callback): self.scheduled.append((delay, callback))
++    def request_rebuild_midi_map(self): self.rebuild_requested = True
++    def build_midi_map(self, handle): pass
++    def show_message(self, text): pass
++    def refresh_state(self): pass
++    def disconnect(self): self.base_disconnected = True
++
++for name in ('ableton', 'ableton.v2', 'ableton.v2.control_surface'):
++    sys.modules[name] = types.ModuleType(name)
++sys.modules['ableton.v2.control_surface'].ControlSurface = Base
++pkg = importlib.import_module('MF_Bank4_Selected_Device_v050')
++Controller = importlib.import_module('MF_Bank4_Selected_Device_v050.controller').Controller
++mapping = importlib.import_module('MF_Bank4_Selected_Device_v050.mapping')
++
++class Observable:
++    def __init__(self, **values):
++        self.listeners = {}
++        self.__dict__.update(values)
++    def __getattr__(self, name):
++        if name.endswith('_has_listener'):
++            prop = name[:-13]
++            return lambda cb: cb in self.listeners.get(prop, [])
++        if name.startswith('add_') and name.endswith('_listener'):
++            prop = name[4:-9]
++            def add(cb):
++                if cb in self.listeners.setdefault(prop, []):
++                    raise AssertionError('duplicate listener')
++                self.listeners[prop].append(cb)
++            return add
++        if name.startswith('remove_') and name.endswith('_listener'):
++            prop = name[7:-9]
++            return lambda cb: self.listeners[prop].remove(cb)
++        raise AttributeError(name)
++    def fire(self, prop):
++        for cb in list(self.listeners.get(prop, [])): cb()
++
++class Parameter(Observable):
++    def __init__(self, name, value=0.5, lo=0, hi=1, quantized=False, enabled=True):
++        super().__init__(name=name, original_name=name, min=lo, max=hi,
++                         is_quantized=quantized, is_enabled=enabled)
++        self._value = value
++        self.writes = 0
++    @property
++    def value(self): return self._value
++    @value.setter
++    def value(self, value):
++        self._value = value
++        self.writes += 1
++        self.fire('value')
++
++def device(kind='Eq8'):
++    profile = mapping.PROFILES.get(kind, (((),)*16, ()))[0]
++    return Observable(class_name=kind, name='User renamed device',
++                      parameters=[Parameter(aliases[0]) for aliases in profile if aliases])
++
++def fixture(dev=None):
++    track = Observable(view=Observable(selected_device=dev), devices=[dev] if dev else [])
++    song = Observable(view=Observable(selected_track=track), appointed_device=device('Compressor2'))
++    return song, track
++
++class ControllerTests(unittest.TestCase):
++    def setUp(self):
++        self.dev = device()
++        self.song, self.track = fixture(self.dev)
++        self.sent = []
++        self.c = Controller(self.song, self.sent.append)
++        self.c.sync()
++    def tearDown(self): self.c.close()
++    def test_initial_exact_frame(self):
++        expected = [m for i in range(16) for m in ((0xBA,48+i,68),(0xBB,48+i,64))]
++        self.assertEqual(self.sent, expected)
++    def test_suppression_and_force_refresh(self):
++        self.c.sync(); self.assertEqual(len(self.sent),32)
++        self.c.refresh(); self.assertEqual(self.sent[:32],self.sent[32:])
++    def test_palettes_and_unused_filter(self):
++        self.track.view.selected_device=device('AutoFilter'); self.track.view.fire('selected_device')
++        self.assertEqual(self.c.colors,(108,)*8+(0,)*8)
++        self.assertEqual(self.c.slots[8:],[None]*8)
++        self.assertTrue(all(m[2]==0 for m in self.sent[-16:]))
++        self.track.view.selected_device=device('Compressor2');self.c.sync()
++        self.assertEqual(self.c.colors,(72,)*16)
++    def test_no_appointed_fallback(self):
++        self.track.view.selected_device=None; self.c.sync()
++        self.assertIsNone(self.c.device); self.assertEqual(self.c.colors,(0,)*16)
++        self.assertEqual(self.c.slots,[None]*16)
++    def test_unsupported_and_no_track(self):
++        self.track.view.selected_device=device('Operator');self.c.sync()
++        self.assertEqual(self.c.slots,[None]*16)
++        self.song.view.selected_track=None;self.c.sync()
++        self.assertIsNone(self.c.track)
++    def test_continuous_rotation_bounds(self):
++        p=self.dev.parameters[0]
++        self.c.receive((0xBB,48,65));self.assertEqual(p.value,.5+1/128)
++        self.c.receive((0xBB,48,63));self.assertEqual(p.value,.5)
++        p.value=1;self.c.receive((0xBB,48,65));self.assertEqual(p.value,1)
++        p.value=0;self.c.receive((0xBB,48,63));self.assertEqual(p.value,0)
++    def test_quantized_rotation(self):
++        p=self.dev.parameters[0];p.min=0;p.max=3;p.is_quantized=True;p.value=1
++        self.c.receive((0xBB,48,65));self.assertEqual(p.value,2)
++        self.c.receive((0xBB,48,63));self.assertEqual(p.value,1)
++    def test_disabled_invalid_bounds_and_nan(self):
++        p=self.dev.parameters[0]
++        for key,value in [('is_enabled',False),('max',0),('max',float('nan'))]:
++            setattr(p,key,value);before=p.writes
++            self.c.receive((0xBB,48,65));self.assertEqual(p.writes,before)
++            self.assertEqual(self.c.ring_cache[0],0)
++            p.is_enabled=True
++    def test_wrong_channels_addresses_push_and_malformed(self):
++        p=self.dev.parameters[0]
++        for msg in [(),(0xBB,48),(0xBB,48,65,0),(0xBA,48,127),(0xBB,47,65),
++                    (0xBB,64,65),(0xBB,48,1),(0xBB,48,64),(0xBB,48,127),
++                    (0xB0,48,65),(0xBB,-1,65),(0xBB,48,'x')]:
++            self.c.receive(msg)
++        self.assertEqual(p.writes,0)
++    def test_external_automation_feedback(self):
++        p=self.dev.parameters[0];self.sent.clear();p.value=1
++        self.assertEqual(self.sent,[(0xBB,48,127)])
++    def test_track_switch_detaches_old_listeners(self):
++        oldp=self.dev.parameters[0];oldview=self.track.view
++        new=device('AutoFilter');newtrack=Observable(view=Observable(selected_device=new))
++        self.song.view.selected_track=newtrack;self.song.view.fire('selected_track')
++        self.assertTrue(all(not v for v in oldp.listeners.values()))
++        self.assertTrue(all(not v for v in oldview.listeners.values()))
++        self.assertIs(self.c.device,new)
++    def test_rapid_focus_change_before_rotation(self):
++        old=self.dev.parameters[0];new=device('Compressor2')
++        self.track.view.selected_device=new # no event: input must resolve focus again
++        self.c.receive((0xBB,48,65))
++        self.assertEqual(old.writes,0);self.assertEqual(new.parameters[0].writes,1)
++    def test_parameter_collection_reorder_removal_and_ambiguity(self):
++        original=self.dev.parameters[0]
++        self.dev.parameters.reverse();self.dev.fire('parameters')
++        self.assertIs(self.c.slots[0],original)
++        self.dev.parameters.append(Parameter('1 Frequency A'));self.c.sync()
++        self.assertIsNone(self.c.slots[0]);self.assertEqual(self.c.binding_report[0]['state'],'ambiguous')
++        self.dev.parameters=[];self.c.sync();self.assertEqual(self.c.slots,[None]*16)
++    def test_original_names_survive_user_rename(self):
++        p=self.dev.parameters[0];p.name='New name';self.c.sync()
++        self.assertIs(self.c.slots[0],p)
++    def test_poll_fallback_without_observers(self):
++        v=types.SimpleNamespace(selected_device=self.dev)
++        self.track.view=v;self.c.sync()
++        v.selected_device=None;self.c.sync();self.assertIsNone(self.c.device)
++    def test_deleted_device_reads_fail_closed(self):
++        class Deleted:
++            def __getattribute__(self,name):raise RuntimeError('object deleted')
++        self.track.view.selected_device=Deleted();self.c.sync()
++        self.assertEqual(self.c.slots,[None]*16)
++    def test_no_duplicate_listeners_after_repeated_switches(self):
++        other=device('AutoFilter')
++        for i in range(50):
++            self.track.view.selected_device=other if i%2 else self.dev
++            self.c.sync();self.c.sync()
++        self.assertTrue(all(len(v)<=1 for o,p,c in self.c.listeners for v in o.listeners.values()))
++        self.c.close()
++        for obj in [self.song.view,self.track.view,self.track,self.dev,other,*self.dev.parameters,*other.parameters]:
++            self.assertTrue(all(not v for v in obj.listeners.values()))
++    def test_close_idempotence_and_late_callbacks(self):
++        cb=self.c.sync;self.c.close();n=len(self.sent)
++        cb();self.c.receive((0xBB,48,65));self.c.refresh();self.c.close()
++        self.assertEqual(len(self.sent),n)
++        self.assertEqual(self.sent[-32:],[m for i in range(16) for m in ((0xBA,48+i,0),(0xBB,48+i,0))])
++    def test_send_failure_retry(self):
++        self.c.rgb_cache[0]=None
++        self.c.send=lambda msg:False;self.c.render();self.assertIsNone(self.c.rgb_cache[0])
++        def fail(msg):raise RuntimeError('output unavailable')
++        self.c.send=fail;self.c.render();self.assertIsNone(self.c.rgb_cache[0])
++        self.c.send=self.sent.append;self.c.render();self.assertEqual(self.c.rgb_cache[0],68)
++    def test_published_fixture_frames(self):
++        fixtures=json.loads((ROOT/'MIDI_FIXTURES.json').read_text())
++        for kind,key in [('Eq8','eq8_midpoint'),('AutoFilter','autofilter_midpoint'),
++                         ('Compressor2','compressor_midpoint'),('Unknown','unsupported')]:
++            song,track=fixture(device(kind));messages=[]
++            controller=Controller(song,messages.append);controller.sync()
++            self.assertEqual([list(m) for m in messages],fixtures[key])
++            controller.close()
++            self.assertEqual([list(m) for m in messages[-32:]],fixtures['disconnect'])
++
++    def test_output_scope(self):
++        for kind in ('AutoFilter','Compressor2','Unknown'):
++            self.track.view.selected_device=device(kind);self.c.sync()
++        self.c.close()
++        self.assertTrue(all(s in (0xBA,0xBB) and 48<=cc<=63 and 0<=v<=127 for s,cc,v in self.sent))
++
++class AdapterTests(unittest.TestCase):
++    def test_entry_forwarding_refresh_tick_disconnect(self):
++        song,track=fixture(device())
++        ci=types.SimpleNamespace(song=song,handle=lambda:42)
++        surface=pkg.create_instance(ci)
++        FORWARDED.clear();surface.build_midi_map(99)
++        self.assertEqual(FORWARDED,[(42,99,11,cc) for cc in range(48,64)])
++        self.assertTrue(surface.rebuild_requested)
++        self.assertEqual(len(surface.sent),32)
++        surface.receive_midi((0xBB,48,65));self.assertEqual(track.view.selected_device.parameters[0].writes,1)
++        before=len(surface.sent);surface.refresh_state();self.assertEqual(len(surface.sent),before+32)
++        _,callback=surface.scheduled.pop(0);callback();self.assertEqual(len(surface.scheduled),1)
++        surface.disconnect();before=len(surface.sent)
++        callback();surface.receive_midi((0xBB,48,65))
++        self.assertTrue(surface.base_disconnected);self.assertEqual(len(surface.sent),before)
++
++if __name__=='__main__':unittest.main()

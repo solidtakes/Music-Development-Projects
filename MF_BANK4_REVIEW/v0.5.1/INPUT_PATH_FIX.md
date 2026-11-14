@@ -1,0 +1,13 @@
+# v0.5.1 — separate batched MIDI entry point
+
+Confirmed code defect: v0.5.0 manually registers channel-12 CC48–63 forwarding and overrides receive_midi, but leaves receive_midi_chunk inherited. In the pinned v2 framework reference, receive_midi_chunk calls its own internal dispatch, which does not call our override. Our manually forwarded messages have no InputControlElement recipients in that registry. Thus delivery through the batch API bypasses the controller's rotation path. This explains how parameter-to-ring feedback can work while batched hardware rotation does not.
+
+Reference: https://github.com/gluon/AbletonLive12_MIDIRemoteScripts/blob/e83d5192f321b24eb9daab843ac49a2d95d862b1/ableton/v2/control_surface/control_surface.py#L193 (single/batch separation), #L220 (batch processing), #L242 (recipient dispatch). No framework source copied. Exact host batch delivery remains to be verified; no claim of measured incoming byte values or a completed hardware fix.
+
+Regression method: augment our inert mock base with a distinct batch entry point that deliberately does not call receive_midi, matching the relevant dispatch boundary rather than importing third-party framework implementation. Three new tests fail against the uncorrected candidate adapter: ordered three-tick batch produces zero writes, single/batch output differs, and bounds/order batch fails. This exposes the missing coverage in the original 22 passing tests. After adding our original batch-to-single adapter, all 25 pass, including post-disconnect inertness and unrelated input rejection.
+
+Production change: route each incoming batch event to the existing scoped receive_midi handler in order; protect event handling with component_guard. Forwarded channels/CCs, parameter bindings/scaling, output addresses, cache semantics and other banks are unchanged. Startup text changes from the ambiguous hardware-validation reminder to "loaded". No widened forwarding, MIDI monitor interception, Native Mode or shared-bank change.
+
+The old ZIP remains available and unchanged. New package MF_Bank4_Selected_Device_v051 is separate; use one candidate at a time in the already isolated owner test setup, and do not overwrite accepted builds. Roll back by removing v051 and selecting the prior candidate only in that isolated setup. No installation was performed here.
+
+Next owner test: select EQ Eight in the isolated setup, turn E1 one clockwise tick then one counterclockwise tick, and report whether band 1 frequency and its white ring follow. Stop there; no other bank or gesture test is implied. Real hardware success remains pending.

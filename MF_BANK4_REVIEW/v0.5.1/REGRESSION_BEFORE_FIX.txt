@@ -1,0 +1,60 @@
+test_batched_and_single_paths_match (test_bank4.AdapterTests.test_batched_and_single_paths_match) ... FAIL
+test_batched_rotation_reaches_controller (test_bank4.AdapterTests.test_batched_rotation_reaches_controller) ... FAIL
+test_batched_scope_order_and_after_disconnect (test_bank4.AdapterTests.test_batched_scope_order_and_after_disconnect) ... FAIL
+test_entry_forwarding_refresh_tick_disconnect (test_bank4.AdapterTests.test_entry_forwarding_refresh_tick_disconnect) ... ok
+test_close_idempotence_and_late_callbacks (test_bank4.ControllerTests.test_close_idempotence_and_late_callbacks) ... ok
+test_continuous_rotation_bounds (test_bank4.ControllerTests.test_continuous_rotation_bounds) ... ok
+test_deleted_device_reads_fail_closed (test_bank4.ControllerTests.test_deleted_device_reads_fail_closed) ... ok
+test_disabled_invalid_bounds_and_nan (test_bank4.ControllerTests.test_disabled_invalid_bounds_and_nan) ... ok
+test_external_automation_feedback (test_bank4.ControllerTests.test_external_automation_feedback) ... ok
+test_initial_exact_frame (test_bank4.ControllerTests.test_initial_exact_frame) ... ok
+test_no_appointed_fallback (test_bank4.ControllerTests.test_no_appointed_fallback) ... ok
+test_no_duplicate_listeners_after_repeated_switches (test_bank4.ControllerTests.test_no_duplicate_listeners_after_repeated_switches) ... ok
+test_original_names_survive_user_rename (test_bank4.ControllerTests.test_original_names_survive_user_rename) ... ok
+test_output_scope (test_bank4.ControllerTests.test_output_scope) ... ok
+test_palettes_and_unused_filter (test_bank4.ControllerTests.test_palettes_and_unused_filter) ... ok
+test_parameter_collection_reorder_removal_and_ambiguity (test_bank4.ControllerTests.test_parameter_collection_reorder_removal_and_ambiguity) ... ok
+test_poll_fallback_without_observers (test_bank4.ControllerTests.test_poll_fallback_without_observers) ... ok
+test_published_fixture_frames (test_bank4.ControllerTests.test_published_fixture_frames) ... ok
+test_quantized_rotation (test_bank4.ControllerTests.test_quantized_rotation) ... ok
+test_rapid_focus_change_before_rotation (test_bank4.ControllerTests.test_rapid_focus_change_before_rotation) ... ok
+test_send_failure_retry (test_bank4.ControllerTests.test_send_failure_retry) ... ok
+test_suppression_and_force_refresh (test_bank4.ControllerTests.test_suppression_and_force_refresh) ... ok
+test_track_switch_detaches_old_listeners (test_bank4.ControllerTests.test_track_switch_detaches_old_listeners) ... ok
+test_unsupported_and_no_track (test_bank4.ControllerTests.test_unsupported_and_no_track) ... ok
+test_wrong_channels_addresses_push_and_malformed (test_bank4.ControllerTests.test_wrong_channels_addresses_push_and_malformed) ... ok
+
+======================================================================
+FAIL: test_batched_and_single_paths_match (test_bank4.AdapterTests.test_batched_and_single_paths_match)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/music/MF_BANK4_REVIEW/v0.5.1/tests/test_bank4.py", line 252, in test_batched_and_single_paths_match
+    self.assertEqual(instances[0][0].sent,instances[1][0].sent)
+AssertionError: Lists differ: [(186[442 chars]4), (186, 63, 68), (187, 63, 64), (187, 48, 65), (187, 48, 64)] != [(186[442 chars]4), (186, 63, 68), (187, 63, 64)]
+
+First list contains 2 additional elements.
+First extra element 32:
+(187, 48, 65)
+
+Diff is 668 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_batched_rotation_reaches_controller (test_bank4.AdapterTests.test_batched_rotation_reaches_controller)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/music/MF_BANK4_REVIEW/v0.5.1/tests/test_bank4.py", line 225, in test_batched_rotation_reaches_controller
+    self.assertEqual(p.writes,3)
+AssertionError: 0 != 3
+
+======================================================================
+FAIL: test_batched_scope_order_and_after_disconnect (test_bank4.AdapterTests.test_batched_scope_order_and_after_disconnect)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/music/MF_BANK4_REVIEW/v0.5.1/tests/test_bank4.py", line 237, in test_batched_scope_order_and_after_disconnect
+    self.assertEqual(p.writes,before+2)
+AssertionError: 1 != 3
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.019s
+
+FAILED (failures=3)
