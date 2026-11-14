@@ -1,0 +1,15 @@
+9 interleaved trials x 800 ticks, 64 tracks, simulated 100 ms/tick
+Median microseconds/tick (events includes input dispatch), script MIDI attempts
+idle_mixer: 13.44 -> 12.26 us/tick (-8.8%), MIDI 0 -> 0, tick/input 800/0, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 400->400, clip_slots 0->0, mixer_device 1600->1600, panning 1600->1600, sends 1200->1200, is_playing 0->0, current_song_time 0->0, playing_position 0->0, has_audio_output 0->1200, min 5600->4000, max 5600->4000, value 5600->4000
+inactive_midi: 13.45 -> 9.14 us/tick (-32.1%), MIDI 0 -> 0, tick/input 800/0, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 400->400, clip_slots 0->0, mixer_device 1600->800, panning 1600->800, sends 1200->400, is_playing 0->0, current_song_time 0->0, playing_position 0->0, has_audio_output 0->1200, min 5600->1600, max 5600->1600, value 5600->1600
+availability: 13.22 -> 11.44 us/tick (-13.5%), MIDI 80 -> 180, tick/input 800/0, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 400->400, clip_slots 0->0, mixer_device 1640->1440, panning 1600->1400, sends 1200->1000, is_playing 0->0, current_song_time 0->0, playing_position 0->0, has_audio_output 20->1220, min 5400->3300, max 5400->3300, value 5400->3300
+stopped_grid: 74.39 -> 74.13 us/tick (-0.3%), MIDI 0 -> 0, tick/input 800/0, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 400->400, clip_slots 26800->26800, mixer_device 0->0, panning 0->0, sends 0->0, is_playing 0->0, current_song_time 0->0, playing_position 0->0, has_audio_output 0->0, min 0->0, max 0->0, value 0->0
+animated_grid: 111.00 -> 118.73 us/tick (+7.0%), MIDI 8000 -> 8000, tick/input 800/0, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 400->400, clip_slots 26800->26800, mixer_device 0->0, panning 0->0, sends 0->0, is_playing 800->800, current_song_time 800->800, playing_position 2400->2400, has_audio_output 0->0, min 0->0, max 0->0, value 0->0
+events: 72.37 -> 73.12 us/tick (+1.0%), MIDI 112 -> 112, tick/input 800/240, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 639->639, clip_slots 37453->37453, mixer_device 2316->2316, panning 2316->2316, sends 0->0, is_playing 0->0, current_song_time 0->0, playing_position 0->0, has_audio_output 0->1677, min 2316->2316, max 2316->2316, value 2316->2316
+PASS: identical MIDI streams except for intended availability transitions.
