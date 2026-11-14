@@ -1,0 +1,11 @@
+9 interleaved trials x 800 ticks, 64 tracks, simulated 100 ms/tick
+Median microseconds/tick (events includes input dispatch), script MIDI attempts
+idle_mixer: 15.10 -> 9.72 us/tick (-35.7%), MIDI 0 -> 0, tick/input 800/0, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 5200->400, clip_slots 0->0, mixer_device 5600->1600, panning 3200->1600, sends 2400->1200, is_playing 800->0, current_song_time 800->0, playing_position 0->0
+stopped_grid: 93.19 -> 74.83 us/tick (-19.7%), MIDI 0 -> 0, tick/input 800/0, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 5200->400, clip_slots 107200->26800, mixer_device 0->0, panning 0->0, sends 0->0, is_playing 800->0, current_song_time 800->0, playing_position 0->0
+animated_grid: 127.58 -> 110.54 us/tick (-13.4%), MIDI 8000 -> 8000, tick/input 800/0, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 5200->400, clip_slots 107200->26800, mixer_device 0->0, panning 0->0, sends 0->0, is_playing 800->800, current_song_time 800->800, playing_position 3200->2400
+events: 74.72 -> 65.41 us/tick (-12.5%), MIDI 112 -> 112, tick/input 800/240, listeners 32 -> 0 on disconnect in both
+  Reads: visible_tracks 7347->639, clip_slots 74906->37453, mixer_device 2316->2316, panning 2316->2316, sends 0->0, is_playing 960->0, current_song_time 960->0, playing_position 0->0
+PASS: byte-identical simulated MIDI streams in every workload.
