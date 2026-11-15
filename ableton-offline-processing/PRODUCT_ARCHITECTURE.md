@@ -41,6 +41,34 @@ The GUI must feel at home inside Ableton Live, not like a generic web dashboard 
 
 #### Visual design direction
 
+## Closer Ableton Live visual fidelity — updated owner direction
+
+The current first-pass sketch is too generic. The target is not merely a dark web app with orange buttons: it should read visually as a compact Live workspace/panel at first glance.
+
+Use Ableton Live's general interface conventions as the reference:
+- Dense, precisely aligned workstation layout with narrow headers and compact controls.
+- Layered charcoal/grey panels, low-contrast separators, darker inset areas for waveform/parameter surfaces, and restrained orange for the active/selected/focused state.
+- Familiar horizontal time ruler with bar/beat or time markings, grid divisions, clip region and a clear playhead.
+- A waveform presented like an Arrangement audio clip lane, not a decorative waveform card.
+- Processing history should resemble a Live device chain: compact device-like blocks/rows with a small activator/bypass control, title strip, operation name, concise parameters, selection state and a menu/remove affordance.
+- Selected processing device gets a clear Live-like orange focus/selection treatment; bypassed devices become visibly dimmed.
+- Parameter inspector should resemble Live's device controls: compact knobs/sliders, numeric values and aligned labels, not large web-form fields.
+- Use small square/rectangular buttons, subtle corner radii, narrow spacing and consistent alignment. Avoid oversized cards, large rounded corners, excessive whitespace, gradients, drop shadows, oversized headings and generic dashboard tiles.
+- Use track/clip colours sparingly and semantically. Orange is the main focus accent; other colours identify version branches or audio states.
+- Use a restrained UI font hierarchy similar in density to a DAW, with readable small labels and tabular numeric values.
+- Make the modal look like a dedicated Live editor panel, not an external SaaS product. Keep the same visual grammar across waveform, processing chain, inspector and status strip.
+
+### Revised Alpha 0.1 composition
+1. **Compact title/header strip:** product label, source clip name, duration, sample rate, bit depth and channel count.
+2. **Arrangement-style audio lane:** full-width waveform, ruler, clip bounds and playhead. The whole clip is selected in Alpha 0.1; range editing must not be implied.
+3. **Lower device/history area:** left/primary area contains ordered device-like processing blocks for Reverse and Gain. Each block has activator/bypass, device title, concise summary and selected state. The user can add, remove and (if supported by the first interaction model) reorder operations.
+4. **Device parameter area:** selected operation opens a compact parameter panel. Gain uses a DAW-style numeric dB readout and compact slider/knob. Reverse uses a clear active toggle.
+5. **Thin bottom status/transport strip:** audition/playback controls if supported, render/cancel, progress, cache hit/miss, per-step time, source/output bytes and cache footprint.
+
+### Reference discipline
+Use user-provided Ableton screenshots as visual references if available. Do not scrape, copy or embed Ableton logos, proprietary icons, fonts or artwork. Recreate the general layout grammar with original CSS/SVG controls and product naming. Do not claim pixel-perfect imitation. The SDK's modal Webview size and theme integration must be verified; design responsively within the actual supported modal size. If host theme detection is undocumented, offer a manual light/dark setting rather than inventing an API.
+
+
 - Default to a dark Live-inspired workspace: deep charcoal/graphite canvas, slightly lighter work panels, subtle grey separators and high-contrast readable text.
 - Use a warm amber/orange accent for primary actions, selection, focus and active processing states.
 - Use restrained Live-like clip/track colours as semantic accents for waveforms, version branches and status—not as random decoration.
