@@ -11,8 +11,8 @@
 ## Repair candidate
 
 - Branch: repair/mf4trkbento-v1.6-startup-guard-20261115
-- Current branch head: 2e98c4923aec1df59e1eedb1352a0aad173350ab
-- Source/test snapshot commit: 62edbda472049d5d05a4274844c0d2c378e7dc58
+- Code/test snapshot: 62edbda472049d5d05a4274844c0d2c378e7dc58
+- Build checkout commit: 20369213385298c8d38a438b910a8408ed9ad904
 - Stacked PR: #27, open/draft/unmerged, base bento/mf4trkbento-v1.6-experimental
 - Repair source blob: 38abd9e85e3af0af4ad1ba889de2ed05e83948cc
 - Startup test blob: 85e803f5798b3010734c0189103d1a7994f4d208
@@ -21,15 +21,15 @@
 
 ## Latest successful build
 
-- Workflow run: 43669961379
-- Workflow job: 132677609326 (regression-and-package, completed/success)
-- Workflow checked out the current branch head above.
+- Workflow run: 43671107506
+- Workflow job: 132681126552 (regression-and-package, completed/success)
+- The workflow checked out build commit 20369213385298c8d38a438b910a8408ed9ad904.
 - Artifact name: MF4TRKBento-v1.6-startup-repair-EXP
-- Artifact ID: 14143549108
-- Artifact expires: 2026-12-15T02:55:11Z
+- Artifact ID: 14143644854
+- Artifact expires: 2026-12-15T03:10:07Z
 - Installable ZIP path inside the artifact: dist/MF4TRKBento_v1.6_STARTUP_REPAIR_EXP.zip
-- Installable ZIP SHA-256: 8c6314618335472472fe917e2a8c3c65b592320c41c149a9432ee76ea74e5214
-- GitHub Actions outer artifact archive SHA-256: f27e69f6beb5f3fa7245e673695eb4f2ae85e16c9e94ab151320f38af8ff882b
+- Installable ZIP SHA-256: ab61600505283ab6d5d8fc5ae462f65568c58bff2cecd75e4c6a8d91d6c9637f
+- GitHub Actions outer artifact archive SHA-256: a7c4f7ddc39aa2c19bcc1847f809446278b9edd68aa6270ea48d443435da86ea
 
 The two SHA-256 values refer to different files: the first is the installable
 MF4TRKBento ZIP built by the workflow; the second is GitHub's uploaded artifact
@@ -40,3 +40,6 @@ The installable package changes only the v1.6 scheduler/refresh lifecycle and
 adds disabled-by-default aggregate diagnostics. The listener-invalidated
 availability cache is test-only and is not part of the installed remote script.
 No v1.5 source, package, or rollback artifact is modified.
+
+Any subsequent changes to this report or TEST_RESULTS.txt are documentation-only
+and do not change the source/test snapshot or installable ZIP.
