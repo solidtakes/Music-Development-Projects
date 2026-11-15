@@ -269,7 +269,7 @@ class Matrix(unittest.TestCase):
             self.assertGreater(param.value, 0.5)
             prior = param.value
             self.tap(cc)
-            self.assertEqual(param.value, prior)
+            self.assertEqual(param.value, 0.0)
         midi.mixer_device.sends = sends[:1]
         self.surface._refresh_all()
         self.assertEqual((self.surface._rgb_cache[12], self.surface._ring_cache[12]), (0, 0))
