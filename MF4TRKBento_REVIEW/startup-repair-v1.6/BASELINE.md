@@ -1,9 +1,27 @@
-# Startup repair baseline
+# Startup repair baseline and source hashes
 
-- Parent: v1.6 EXP ac34e38df3c42984daa01abb20b508ee5526e610
-- v1.5 known-starting rollback: 0bc87548853af047ae6c70535494a2546a8befb1
-- v1.6 source blob: 39708214c7194f94d6bb1027b8220d0def75311f
-- v1.6 test harness blob: e3910ccb2944ff7ac148c20be22e63778fd3dd67
-- PR #25 and #26 remain unchanged and unmerged.
-- This branch adds only a separate startup-repair candidate and its offline tests.
-- No v1.5 source, package, or rollback artifact is modified.
+## Immutable comparison points
+
+- v1.5 known-starting rollback commit: 0bc87548853af047ae6c70535494a2546a8befb1
+- v1.5 source and rollback artifacts are unchanged.
+- v1.6 EXP comparison commit: ac34e38df3c42984daa01abb20b508ee5526e610
+- v1.6 original source blob: 39708214c7194f94d6bb1027b8220d0def75311f
+- PR #25 and PR #26 remain open/draft/unmerged and unchanged.
+
+## Repair candidate
+
+- Branch: repair/mf4trkbento-v1.6-startup-guard-20261115
+- Current branch head: 4c6468bc48ca1857340904cc19c12782c79e91db
+- Stacked PR: #27, draft, base bento/mf4trkbento-v1.6-experimental
+- Repair source blob: 38abd9e85e3af0af4ad1ba889de2ed05e83948cc
+- Startup test blob: 85e803f5798b3010734c0189103d1a7994f4d208
+- Host mock blob: 1be5d77a8fa945158faa046fa90a5f0f10d02b28
+- Listener-cache comparison variant blob: a9a189ae27df2c0262536a1c6cb544f6d6b69943
+- ZIP SHA-256: 9e970fefd297b20d09341d9a3a8b174848f8afdcead512390976ea36c53496f6
+- Passing workflow run: 43669695245
+- Artifact ID: 14143806463
+
+The installable package changes only the v1.6 scheduler/refresh lifecycle and
+adds disabled-by-default aggregate diagnostics. The listener-invalidated
+availability cache is test-only and is not part of the installed remote script.
+No v1.5 source, package, or rollback artifact is modified.
