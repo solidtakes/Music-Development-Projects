@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "test:browser": "AOPX_REQUIRE_BROWSER=1 node --test test/browser-reorder.test.mjs"
+    "test:browser": "node scripts/run-browser-tests.mjs"
   },
   "engines": {
     "node": ">=22.18.0"

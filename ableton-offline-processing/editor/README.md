@@ -115,11 +115,25 @@ Requires Node ≥ 22.18. The suite contains:
 - `test/reorder-core.test.mjs`: unit tests of the shipped reorder/plan core (evaluated from `interface.html`): move earlier/later, first/last boundaries, drag to first/last slot, stable IDs and parameters, bypass preservation, input immutability, and emitted plan order.
 - `test/browser-reorder.test.mjs`: real Chromium interaction tests through Playwright at 860×660 (SDK modal size), 640×660 (single-column layout) and 860×480. They demonstrate a three-operation drag reorder (`reverse, gain −3 dB (bypassed), gain +6.25 dB` → `gain +6.25, reverse, gain −3 (bypassed)` → …) and check the payload Apply sends through a mocked `close_and_send` bridge. They also cover row-body drags, handle clicks, drops over activator/remove buttons, Esc cancel, keyboard reordering and focus, and horizontal overflow.
 
-If Playwright is not installed, the browser suite is **skipped** and `npm test` still runs the static and unit tests. To require it:
+| Command | Browser suite |
+| --- | --- |
+| `npm test` (same as `npm run test`) | Runs if Playwright is available. Otherwise it is **skipped**: the run prints `[aopx-editor] SKIPPED: Playwright not installed …`, the TAP summary shows `# skipped 1`, and the static and unit tests still run and pass. |
+| `npm run test:browser` | **Mandatory.** Fails (non-zero exit, `Playwright is required …`) if Playwright/Chromium is unavailable. |
+
+Both commands work unchanged in Windows CMD, PowerShell, macOS and Linux shells. `test:browser` runs `scripts/run-browser-tests.mjs`, a small Node runner that sets `AOPX_REQUIRE_BROWSER=1` itself instead of relying on shell-specific `VAR=value` syntax. No `cross-env` or other dependency is needed.
+
+To also save before/dragging/after screenshots, set `AOPX_SCREENSHOT_DIR` (the directory must exist) in your shell's syntax:
 
 ```sh
-npm run test:browser          # fails if Playwright/Chromium is unavailable
-AOPX_SCREENSHOT_DIR=/some/dir npm run test:browser   # also saves before/dragging/after screenshots
+AOPX_SCREENSHOT_DIR=/some/dir npm run test:browser
+```
+
+```powershell
+$env:AOPX_SCREENSHOT_DIR="C:\some\dir"; npm run test:browser
+```
+
+```bat
+set "AOPX_SCREENSHOT_DIR=C:\some\dir" && npm run test:browser
 ```
 
 Playwright is resolved from the environment (global install or `NODE_PATH`); this package adds no dependencies.

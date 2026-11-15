@@ -1,7 +1,8 @@
 /*
  * Real-browser interaction check for drag-and-drop reordering.
  * Uses Playwright + Chromium if available; otherwise the suite is skipped.
- * Set AOPX_REQUIRE_BROWSER=1 to fail instead of skipping (npm run test:browser).
+ * `npm run test:browser` (scripts/run-browser-tests.mjs) sets AOPX_REQUIRE_BROWSER=1
+ * so the suite fails instead of skipping when Playwright is unavailable.
  * Set AOPX_SCREENSHOT_DIR=<dir> to save screenshots of the three-operation demo.
  */
 import test from 'node:test';
@@ -22,7 +23,8 @@ try {
   try { ({ chromium } = await import('playwright')); } catch { /* unavailable */ }
 }
 if (!chromium && requireBrowser) throw new Error('Playwright is required (AOPX_REQUIRE_BROWSER=1) but was not found');
-const skip = chromium ? false : 'Playwright not installed; browser interaction check skipped';
+const skip = chromium ? false : 'SKIPPED: Playwright not installed - browser interaction suite did not run (use "npm run test:browser" to require it)';
+if (skip) console.warn(`[aopx-editor] ${skip}`);
 
 // SDK modal size from the README (showModalDialog(dataUrl, 860, 660)) plus the
 // narrow single-column layout (<=650px) and a short-height modal.
