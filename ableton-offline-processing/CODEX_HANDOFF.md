@@ -8,7 +8,7 @@ Milestone: **Alpha 0.1 — one clip, editable two-step history, incremental re-r
 
 ## Read first
 
-- `ableton-offline-processing/PRODUCT_ARCHITECTURE.md` — product layers, cache identity, future plugin boundary and milestone roadmap
+- `ableton-offline-processing/PRODUCT_ARCHITECTURE.md` — product layers, cache identity, GUI design language, future plugin boundary and milestone roadmap
 - `ableton-offline-processing/README.md`
 - `ableton-offline-processing/PROJECT_STATUS.md`
 - `ableton-offline-processing/ALPHA_0_1_SPEC.md`
@@ -19,7 +19,7 @@ The user supplied the actual `extensions-sdk-1.0.0-beta.1.zip`; the detailed arc
 
 ## Product direction
 
-This is intended to become a full offline processing suite, not a one-off Reverse/Gain utility. Alpha 0.1 is deliberately narrow to prove the key technology first: editable history and incremental rendering.
+This is intended to become a full offline processing suite for Live, not a one-off Reverse/Gain utility. Alpha 0.1 is deliberately narrow to prove the key technology first: editable history and incremental rendering.
 
 Keep the system layered:
 1. Ableton Live integration adapter.
@@ -32,6 +32,28 @@ Keep the system layered:
 The user selected Live Suite as the initial development target. Keep the processing engine and DSP modules edition-neutral wherever possible. The actual license/account entitlement and exact SDK-compatible Live beta remain to be verified. Do not assume stable Live 12.5 or Live 13 support from the archive.
 
 Future plugin hosting is important to the product direction but **not part of Alpha 0.1**. The supplied Extensions SDK does not document VST3/AU hosting, post-FX rendering or ARA. Design a clean processor adapter boundary and cache identity that can accommodate plugins later; do not build or claim plugin support now.
+
+## GUI visual direction — owner requirement
+
+The editor must look and feel like it belongs inside Ableton Live. Use an **Ableton-inspired design language** while keeping a distinct product identity; do not copy Live's logo, branding or proprietary artwork.
+
+- Default dark appearance: deep charcoal/graphite canvas, slightly lighter panels, subtle grey separators and readable high-contrast text.
+- Warm amber/orange accent for primary actions, selection, focus and active processing.
+- Restrained Live-like clip/track colours for waveform, versions and semantic status.
+- Provide a matching light theme. Follow Live's host appearance only if a supported SDK API can be verified; otherwise use dark by default and provide a simple in-editor Dark/Light switch. Do not invent host-theme APIs.
+- Compact, information-dense controls and typography, aligned values, short labels and clear numeric readouts.
+- Flat rectangular controls, thin borders and subtle corner radii. Avoid oversized rounded cards, gradients, decorative shadows, pill-heavy controls and generic dashboard tiles.
+- Familiar workstation layout: horizontal waveform/time ruler, compact operation/device rows, bypass/enable controls, parameter inspector, audition controls and narrow status strip.
+- Distinguish selected, bypassed, processing, completed, cache-hit and error states using both visual and textual/state cues.
+
+Alpha 0.1 modal layout:
+1. Top strip: clip/source name and duration/sample-rate/channel metadata.
+2. Main waveform/timeline with compact ruler and audition position. Whole-clip only; do not imply range editing.
+3. Compact ordered Reverse/Gain operation rows with selected/bypass/remove states.
+4. Contextual parameter inspector; Gain shows dB with slider and numeric entry.
+5. Narrow footer/status area for render/cancel, progress, per-operation render time/cache hit, output/source size and total cache footprint.
+
+Use `PRODUCT_ARCHITECTURE.md` as the visual design reference. Keep the modal compact and audio-focused.
 
 ## Global rules
 
@@ -91,7 +113,9 @@ Core proof: Original -> Reverse -> Gain; remove Reverse; final output must match
 
 Issue: [#32 — AOPX-03](https://github.com/solidtakes/Music-Development-Projects/issues/32)
 
-Build the first UI as a polished **modal Webview** using the SDK's `showModalDialog`, not a standalone desktop window. Show source metadata/waveform, operation list, Reverse/Gain controls and measured diagnostics. The documented Webview protocol returns the operation list and closes; do not assume persistent UI or general bidirectional messaging. Use `withinProgressDialog` for processing and cancellation, then show a result/diagnostics dialog.
+Build the first UI as a polished **modal Webview** using the SDK's `showModalDialog`, not a standalone desktop window. It must follow the GUI visual direction above: Live-inspired dark/light theme, charcoal panels, amber/orange action accent, restrained clip colours, compact flat controls, waveform/timeline, compact processing rows, contextual parameter inspector and narrow diagnostics/status strip. Avoid generic dashboard cards.
+
+Show source metadata/waveform, operation list, Reverse/Gain controls and measured diagnostics. The documented Webview protocol returns the operation list and closes; do not assume persistent UI or general bidirectional messaging. Use `withinProgressDialog` for processing and cancellation, then show a result/diagnostics dialog.
 
 Do not build a second audio engine; consume AOPX-02's API.
 
