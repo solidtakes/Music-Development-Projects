@@ -1,0 +1,52 @@
+name: MF4TRKBento Beta 3.1 EXP (review-only)
+
+on:
+  push:
+    branches:
+      - feature/mf4trkbento-beta3-1-device-row-review-20261115
+  pull_request:
+    paths:
+      - "MF4TRKBento_REVIEW/beta3.1-exp/**"
+      - ".github/workflows/mf4trkbento-beta31-exp.yml"
+  workflow_dispatch:
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax check and mocked regressions
+        working-directory: MF4TRKBento_REVIEW/beta3.1-exp
+        run: |
+          python -m py_compile MF4TRKBento/MF4TRKBento.py
+          python -B -m unittest discover -s tests -p 'test_beta3.py' -v
+      - name: Create deterministic installable ZIP and verify local build hash
+        working-directory: MF4TRKBento_REVIEW/beta3.1-exp
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          import zipfile
+          names = ('MF4TRKBento/__init__.py', 'MF4TRKBento/MF4TRKBento.py', 'MF4TRKBento/README_INSTALL.txt')
+          path = Path('MF4TRKBento_Beta3.1_EXP_Device_Row_Stack.zip')
+          with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+              for name in names:
+                  info = zipfile.ZipInfo(name, date_time=(2026, 11, 15, 13, 0, 0))
+                  info.compress_type = zipfile.ZIP_DEFLATED
+                  z.writestr(info, Path(name).read_bytes())
+          digest = hashlib.sha256(path.read_bytes()).hexdigest()
+          print('Installable ZIP SHA-256:', digest)
+          expected = '02a6c4359648903e0211b228868e92e0c7a2b21e1d2d42b0e0b8fedc73be83a4'
+          assert digest == expected, 'GitHub build differs from locally verified artifact'
+          with zipfile.ZipFile(path) as z:
+              assert z.testzip() is None
+              assert set(z.namelist()) == set(names)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MF4TRKBento-Beta3.1-EXP-Device-Row-Stack
+          path: MF4TRKBento_REVIEW/beta3.1-exp/MF4TRKBento_Beta3.1_EXP_Device_Row_Stack.zip
+          if-no-files-found: error
