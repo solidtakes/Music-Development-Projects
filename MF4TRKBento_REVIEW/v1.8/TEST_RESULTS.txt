@@ -1,0 +1,6 @@
+MF4TRKBento v1.8 EXP — verification status
+
+Status: CI pending.
+
+No Live runtime or hardware test has been run for v1.8.
+Do not install until GitHub Actions passes and the owner authorizes hardware testing.
