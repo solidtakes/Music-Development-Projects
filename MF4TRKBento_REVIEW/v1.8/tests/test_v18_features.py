@@ -123,6 +123,45 @@ class V18Features(unittest.TestCase):
         self.push(11, 0)
         self.assertFalse(self.song.return_tracks[0].solo)
 
+
+    def test_master_volume_rotary_first_press_guard_reverses_within_35ms(self):
+        self.surface._row_modules[:] = ["Pan", "Pan", "Mute", "Pan"]
+        self.surface._alt_mode = True
+        parameter = self.song.master_track.mixer_device.volume
+        parameter.value = 0.5
+        self.surface._refresh_all()
+        self.turn(11)
+        self.assertGreater(parameter.value, 0.5)
+        self.clock[0] += 0.020
+        self.push(11, 127)
+        self.assertEqual(parameter.value, 0.5)
+        self.push(11, 0)
+
+    def test_fx_mode_is_not_forced_off_on_transient_return_list_error(self):
+        self.song.return_tracks = [mock.Track()]
+        self.fx_toggle()
+        self.assertTrue(self.surface._fx_mode)
+
+        class BrokenSong(object):
+            @property
+            def return_tracks(self):
+                raise RuntimeError("temporary Live object failure")
+
+            @property
+            def visible_tracks(self):
+                return self.song.visible_tracks
+
+            @property
+            def scenes(self):
+                return self.song.scenes
+
+        original_song = self.song
+        broken = BrokenSong()
+        broken.song = original_song
+        self.surface.song = lambda: broken
+        self.surface._refresh_all()
+        self.assertTrue(self.surface._fx_mode)
+
     def test_fx_group_recovers_when_last_return_is_removed(self):
         self.song.return_tracks = [mock.Track(), mock.Track()]
         self.surface._track_offset = 2
