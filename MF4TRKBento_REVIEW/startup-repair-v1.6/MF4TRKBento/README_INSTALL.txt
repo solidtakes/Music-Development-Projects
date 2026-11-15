@@ -26,3 +26,17 @@ Rollback:
 4. Start Live once and confirm the known-working v1.5 baseline.
 
 This candidate does not claim a successful Ableton hardware startup.
+
+OFFLINE VALIDATION BOUNDARY
+---------------------------
+
+The automated suite is host-mock evidence only. Its schedule_message mock stores
+callbacks in a Python list and the tests invoke those callbacks manually. It
+does not reproduce or validate Ableton Live 13 Beta's real TaskGroup,
+update_display, component_guard, or callback-dispatch environment. No Live 13
+scheduler behavior or hardware startup is established by these tests.
+
+Track.has_audio_output is still read by _audio_mixer() to preserve Pan/Sends
+availability behavior. Its latency and runtime behavior in Live 13 Beta remain
+unverified. The original startup hang's root cause has not been proven, and
+this repair must not be described as proving or fixing that cause.

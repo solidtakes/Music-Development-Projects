@@ -32,8 +32,21 @@ jobs:
           output.parent.mkdir(parents=True, exist_ok=True)
           with ZipFile(output, "w", ZIP_DEFLATED) as archive:
               for path in sorted(package.rglob("*")):
-                  if path.is_file():
-                      archive.write(path, path.relative_to(package.parent))
+                  if not path.is_file():
+                      continue
+                  if "__pycache__" in path.parts or path.suffix == ".pyc":
+                      continue
+                  archive.write(path, path.relative_to(package.parent))
+          with ZipFile(output) as archive:
+              members = archive.namelist()
+              forbidden = [
+                  name for name in members
+                  if "__pycache__" in Path(name).parts or name.endswith(".pyc")
+              ]
+              if forbidden:
+                  raise SystemExit("Unexpected bytecode in installable ZIP: " + repr(forbidden))
+              print(f"ZIP_ENTRIES={len(members)}")
+              print("BYTECODE_ENTRIES=0")
           digest = hashlib.sha256(output.read_bytes()).hexdigest()
           print(f"ZIP={output}")
           print(f"SHA256={digest}")

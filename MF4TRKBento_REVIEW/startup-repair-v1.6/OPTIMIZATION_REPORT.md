@@ -64,7 +64,16 @@ The owner-supplied log proves v1.6 initialization reached its loaded message;
 it does not identify a Python callback, native Live deadlock, MIDI feedback
 loop, or external surface as the cause. The two v1.6 hangs and successful v1.5
 rollback establish a strong regression signal, not a proven root cause.
-Offline tests cannot establish Live 13 Beta startup behavior.
+
+Track.has_audio_output remains read by _audio_mixer() to preserve Pan/Sends
+availability behavior. Its latency and actual Live 13 Beta runtime behavior
+remain unverified. This repair does not prove that the property caused the
+original hang or that the cause has been fixed.
+
+The automated schedule_message mock is list-backed: it stores callbacks and
+tests invoke them manually. It does not reproduce or validate Live 13 Beta's
+real TaskGroup, update_display, component_guard, or callback-dispatch
+environment. Passing offline tests is offline evidence only.
 
 ## Repair rationale
 

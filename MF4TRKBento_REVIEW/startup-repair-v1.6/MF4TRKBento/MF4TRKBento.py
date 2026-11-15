@@ -105,11 +105,15 @@ class MF4TRKBento(ControlSurface):
         return self._send_midi((0xB0 | channel, int(cc), max(0, min(127, int(value)))))
 
     def _rgb(self, cc, value):
+        if self._closed:
+            return
         value = max(0, min(127, int(value)))
         if self._rgb_cache.get(cc) != value and self._send(self.PUSH_CH, cc, value) is not False:
             self._rgb_cache[cc] = value
 
     def _ring(self, cc, value):
+        if self._closed:
+            return
         value = max(0, min(127, int(value)))
         if self._ring_cache.get(cc) != value and self._send(self.ROTARY_CH, cc, value) is not False:
             self._ring_cache[cc] = value
@@ -745,10 +749,14 @@ class MF4TRKBento(ControlSurface):
         return (color, 0, max(0, min(127, ring)), False)
 
     def _render_frame(self, update_rings):
+        if self._closed:
+            return
         now = time.monotonic()
         beat = None
         ring_samples = {}
         for cc in range(16):
+            if self._closed:
+                return
             color, rate, ring_data, scene = self._frame.get(cc, (0, 0, None, False))
             if scene and rate:
                 # Playing: green 1/4-note flash. Queued: pink 1/16-note.
@@ -834,6 +842,11 @@ class MF4TRKBento(ControlSurface):
         self._record_diagnostic("ticks")
         tick_started = time.monotonic() if self._diagnostics_enabled else None
         try:
+            # A refresh_state() request made during a render-only tick is
+            # deferred here, rather than nesting a scan/render inside that tick.
+            if self._refresh_pending:
+                self._refresh_pending = False
+                self._ticks_until_scan = 0
             self._ticks_until_scan -= 1
             if self._ticks_until_scan <= 0:
                 self._refresh_all()
@@ -848,6 +861,8 @@ class MF4TRKBento(ControlSurface):
             self._schedule_tick()
 
     def _refresh_highlight(self, rows, tracks, scenes):
+        if self._closed:
+            return
         if not rows or not tracks or not scenes:
             self._close_highlight()
             self._highlight_error = None
@@ -910,7 +925,13 @@ class MF4TRKBento(ControlSurface):
             self._ring_cache.clear()
             self._highlight_error = None
             self._last_highlight = None
-            self._refresh_all()
+            if self._tick_running and not self._refresh_running:
+                # Do not run a nested scan/render from a render-only tick.
+                # The next one-shot callback consumes this coalesced request.
+                self._refresh_pending = True
+                self._record_diagnostic("reentrant_refreshes")
+            else:
+                self._refresh_all()
 
     def disconnect(self):
         self._closed = True

@@ -267,6 +267,184 @@ class StartupLifecycle(unittest.TestCase):
         self.assertFalse(self.surface.sent)
         self.assertEqual(self.surface.base_disconnect_calls, 1)
 
+
+    def test_initial_schedule_message_failure_clears_pending_and_can_retry(self):
+        original_schedule = mock.ControlSurface.schedule_message
+        calls = []
+
+        def fail_once(surface, delay, callback):
+            calls.append((delay, callback))
+            if len(calls) == 1:
+                surface.schedule_message_calls += 1
+                raise RuntimeError("simulated initial schedule failure")
+            return original_schedule(surface, delay, callback)
+
+        mock.ControlSurface.schedule_message = fail_once
+        try:
+            surface = module.create_instance(None)
+        finally:
+            mock.ControlSurface.schedule_message = original_schedule
+        self.addCleanup(surface.disconnect)
+
+        self.assertEqual(len(calls), 1)
+        self.assertFalse(surface._tick_pending)
+        self.assertFalse(surface._tick_running)
+        self.assertEqual(surface.scheduled, [])
+        self.assertTrue(any("scheduler unavailable" in message
+                            for message in surface.messages))
+
+        # A failed first registration must not strand the pending flag.
+        surface._schedule_tick()
+        self.assertTrue(surface._tick_pending)
+        self.assertEqual(len(surface.scheduled), 1)
+
+    def test_scan_and_render_exceptions_reset_guards_and_rearm(self):
+        original_scan = self.surface._scan_frame
+
+        def fail_scan():
+            raise RuntimeError("simulated scan failure")
+
+        self.surface._scan_frame = fail_scan
+        self.surface._ticks_until_scan = 1
+        self.fire_next()
+        self.assertFalse(self.surface._tick_running)
+        self.assertFalse(self.surface._refresh_running)
+        self.assertTrue(self.surface._tick_pending)
+        self.assertEqual(len(self.surface.scheduled), 1)
+
+        self.surface._scan_frame = original_scan
+        original_render = self.surface._render_frame
+
+        def fail_render(update_rings):
+            raise RuntimeError("simulated render failure")
+
+        self.surface._render_frame = fail_render
+        self.surface._ticks_until_scan = 2
+        self.fire_next()
+        self.assertFalse(self.surface._tick_running)
+        self.assertFalse(self.surface._refresh_running)
+        self.assertTrue(self.surface._tick_pending)
+        self.assertEqual(len(self.surface.scheduled), 1)
+        self.assertEqual(self.surface.schedule_message_calls, 3)
+        self.surface._render_frame = original_render
+
+    def test_refresh_state_reentry_during_tick_and_active_refresh_is_coalesced(self):
+        original_scan = self.surface._scan_frame
+        original_render = self.surface._render_frame
+        scan_calls = [0]
+        render_calls = [0]
+
+        def count_scan():
+            scan_calls[0] += 1
+            original_scan()
+
+        def refresh_from_first_render(update_rings):
+            render_calls[0] += 1
+            if render_calls[0] == 1:
+                self.surface.refresh_state()
+            original_render(update_rings)
+
+        self.surface._scan_frame = count_scan
+        self.surface._render_frame = refresh_from_first_render
+
+        # First callback is render-only. refresh_state must be deferred.
+        self.fire_next()
+        self.assertEqual(scan_calls[0], 0)
+        self.assertEqual(render_calls[0], 1)
+        self.assertTrue(self.surface._refresh_pending)
+        self.assertFalse(self.surface._tick_running)
+        self.assertEqual(len(self.surface.scheduled), 1)
+
+        # The pending request is consumed by exactly one subsequent tick.
+        self.fire_next()
+        self.assertEqual(scan_calls[0], 1)
+        self.assertEqual(render_calls[0], 2)
+        self.assertFalse(self.surface._refresh_pending)
+        self.assertEqual(len(self.surface.scheduled), 1)
+
+        # A refresh_state() call from inside an active scan is coalesced by
+        # _refresh_all(); it must not create a nested scan or render.
+        reentered = [False]
+
+        def refresh_from_scan():
+            scan_calls[0] += 1
+            if not reentered[0]:
+                reentered[0] = True
+                self.surface.refresh_state()
+            original_scan()
+
+        self.surface._scan_frame = refresh_from_scan
+        self.surface._ticks_until_scan = 1
+        self.fire_next()
+        self.assertEqual(scan_calls[0], 2)
+        self.assertEqual(render_calls[0], 3)
+        self.assertFalse(self.surface._refresh_pending)
+        self.assertEqual(self.surface._diagnostics["reentrant_refreshes"], 2)
+        self.assertEqual(len(self.surface.scheduled), 1)
+
+    def test_disconnect_during_inflight_refresh_blocks_rehighlight_and_late_midi(self):
+        # A disconnect from a Live-property probe must not recreate highlighting
+        # when the in-flight scan reaches its final highlight update.
+        created_before = mock.SessionComponent.created_count
+        highlight_before = self.surface.highlight_set_calls
+        disconnected = [False]
+        post_close = []
+        original_send = self.surface._send_midi
+
+        def track_send(message):
+            if disconnected[0]:
+                post_close.append(message)
+            return original_send(message)
+
+        self.surface._send_midi = track_send
+        original_disconnect = self.surface.disconnect
+
+        def disconnect_and_mark():
+            original_disconnect()
+            disconnected[0] = True
+
+        self.surface.disconnect = disconnect_and_mark
+        fired = [False]
+
+        def disconnect_from_probe(_track):
+            if not fired[0]:
+                fired[0] = True
+                self.surface.disconnect()
+
+        self.song.visible_tracks[0].audio_output_hook = disconnect_from_probe
+        self.surface._refresh_all()
+        self.assertTrue(fired[0])
+        self.assertEqual(mock.SessionComponent.created_count, created_before)
+        self.assertIsNone(self.surface._session_component)
+        self.assertEqual(self.surface.highlight_set_calls, highlight_before + 1)
+        self.assertEqual(post_close, [])
+
+        # A disconnect during LED output must stop the remainder of that frame.
+        surface = module.create_instance(None)
+        original_disconnect_2 = surface.disconnect
+        self.addCleanup(lambda: original_disconnect_2() if not surface._closed else None)
+        original_send_2 = surface._send_midi
+        post_close_2 = []
+        disconnected_2 = [False]
+        first_send = [False]
+
+        def send_and_disconnect(message):
+            result = original_send_2(message)
+            if disconnected_2[0]:
+                post_close_2.append(message)
+            if not first_send[0]:
+                first_send[0] = True
+                original_disconnect_2()
+                disconnected_2[0] = True
+            return result
+
+        surface._send_midi = send_and_disconnect
+        surface._refresh_all()
+        self.assertTrue(first_send[0])
+        self.assertTrue(disconnected_2[0])
+        self.assertEqual(post_close_2, [])
+        self.assertIsNone(surface._session_component)
+
     def test_repeated_init_disconnect_has_no_stale_callbacks_or_listeners(self):
         for _ in range(20):
             surface = module.create_instance(None)

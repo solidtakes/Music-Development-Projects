@@ -29,3 +29,15 @@ offline CI suite has passed.
 
 No changes to v1.5, MIDI Fighter Utility, Native Mode, CC assignments,
 SAC2K, other banks, or the original v1.6 branch.
+
+## Offline test boundary
+
+The regression tests use a list-backed schedule_message mock and manually fire
+stored callbacks. They do not reproduce or validate Live 13 Beta's real
+TaskGroup, update_display, component_guard, or callback-dispatch environment.
+Passing offline tests is not evidence of successful Live 13 startup.
+
+Track.has_audio_output remains read in _audio_mixer() for Pan/Sends
+availability. Its latency and actual Live 13 Beta runtime behavior remain
+unverified. The original hang's root cause is not established by the available
+logs or these tests.
