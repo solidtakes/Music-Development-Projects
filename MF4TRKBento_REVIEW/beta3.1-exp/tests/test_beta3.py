@@ -68,6 +68,8 @@ class FakeTrack:
         self.current_monitoring_state = 0
         self.mixer_device = FakeMixer()
         self.devices = [FakeDevice("Device 1"), FakeDevice("Device 2")]
+        for device in self.devices:
+            device.canonical_parent = self
         self.view = types.SimpleNamespace(selected_device=self.devices[0])
         self.clip_slots = [FakeSlot(True) for _ in range(8)]
         self.stop_count = 0
@@ -84,6 +86,16 @@ class FakeScene:
         self.fire_count += 1
 
 
+class FakeSongView:
+    def __init__(self, track):
+        self.selected_track = track
+        self.select_device_calls = []
+
+    def select_device(self, device):
+        self.select_device_calls.append(device)
+        self.selected_track.view.selected_device = device
+
+
 class FakeSong:
     def __init__(self, track_count=8, return_count=0, scene_count=8):
         self.tracks = [FakeTrack("Track %d" % i) for i in range(track_count)]
@@ -91,7 +103,7 @@ class FakeSong:
         self.return_tracks = [FakeTrack("Return %d" % i, armable=False)
                               for i in range(return_count)]
         self.master_track = FakeTrack("Master", armable=False)
-        self.view = types.SimpleNamespace(selected_track=self.tracks[0])
+        self.view = FakeSongView(self.tracks[0])
         self.scenes = [FakeScene() for _ in range(scene_count)]
         self.tempo = 120.0
         self.is_playing = True
@@ -241,6 +253,24 @@ class Beta3Tests(unittest.TestCase):
         self.assertGreater(self.song.tracks[0].mixer_device.sends[0].value, before)
         self.push(4)
         self.assertFalse(self.song.tracks[0].arm)
+
+    def test_blank_volume_retains_white_ring_across_refreshes(self):
+        self.surface._row_modules[3] = "Blank"
+        track = self.song.tracks[0]
+        expected = self.surface._parameter_ring(track.mixer_device.volume)
+        for _ in range(2):
+            self.surface._refresh_all()
+            self.assertEqual(self.surface._frame[12], (0, 0, expected, False))
+            self.assertEqual(self.surface._ring_cache[12], expected)
+
+    def test_unarmable_return_keeps_inherited_send_ring(self):
+        ret = FakeTrack("Return", armable=False)
+        self.song.return_tracks = [ret]
+        self.surface._fx_mode = True
+        self.surface._refresh_all()
+        expected = self.surface._parameter_ring(ret.mixer_device.sends[0])
+        self.assertEqual(self.surface._frame[4], (0, 0, expected, False))
+        self.assertEqual(self.surface._ring_cache[4], expected)
 
     def test_fixed_mixer_rotaries_unchanged_by_button_selection(self):
         for rows in (["Blank", "Blank", "Blank", "Mute"],
@@ -498,6 +528,62 @@ class Beta3Tests(unittest.TestCase):
         for row in range(count):
             self.surface._row_modules[row] = "Device Control"
         self.surface._refresh_all()
+
+    def test_device_bank_resets_on_external_device_and_track_selection(self):
+        self._insert_devices(1)
+        self.push(1)
+        self.assertEqual(self.surface._device_bank, 1)
+        track = self.song.tracks[0]
+        track.view.selected_device = track.devices[1]
+        self.surface._refresh_all()
+        self.assertEqual(self.surface._device_bank, 0)
+        self.push(1)
+        self.assertEqual(self.surface._device_bank, 1)
+        self.song.view.selected_track = self.song.tracks[1]
+        self.surface._refresh_all()
+        self.assertEqual(self.surface._device_bank, 0)
+
+    def test_nested_device_navigation_uses_chain_siblings_and_song_view(self):
+        self._insert_devices(1)
+        track = self.song.tracks[0]
+        inside_one, inside_two = FakeDevice("Inside 1"), FakeDevice("Inside 2")
+        chain = types.SimpleNamespace(devices=[inside_one, inside_two])
+        inside_one.canonical_parent = chain
+        inside_two.canonical_parent = chain
+        track.view.selected_device = inside_one
+        self.surface._refresh_all()
+        self.push(3)
+        self.assertIs(track.view.selected_device, inside_two)
+        self.assertIs(self.song.view.select_device_calls[-1], inside_two)
+        self.push(2)
+        self.assertIs(track.view.selected_device, inside_one)
+        self.assertIs(self.song.view.select_device_calls[-1], inside_one)
+
+    def test_scan_reads_device_parameters_once_with_four_device_rows(self):
+        class CountingDevice(FakeDevice):
+            def __init__(self, name, count=300):
+                self.parameter_reads = 0
+                super().__init__(name, count)
+
+            @property
+            def parameters(self):
+                self.parameter_reads += 1
+                return self._parameters
+
+            @parameters.setter
+            def parameters(self, value):
+                self._parameters = value
+
+        self._insert_devices(4)
+        track = self.song.tracks[0]
+        counted = CountingDevice("Many parameters")
+        counted.canonical_parent = track
+        track.devices[0] = counted
+        track.view.selected_device = counted
+        counted.parameter_reads = 0
+        self.surface._refresh_all()
+        self.assertEqual(counted.parameter_reads, 1)
+        self.assertIsNotNone(self.surface._frame[15][2])
 
     def test_device_replacement_priority_all_four_counts(self):
         expected = [
