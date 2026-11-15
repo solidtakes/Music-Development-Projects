@@ -73,6 +73,24 @@ class LayoutControllerTests(unittest.TestCase):
             "removed.module",
         )
 
+    def test_live_write_is_deferred_and_rapid_layouts_are_coalesced(self):
+        scheduled = []
+        controller = LayoutStateController(
+            self.manager, lambda: dict(self.current),
+            lambda layout: self.applied.append(dict(layout)),
+            lambda: {"column1": "mixer.volume", "column2": "mixer.pan"},
+            schedule_save=scheduled.append,
+        )
+        self.current["column1"] = "mixer.pan"
+        controller.on_layout_changed()
+        self.current["column1"] = "mixer.volume"
+        controller.on_layout_changed()
+        self.assertEqual(len(scheduled), 1)
+        self.assertIsNone(self.manager.restore_last())
+        scheduled[0]()
+        self.assertEqual(self.manager.restore_last()["assignments"]["column1"],
+                         "mixer.volume")
+
 
 if __name__ == "__main__":
     unittest.main()
