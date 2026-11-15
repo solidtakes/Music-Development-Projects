@@ -86,9 +86,13 @@ export function makeMetadata(
   return { channels, sampleRate, bitDepth, frames, durationSeconds: frames / sampleRate, encoding };
 }
 
-/** Parse only the header and return metadata, without decoding samples. */
-export function readWavMetadata(input: Uint8Array): AudioMetadata {
-  return parseHeader(input).format;
+/**
+ * Parse only the header and return metadata, without decoding samples.
+ * `input` may be a prefix of the file (e.g. its first 4 KiB) if `fileLength` gives the full length;
+ * the data chunk is then bounds-checked against `fileLength`.
+ */
+export function readWavMetadata(input: Uint8Array, fileLength: number = input.byteLength): AudioMetadata {
+  return parseHeader(input, fileLength).format;
 }
 
 interface ParsedHeader {
@@ -97,7 +101,7 @@ interface ParsedHeader {
   dataBytes: number;
 }
 
-function parseHeader(input: Uint8Array): ParsedHeader {
+function parseHeader(input: Uint8Array, fileLength: number = input.byteLength): ParsedHeader {
   const view = new DataView(input.buffer, input.byteOffset, input.byteLength);
   if (input.byteLength < 12) throw new WavError('truncated', 'File is shorter than a RIFF header.');
   const riff = fourcc(view, 0);
@@ -133,8 +137,8 @@ function parseHeader(input: Uint8Array): ParsedHeader {
       }
       fmt = { tag, channels, sampleRate, blockAlign, bits };
     } else if (id === 'data') {
-      if (body + size > input.byteLength) {
-        throw new WavError('truncated', `data chunk declares ${size} bytes but only ${input.byteLength - body} are present.`);
+      if (body + size > fileLength) {
+        throw new WavError('truncated', `data chunk declares ${size} bytes but only ${fileLength - body} are present.`);
       }
       data = { offset: body, bytes: size };
       break; // samples found; trailing chunks are ignored
