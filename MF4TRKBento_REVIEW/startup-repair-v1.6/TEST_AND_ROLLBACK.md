@@ -3,8 +3,9 @@
 ## Review gate
 
 Do not install or hardware-test this candidate until an independent reviewer
-has inspected the scheduler, reentrancy, refresh and shutdown changes and the
-offline CI suite has passed.
+has inspected the scheduler, reentrancy, refresh and shutdown changes, the
+offline CI suite has passed, review findings have been reconciled, and the
+owner has explicitly authorized the one-launch hardware validation.
 
 ## One-launch hardware validation (after review only)
 

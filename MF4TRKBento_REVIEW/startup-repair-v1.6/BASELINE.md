@@ -11,35 +11,52 @@
 ## Repair candidate
 
 - Branch: repair/mf4trkbento-v1.6-startup-guard-20261115
-- Code/test snapshot: 62edbda472049d5d05a4274844c0d2c378e7dc58
-- Build checkout commit: 20369213385298c8d38a438b910a8408ed9ad904
-- Stacked PR: #27, open/draft/unmerged, base bento/mf4trkbento-v1.6-experimental
-- Repair source blob: 38abd9e85e3af0af4ad1ba889de2ed05e83948cc
-- Startup test blob: 85e803f5798b3010734c0189103d1a7994f4d208
+- PR #27: open, draft, unmerged
+- Current code/test and build checkout commit: 7de7fef242b1c455c95565ef72f8a195fb3f8b91
+- Stacked PR base: bento/mf4trkbento-v1.6-experimental
+- Repair source blob: 39a1a0b0464dea2de87c8a725b72ecf9351f6f37
+- Startup test blob: 607cf830169ccf8a3135ccc25f6462b57a8c26bc
 - Host mock blob: 1be5d77a8fa945158faa046fa90a5f0f10d02b28
 - Listener-cache comparison variant blob: a9a189ae27df2c0262536a1c6cb544f6d6b69943
 
 ## Latest successful build
 
-- Workflow run: 43671107506
-- Workflow job: 132681126552 (regression-and-package, completed/success)
-- The workflow checked out build commit 20369213385298c8d38a438b910a8408ed9ad904.
+- Workflow run: 43676200193
+- Workflow job: 132696792431 (regression-and-package, completed/success)
 - Artifact name: MF4TRKBento-v1.6-startup-repair-EXP
-- Artifact ID: 14143644854
-- Artifact expires: 2026-12-15T03:10:07Z
+- Artifact ID: 14145964115
+- Artifact expires: 2026-12-15T04:18:48Z
 - Installable ZIP path inside the artifact: dist/MF4TRKBento_v1.6_STARTUP_REPAIR_EXP.zip
-- Installable ZIP SHA-256: ab61600505283ab6d5d8fc5ae462f65568c58bff2cecd75e4c6a8d91d6c9637f
-- GitHub Actions outer artifact archive SHA-256: a7c4f7ddc39aa2c19bcc1847f809446278b9edd68aa6270ea48d443435da86ea
+- Installable ZIP SHA-256: ede31000eb20eedda14ea8c1607deaf63a120330a5c02576dcb8d212d5423050
+- GitHub Actions outer artifact archive SHA-256: 607aa0429fbe851d7dc08abccc210c2e8976ab0d211b2611f861d8ceeabe2113
 
 The two SHA-256 values refer to different files: the first is the installable
 MF4TRKBento ZIP built by the workflow; the second is GitHub's uploaded artifact
 wrapper containing that ZIP. The workflow log prints the installable ZIP hash,
 and GitHub's artifact metadata reports the outer archive digest.
 
-The installable package changes only the v1.6 scheduler/refresh lifecycle and
-adds disabled-by-default aggregate diagnostics. The listener-invalidated
-availability cache is test-only and is not part of the installed remote script.
-No v1.5 source, package, or rollback artifact is modified.
+The downloaded artifact was independently inspected: its outer archive digest
+matches GitHub's artifact digest; the extracted installable ZIP matches the
+workflow's inner ZIP hash; the ZIP contains exactly three files and no
+__pycache__ directories or .pyc files. The packaged Python source Git blob
+matches 39a1a0b0464dea2de87c8a725b72ecf9351f6f37.
 
-Any subsequent changes to this report or TEST_RESULTS.txt are documentation-only
-and do not change the source/test snapshot or installable ZIP.
+The previous artifact 14143644854 and its hashes are superseded. Do not use it
+as an installable candidate.
+
+The installable package preserves the v1.6 feature paths and changes scheduler,
+refresh-state, shutdown/render lifecycle guards; it adds the four requested
+lifecycle edge-test groups. The listener-invalidated availability cache is
+test-only and is not part of the installed remote script. No v1.5 source,
+package, or rollback artifact is modified.
+
+Offline test limits: the schedule_message mock stores callbacks in a Python
+list and tests invoke them manually. It does not reproduce or validate Live 13
+Beta's real TaskGroup, update_display, component_guard, or callback-dispatch
+environment. Track.has_audio_output remains read in _audio_mixer(); its
+latency and actual Live 13 Beta runtime behavior remain unverified. The
+original startup hang's root cause has not been proven or shown fixed.
+
+Independent startup-focused review remains pending. Ableton hardware startup
+has not been tested and is not authorized. Preserve v1.5 EXP as the rollback
+baseline.

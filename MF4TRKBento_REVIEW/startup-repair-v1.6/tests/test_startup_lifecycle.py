@@ -423,10 +423,6 @@ class StartupLifecycle(unittest.TestCase):
         surface = module.create_instance(None)
         original_disconnect_2 = surface.disconnect
         self.addCleanup(lambda: original_disconnect_2() if not surface._closed else None)
-        # Force the next render to emit an LED update; __init__ already primed
-        # both output caches on this newly created surface.
-        surface._rgb_cache.clear()
-        surface._ring_cache.clear()
         original_send_2 = surface._send_midi
         post_close_2 = []
         disconnected_2 = [False]

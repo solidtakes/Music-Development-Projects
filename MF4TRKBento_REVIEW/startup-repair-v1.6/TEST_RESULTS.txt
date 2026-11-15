@@ -1,22 +1,31 @@
 OFFLINE TEST RESULTS — PASS (GitHub Actions)
 
-Code/test snapshot: 62edbda472049d5d05a4274844c0d2c378e7dc58
-Build checkout commit: 20369213385298c8d38a438b910a8408ed9ad904
+Code/test snapshot: 7de7fef242b1c455c95565ef72f8a195fb3f8b91
+Build checkout commit: 7de7fef242b1c455c95565ef72f8a195fb3f8b91
 Python: CPython 3.11.18
-Latest successful workflow: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43671107506
-Workflow job: 132681126552 (regression-and-package, completed/success)
+Latest successful workflow: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43676200193
+Workflow job: 132696792431 (regression-and-package, completed/success)
 
 - compileall: PASS for remote-script package and test directory
-- unittest discovery: 23 tests passed in 0.192 seconds
+- unittest discovery: 27 tests passed
 - Existing feature matrix: 10 tests passed
-- Startup lifecycle suite: 13 tests passed
+- Startup lifecycle suite: 17 tests passed
 - Existing smoke script: both smoke assertion sequences printed PASS
 - Experimental ZIP build/upload: PASS
-- Installable ZIP SHA-256: ab61600505283ab6d5d8fc5ae462f65568c58bff2cecd75e4c6a8d91d6c9637f
+- ZIP contents: 3 files; no __pycache__ directories or .pyc files
+- Installable ZIP SHA-256: ede31000eb20eedda14ea8c1607deaf63a120330a5c02576dcb8d212d5423050
 
 The startup suite covers:
 - 1,000 scheduled callbacks, callback count and scan/highlight bounds
 - reentrant tick and refresh coalescing
+- initial schedule_message registration failure clears the pending flag and
+  permits a later retry
+- scan and render exceptions reset lifecycle flags and safely re-arm the
+  one-shot scheduler
+- refresh_state reentrancy during a render-only tick is deferred; reentrancy
+  during an active scan is coalesced without nested scan/render
+- disconnect during an in-flight scan cannot recreate the highlight component
+- disconnect during LED rendering prevents further MIDI output after close
 - property exceptions and deterministic slow-getter timing, including aggregate
   scan-duration measurement
 - probe-off control and exact has_audio_output property-read counts
@@ -29,17 +38,39 @@ The startup suite covers:
   default, and repeated init/disconnect
 
 Artifact: MF4TRKBento-v1.6-startup-repair-EXP
-Artifact ID: 14143644854
-Artifact expires: 2026-12-15T03:10:07Z
-Download page: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43671107506
+Artifact ID: 14145964115
+Artifact expires: 2026-12-15T04:18:48Z
+Download page: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43676200193
 GitHub Actions outer artifact archive SHA-256:
-a7c4f7ddc39aa2c19bcc1847f809446278b9edd68aa6270ea48d443435da86ea
+607aa0429fbe851d7dc08abccc210c2e8976ab0d211b2611f861d8ceeabe2113
 
-The installable ZIP hash above is the hash printed by the workflow before upload.
-The outer artifact digest is GitHub's SHA-256 for its downloadable artifact
-archive, which wraps the installable ZIP; these are not interchangeable.
+Independent artifact inspection:
+- Downloaded the outer artifact archive and verified its SHA-256 against the
+  GitHub artifact digest above.
+- Extracted the installable ZIP and independently verified its SHA-256 against
+  the workflow log above.
+- Inspected all three ZIP entries; no __pycache__ path or .pyc file is present.
+- The packaged MF4TRKBento.py Git blob SHA matches source blob
+  39a1a0b0464dea2de87c8a725b72ecf9351f6f37.
 
-IMPORTANT: These are offline host-mock tests, not Ableton Live 13 Beta hardware
-startup results. Independent startup-focused review is still pending; do not
-install or hardware-test until that review is complete and the owner approves
-the one-launch validation.
+The outer artifact hash and installable ZIP hash refer to different files:
+the outer artifact wraps the installable ZIP; these hashes are not
+interchangeable.
+
+IMPORTANT VALIDATION LIMITS:
+These are offline host-mock tests, not Ableton Live 13 Beta hardware startup
+results. The schedule_message mock is list-backed: it stores callbacks and
+the tests invoke them manually. It does not reproduce or validate Live 13
+Beta's real TaskGroup, update_display, component_guard, or callback-dispatch
+environment.
+
+Track.has_audio_output remains read in _audio_mixer() to preserve Pan/Sends
+availability behavior. Its latency and actual Live 13 Beta runtime behavior
+remain unverified. The original startup hang's root cause has not been proven,
+and this repair must not be described as proving or fixing that cause.
+
+Independent startup-focused review remains pending. No Ableton installation or
+hardware testing has occurred or is authorized. Keep v1.5 EXP as the rollback
+baseline. Do not install this package until independent review is complete,
+findings are reconciled, and the owner explicitly authorizes the one-launch
+hardware validation.
