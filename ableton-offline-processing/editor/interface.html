@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offline Processing Suite</title>
+<style>
+:root{
+  color-scheme:dark;
+  --live-bg:var(--p-live-ui-bg,#343434);
+  --live-panel:var(--p-live-control-bg,#292929);
+  --live-inset:var(--p-live-input-bg,#1e1e1e);
+  --live-text:var(--p-live-text-primary,#d4d4d4);
+  --live-muted:var(--p-live-text-secondary,#929292);
+  --live-accent:var(--p-live-accent-primary,#f39a42);
+  --live-border:rgba(255,255,255,.105);
+  --live-hover:rgba(255,255,255,.07);
+  --live-green:#82b878;
+  --live-blue:#79a9c9;
+  --live-red:#d17a72;
+  font-family:Arial,Helvetica,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--live-bg);color:var(--live-text);font-size:12px}
+body{padding:10px;overflow:auto}
+button,input{font:inherit}
+button{color:inherit}
+.window{width:min(100%,920px);margin:0 auto;background:var(--live-bg);border:1px solid rgba(0,0,0,.35);box-shadow:0 2px 12px rgba(0,0,0,.22)}
+.topbar{height:35px;display:flex;align-items:center;gap:10px;padding:0 11px;background:linear-gradient(#414141,#393939);border-bottom:1px solid #242424}
+.brand-mark{width:7px;height:17px;background:var(--live-accent);border-radius:1px}
+.brand{font-size:11px;font-weight:700;letter-spacing:.11em;color:#f0f0f0}
+.topbar-sub{color:#aaa;font-size:10px}
+.spacer{flex:1}
+.pill{border:1px solid #5b5b5b;padding:3px 6px;border-radius:2px;color:#bdbdbd;font-size:9px;letter-spacing:.06em}
+.sourcebar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;background:#303030;border-bottom:1px solid var(--live-border)}
+.source-name{font-size:13px;font-weight:600;color:#ededed;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.source-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px;color:#aaa;font-size:10px}
+.source-meta span{white-space:nowrap}
+.source-meta b{color:#d6d6d6;font-weight:500}
+.source-size{text-align:right;color:#aaa;font-size:10px}
+.source-size strong{display:block;color:#ddd;font-size:12px;font-weight:600;margin-top:3px}
+.section-label{display:flex;align-items:center;gap:8px;color:#aaa;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px}
+.section-label:after{content:"";height:1px;background:var(--live-border);flex:1}
+.wave-section{padding:11px 12px 12px;background:#303030;border-bottom:1px solid var(--live-border)}
+.waveframe{background:var(--live-inset);border:1px solid #202020;height:120px;position:relative;overflow:hidden}
+.ruler{height:19px;border-bottom:1px solid #3e3e3e;display:flex;justify-content:space-between;padding:3px 7px 0;color:#858585;font-size:9px;background:#252525}
+.wave-area{height:100px;position:relative}
+.wave-area svg{display:block;width:100%;height:100%}
+.wave-grid{stroke:rgba(255,255,255,.09);stroke-width:1;shape-rendering:crispEdges}
+.waveform{fill:#8b9b9f;opacity:.95}
+.wave-mid{stroke:#777;stroke-width:.7;opacity:.6}
+.playhead{position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--live-accent);box-shadow:0 0 4px rgba(243,154,66,.5)}
+.wave-caption{display:flex;justify-content:space-between;margin-top:6px;color:#888;font-size:9px}
+.workspace{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(235px,.9fr);min-height:245px;background:#303030}
+.chain-panel{padding:11px 12px;border-right:1px solid var(--live-border);min-width:0}
+.panel-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.panel-heading .section-label{margin:0;flex:1}
+.small-button,.icon-button,.action-button{border:1px solid #555;background:linear-gradient(#484848,#3c3c3c);border-radius:2px;cursor:pointer}
+.small-button{padding:4px 8px;font-size:10px;color:#ddd}
+.small-button:hover,.icon-button:hover{background:#555}
+.small-button:focus-visible,.icon-button:focus-visible,.action-button:focus-visible,input:focus-visible{outline:1px solid var(--live-accent);outline-offset:1px}
+.device-list{display:flex;flex-direction:column;gap:6px}
+.device{border:1px solid #222;background:#252525;min-height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) 25px;align-items:stretch;cursor:pointer;position:relative}
+.device.selected{border-color:var(--live-accent);box-shadow:inset 0 0 0 1px rgba(243,154,66,.18)}
+.device.bypassed{opacity:.48}
+.device-activator{display:flex;align-items:center;justify-content:center;border-right:1px solid #3c3c3c;background:#303030}
+.led{width:8px;height:8px;border-radius:50%;background:var(--live-green);box-shadow:0 0 4px rgba(130,184,120,.45)}
+.device.bypassed .led{background:#555;box-shadow:none}
+.device-main{padding:6px 8px;min-width:0}
+.device-title-row{display:flex;align-items:center;gap:7px}
+.device-title{font-size:10px;font-weight:700;letter-spacing:.07em;color:#e4e4e4}
+.device-subtitle{font-size:9px;color:#858585;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px}
+.device-summary{margin-left:auto;font-size:10px;color:#c7c7c7;white-space:nowrap}
+.device-actions{display:flex;align-items:center;justify-content:center;border-left:1px solid #3c3c3c;color:#999}
+.device-actions button{border:0;background:transparent;color:#aaa;cursor:pointer;font-size:13px;padding:3px}
+.device-actions button:hover{color:#fff}
+.chain-empty{padding:25px 10px;text-align:center;color:#888;border:1px dashed #555}
+.inspector{padding:11px 12px;min-width:0;background:#2d2d2d}
+.inspector-title{font-size:11px;font-weight:700;letter-spacing:.07em;color:#e2e2e2;margin-bottom:3px}
+.inspector-sub{font-size:9px;color:#8c8c8c;margin-bottom:15px}
+.control-block{border-top:1px solid var(--live-border);padding-top:12px;margin-top:10px}
+.control-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;color:#bcbcbc;font-size:10px}
+.value-box{background:#1e1e1e;border:1px solid #4b4b4b;padding:4px 6px;min-width:66px;text-align:right;color:#f1f1f1;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:pointer}
+.range-scale{display:flex;justify-content:space-between;color:#777;font-size:9px;margin-top:1px}
+.knob-row{display:flex;gap:12px;align-items:center}
+.knob{width:43px;height:43px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#656565,#343434 62%,#202020);border:2px solid #1e1e1e;box-shadow:0 0 0 1px #555;position:relative;flex:none}
+.knob:before{content:"";position:absolute;width:2px;height:11px;background:var(--live-accent);left:19px;top:3px;transform:rotate(35deg);transform-origin:bottom center}
+.knob-info{flex:1;min-width:0}
+.hint{color:#858585;font-size:9px;line-height:1.5}
+.reverse-state{padding:8px;background:#242424;border:1px solid #484848;color:#bbb;font-size:10px}
+.footer{padding:9px 12px;background:#282828;border-top:1px solid #1c1c1c}
+.footer-top{display:flex;align-items:center;gap:8px}
+.status{font-size:9px;color:#969696;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.footer-actions{display:flex;gap:6px;margin-left:auto}
+.action-button{padding:7px 13px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.action-button.primary{background:linear-gradient(#f5a54f,#d9812d);border-color:#d17c2f;color:#21180f;text-shadow:0 1px rgba(255,255,255,.15)}
+.action-button.primary:hover{filter:brightness(1.08)}
+.action-button.secondary{color:#ddd}
+.diagnostics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-top:9px;background:#444;border:1px solid #444}
+.metric{background:#242424;padding:6px 7px;min-width:0}
+.metric-label{font-size:8px;letter-spacing:.08em;color:#888;text-transform:uppercase}
+.metric-value{font-size:10px;color:#d3d3d3;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metric-value.pending{color:#777}
+.notice{margin-top:8px;font-size:9px;color:#8c8c8c;line-height:1.45}
+.notice strong{color:#c0c0c0;font-weight:500}
+.demo-flag{color:#f0b16e;border:1px solid rgba(240,177,110,.4);padding:3px 6px;font-size:8px;letter-spacing:.09em}
+.hidden{display:none!important}
+@media(max-width:650px){body{padding:0}.window{border:0}.workspace{grid-template-columns:1fr}.chain-panel{border-right:0;border-bottom:1px solid var(--live-border)}.diagnostics{grid-template-columns:repeat(2,minmax(0,1fr))}.sourcebar{grid-template-columns:1fr}.source-size{text-align:left}.footer-top{flex-wrap:wrap}.footer-actions{margin-left:0;width:100%}.footer-actions button{flex:1}}
+</style>
+</head>
+<body>
+<div class="window" id="app">
+  <header class="topbar">
+    <span class="brand-mark"></span>
+    <span class="brand">OFFLINE PROCESSING</span>
+    <span class="topbar-sub">/ AUDIO EDITOR</span>
+    <span class="spacer"></span>
+    <span class="pill" id="mode-label">EDITOR</span>
+    <span class="demo-flag hidden" id="demo-flag">PREVIEW DATA</span>
+  </header>
+  <section class="sourcebar">
+    <div>
+      <div class="source-name" id="source-name">Loading source…</div>
+      <div class="source-meta">
+        <span><b id="duration">—</b> LENGTH</span>
+        <span><b id="sample-rate">—</b> SAMPLE RATE</span>
+        <span><b id="channels">—</b> CHANNELS</span>
+        <span><b id="bit-depth">—</b> FORMAT</span>
+      </div>
+    </div>
+    <div class="source-size">SOURCE FILE<strong id="source-size">—</strong></div>
+  </section>
+  <section class="wave-section">
+    <div class="section-label">SOURCE AUDIO / FULL CLIP</div>
+    <div class="waveframe">
+      <div class="ruler" id="ruler"><span>0:00</span><span>25%</span><span>50%</span><span>75%</span><span>END</span></div>
+      <div class="wave-area">
+        <svg id="waveform" viewBox="0 0 900 100" preserveAspectRatio="none" role="img" aria-label="Audio waveform">
+          <g id="wave-grid"></g><path id="wave-path" class="waveform" d=""></path><line class="wave-mid" x1="0" y1="50" x2="900" y2="50"></line>
+        </svg>
+        <div class="playhead" id="playhead"></div>
+      </div>
+    </div>
+    <div class="wave-caption"><span>WHOLE CLIP PROCESSING · RANGE EDITING NOT ENABLED</span><span id="clip-range">0:00 — —</span></div>
+  </section>
+  <main class="workspace">
+    <section class="chain-panel">
+      <div class="panel-heading">
+        <div class="section-label">PROCESSING HISTORY</div>
+        <button class="small-button" id="add-menu" type="button">+ ADD OP</button>
+      </div>
+      <div class="device-list" id="device-list" aria-live="polite"></div>
+      <div class="notice">Operations are non-destructive. Changing an earlier step will invalidate only its dependent renders; the source remains untouched.</div>
+    </section>
+    <aside class="inspector" id="inspector">
+      <div class="section-label">DEVICE VIEW</div>
+      <div class="inspector-title" id="inspector-title">SELECT AN OPERATION</div>
+      <div class="inspector-sub" id="inspector-sub">Choose a device in the processing history.</div>
+      <div id="inspector-controls"></div>
+    </aside>
+  </main>
+  <footer class="footer">
+    <div class="footer-top">
+      <span class="status" id="status" role="status">Ready · Configure the operation chain, then apply.</span>
+      <div class="footer-actions">
+        <button class="action-button secondary" id="cancel" type="button">CANCEL</button>
+        <button class="action-button primary" id="apply" type="button">APPLY TO CLIP ↗</button>
+      </div>
+    </div>
+    <div class="diagnostics" aria-label="Last render diagnostics">
+      <div class="metric"><div class="metric-label">LAST RENDER</div><div class="metric-value pending" id="render-time">Awaiting render</div></div>
+      <div class="metric"><div class="metric-label">CACHE</div><div class="metric-value pending" id="cache-state">Awaiting render</div></div>
+      <div class="metric"><div class="metric-label">OUTPUT</div><div class="metric-value pending" id="output-size">Awaiting render</div></div>
+      <div class="metric"><div class="metric-label">CACHE / PROJECT</div><div class="metric-value pending" id="footprint">Awaiting render</div></div>
+    </div>
+    <div class="notice"><strong>Live workflow:</strong> this window collects the operation plan. Rendering and cache diagnostics are produced by the Extension Host after Apply; values above remain pending until a real render report is supplied.</div>
+  </footer>
+</div>
+<script>
+/*
+ * The Extension Host may inject window.AOPX_INITIAL_STATE before this script.
+ * Expected shape: { source: SourceInfo, waveform: WaveformPeak[], plan?: OperationPlan,
+ *                   diagnostics?: RenderReport, preview?: boolean }
+ */
+(function(){
+  const fallback = {
+    preview:true,
+    source:{name:"Demo Audio.wav",bytes:16480000,fingerprint:"preview-source",format:{channels:2,sampleRate:48000,bitDepth:24,frames:2880000,durationSeconds:60,encoding:"pcm"}},
+    waveform:[],
+    plan:{version:1,operations:[{id:"op-reverse-1",type:"reverse",enabled:true},{id:"op-gain-1",type:"gain",db:-3,enabled:true}]}
+  };
+  const initial = window.AOPX_INITIAL_STATE || fallback;
+  const state = {
+    source:initial.source || fallback.source,
+    operations:(initial.plan?.operations || fallback.plan.operations).map(op=>({...op})),
+    selectedId:(initial.plan?.operations || fallback.plan.operations)[0]?.id || null,
+    waveform:initial.waveform || [],
+    preview:initial.preview ?? !window.AOPX_INITIAL_STATE,
+    busy:false
+  };
+  const $ = id => document.getElementById(id);
+  const fmtBytes = n => {
+    if(!Number.isFinite(n)) return "—";
+    const units=["B","KB","MB","GB"]; let v=n,u=0;
+    while(v>=1024&&u<units.length-1){v/=1024;u++}
+    return (u===0?v.toFixed(0):v.toFixed(2))+" "+units[u];
+  };
+  const fmtTime = s => {
+    if(!Number.isFinite(s)) return "—";
+    const m=Math.floor(s/60), sec=s-m*60;
+    return m+":"+sec.toFixed(2).padStart(5,"0");
+  };
+  const selected=()=>state.operations.find(op=>op.id===state.selectedId)||null;
+  function renderSource(){
+    const f=state.source.format;
+    $("source-name").textContent=state.source.name || "Untitled audio";
+    $("duration").textContent=fmtTime(f.durationSeconds);
+    $("sample-rate").textContent=(f.sampleRate/1000).toFixed(f.sampleRate%1000?1:0)+" kHz";
+    $("channels").textContent=f.channels===1?"Mono":f.channels===2?"Stereo":f.channels+" ch";
+    $("bit-depth").textContent=f.bitDepth+"-bit "+String(f.encoding||"pcm").toUpperCase();
+    $("source-size").textContent=fmtBytes(state.source.bytes);
+    $("clip-range").textContent="0:00 — "+fmtTime(f.durationSeconds);
+    $("demo-flag").classList.toggle("hidden",!state.preview);
+    $("mode-label").textContent=state.preview?"DESIGN PREVIEW":"EDITOR";
+    renderWaveform();
+  }
+  function renderWaveform(){
+    const peaks=state.waveform;
+    const count=180, vals=[];
+    for(let i=0;i<count;i++){
+      if(peaks.length){const p=peaks[Math.min(peaks.length-1,Math.floor(i*peaks.length/count))];vals.push(Math.max(Math.abs(p.min),Math.abs(p.max)))}
+      else vals.push(.12+Math.abs(Math.sin(i*.43)*Math.cos(i*.117))*.72);
+    }
+    let d="";
+    vals.forEach((v,i)=>{const x=i*5;const h=Math.max(2,Math.min(46,v*46));d+=`M${x} 50 L${x} ${50-h} M${x} 50 L${x} ${50+h} `});
+    $("wave-path").setAttribute("d",d);
+    let grid="";
+    for(let i=0;i<=8;i++){const x=i*112.5;grid+=`<line class="wave-grid" x1="${x}" y1="0" x2="${x}" y2="100"/>`}
+    $("wave-grid").innerHTML=grid;
+    const ruler=$("ruler");ruler.innerHTML="";
+    for(let i=0;i<=4;i++){const span=document.createElement("span");span.textContent=i===4?"END":fmtTime(fDuration()*i/4);ruler.append(span)}
+  }
+  function fDuration(){return state.source.format.durationSeconds||0}
+  function renderDevices(){
+    const list=$("device-list");list.innerHTML="";
+    if(!state.operations.length){const empty=document.createElement("div");empty.className="chain-empty";empty.textContent="No operations · use + ADD OP to begin";list.append(empty)}
+    state.operations.forEach((op,index)=>{
+      const device=document.createElement("div");device.className="device"+(op.id===state.selectedId?" selected":"")+(op.enabled?"":" bypassed");device.tabIndex=0;device.setAttribute("role","button");device.setAttribute("aria-pressed",String(op.id===state.selectedId));
+      const activator=document.createElement("button");activator.className="device-activator";activator.type="button";activator.title=op.enabled?"Bypass operation":"Enable operation";activator.setAttribute("aria-label",activator.title);activator.innerHTML='<span class="led"></span>';
+      activator.addEventListener("click",e=>{e.stopPropagation();op.enabled=!op.enabled;render()});
+      const main=document.createElement("div");main.className="device-main";
+      const row=document.createElement("div");row.className="device-title-row";
+      const title=document.createElement("span");title.className="device-title";title.textContent=String(index+1).padStart(2,"0")+" · "+(op.type==="reverse"?"REVERSE":"GAIN");
+      const summary=document.createElement("span");summary.className="device-summary";summary.textContent=op.type==="gain"?(op.db>=0?"+":"")+op.db.toFixed(1)+" dB":"FULL CLIP";
+      row.append(title,summary);
+      const subtitle=document.createElement("div");subtitle.className="device-subtitle";subtitle.textContent=op.enabled?"Audio operation · "+(op.type==="reverse"?"reverse playback direction":"amplitude adjustment"):"BYPASSED · output passes through unchanged";
+      main.append(row,subtitle);
+      const actions=document.createElement("div");actions.className="device-actions";
+      const remove=document.createElement("button");remove.type="button";remove.title="Remove operation";remove.setAttribute("aria-label","Remove operation");remove.textContent="×";remove.addEventListener("click",e=>{e.stopPropagation();state.operations=state.operations.filter(x=>x.id!==op.id);if(state.selectedId===op.id)state.selectedId=state.operations[Math.max(0,index-1)]?.id||null;render()});
+      actions.append(remove);device.append(activator,main,actions);
+      device.addEventListener("click",()=>{state.selectedId=op.id;render()});
+      device.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();state.selectedId=op.id;render()}});
+      list.append(device);
+    });
+  }
+  function renderInspector(){
+    const op=selected(),controls=$("inspector-controls");
+    controls.innerHTML="";
+    if(!op){$("inspector-title").textContent="NO DEVICE SELECTED";$("inspector-sub").textContent="Add or select an operation.";return}
+    $("inspector-title").textContent=op.type==="gain"?"GAIN":"REVERSE";
+    $("inspector-sub").textContent="DEVICE PARAMETERS · STEP "+String(state.operations.indexOf(op)+1).padStart(2,"0");
+    const toggle=document.createElement("div");toggle.className="control-row";
+    const label=document.createElement("span");label.textContent="Device activator";
+    const enable=document.createElement("button");enable.className="small-button";enable.type="button";enable.textContent=op.enabled?"ON":"BYPASSED";enable.addEventListener("click",()=>{op.enabled=!op.enabled;render()});toggle.append(label,enable);controls.append(toggle);
+    if(op.type==="gain"){
+      const block=document.createElement("div");block.className="control-block";
+      const row=document.createElement("div");row.className="control-row";
+      const name=document.createElement("span");name.textContent="Gain";
+      const value=document.createElement("output");value.className="value-box";value.textContent=(op.db>=0?"+":"")+op.db.toFixed(1)+" dB";row.append(name,value);
+      const range=document.createElement("input");range.type="range";range.min="-60";range.max="24";range.step=".1";range.value=String(op.db);range.setAttribute("aria-label","Gain in decibels");
+      range.addEventListener("input",()=>{op.db=Number(range.value);value.textContent=(op.db>=0?"+":"")+op.db.toFixed(1)+" dB";const card=$("device-list").querySelector(".device.selected .device-summary");if(card)card.textContent=(op.db>=0?"+":"")+op.db.toFixed(1)+" dB"});
+      const scale=document.createElement("div");scale.className="range-scale";scale.innerHTML="<span>−60 dB</span><span>0 dB</span><span>+24 dB</span>";
+      const knob=document.createElement("div");knob.className="knob-row";const visual=document.createElement("div");visual.className="knob";const info=document.createElement("div");info.className="knob-info";info.innerHTML='<div class="device-title">OUTPUT LEVEL</div><div class="hint">Gain is applied equally to all channels. PCM output saturates at full scale.</div>';knob.append(visual,info);
+      block.append(row,range,scale,knob);controls.append(block);
+    }else{
+      const block=document.createElement("div");block.className="control-block";const message=document.createElement("div");message.className="reverse-state";message.textContent="Reverse the complete audio clip. Channel order and sample format are preserved.";block.append(message);controls.append(block);
+    }
+    const order=document.createElement("div");order.className="control-block";
+    const orderLabel=document.createElement("div");orderLabel.className="control-row";orderLabel.textContent="Operation order";
+    const buttons=document.createElement("div");buttons.style.display="flex";buttons.style.gap="6px";
+    const idx=state.operations.indexOf(op);
+    [["↑","Move earlier",idx>0,-1],["↓","Move later",idx<state.operations.length-1,1]].forEach(([glyph,title,allowed,delta])=>{const b=document.createElement("button");b.className="small-button";b.type="button";b.textContent=glyph+" "+title;b.disabled=!allowed;b.addEventListener("click",()=>{const next=idx+delta;[state.operations[idx],state.operations[next]]=[state.operations[next],state.operations[idx]];render()});buttons.append(b)});
+    order.append(orderLabel,buttons);controls.append(order);
+  }
+  function render(){renderDevices();renderInspector();$("status").textContent=state.operations.length+" operation"+(state.operations.length===1?"":"s")+" · edits are local until Apply."}
+  function add(type){
+    if(type==="gain"&&state.operations.some(op=>op.type==="gain")){state.selectedId=state.operations.find(op=>op.type==="gain").id;render();$("status").textContent="A Gain operation already exists. Select it to edit its value.";return}
+    const op=type==="gain"?{id:"gain-"+crypto.randomUUID(),type:"gain",db:-3,enabled:true}:{id:"reverse-"+crypto.randomUUID(),type:"reverse",enabled:true};
+    state.operations.push(op);state.selectedId=op.id;render();
+  }
+  $("add-menu").addEventListener("click",()=>{
+    const existing=document.getElementById("add-pop");if(existing){existing.remove();return}
+    const pop=document.createElement("div");pop.id="add-pop";pop.style.cssText="position:absolute;z-index:5;right:16px;margin-top:28px;background:#242424;border:1px solid #555;padding:5px;display:flex;gap:5px";
+    ["reverse","gain"].forEach(type=>{const b=document.createElement("button");b.className="small-button";b.type="button";b.textContent=type==="reverse"?"Reverse":"Gain";b.addEventListener("click",()=>{add(type);pop.remove()});pop.append(b)});
+    $("add-menu").parentElement.style.position="relative";$("add-menu").parentElement.append(pop);
+  });
+  function closeWith(payload){
+    const message={method:"close_and_send",params:[JSON.stringify(payload)]};
+    const mac=window.webkit?.messageHandlers?.live;
+    const win=window.chrome?.webview;
+    if(mac){mac.postMessage(message);return true}
+    if(win){win.postMessage(message);return true}
+    $("status").textContent="Preview only · host message bridge is not available.";
+    return false;
+  }
+  $("cancel").addEventListener("click",()=>closeWith({action:"cancel"}));
+  $("apply").addEventListener("click",()=>{
+    if(state.busy)return;
+    if(!state.operations.length){$("status").textContent="Add at least one operation before applying.";return}
+    state.busy=true;$("apply").disabled=true;
+    const plan={version:1,operations:state.operations.map(op=>({...op, ...(op.type==="gain"?{db:Number(op.db.toFixed(6))}:{})}))};
+    const ok=closeWith({action:"process",plan});
+    if(!ok){state.busy=false;$("apply").disabled=false}
+  });
+  function renderDiagnostics(report){
+    if(!report)return;
+    const total=report.steps?.reduce((n,s)=>n+(s.renderMs||0),0);
+    $("render-time").textContent=Number.isFinite(total)?total.toFixed(1)+" ms":"—";
+    $("cache-state").textContent=(report.steps||[]).filter(s=>s.status==="hit").length+" hit / "+(report.steps||[]).filter(s=>s.status==="miss").length+" miss";
+    $("output-size").textContent=fmtBytes(report.outputBytes);
+    $("footprint").textContent=fmtBytes(report.cacheBytes)+" / "+fmtBytes(report.projectBytes);
+    document.querySelectorAll(".metric-value").forEach(el=>el.classList.remove("pending"));
+  }
+  renderSource();render();renderDiagnostics(initial.diagnostics);
+})();
+</script>
+</body>
+</html>
