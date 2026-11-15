@@ -1,4 +1,4 @@
-# MF4TRKBento v1.7 EXP
+# MF4TRKBento v1.8 EXP
 # Experimental hardware-test build. Bank 2 MIDI routing retained from v1.2.
 from _Framework.ControlSurface import ControlSurface
 from _Framework.ButtonElement import ButtonElement
@@ -100,8 +100,8 @@ class MF4TRKBento(ControlSurface):
                     self._elements.append((element, callback))
         self._refresh_all()
         self._schedule_tick()
-        self.show_message("MF4TRKBento v1.7 EXP | RClip/Arm/Solo/Pan/Mute/Sends/Stop")
-        self.log_message("MF4TRKBento v1.7 EXP loaded - CC0-15 unchanged")
+        self.show_message("MF4TRKBento v1.8 EXP | RClip/Arm/Solo/Pan/Mute/Sends/Stop")
+        self.log_message("MF4TRKBento v1.8 EXP loaded - CC0-15 unchanged")
 
     def _make_rotary(self, cc):
         return lambda value: self._rotary(cc, value)
@@ -1123,7 +1123,7 @@ class MF4TRKBento(ControlSurface):
             else:
                 self._render_frame(update_rings=False)
         except Exception as exc:
-            self.log_message("MF4TRKBento v1.7 refresh error: %s" % exc)
+            self.log_message("MF4TRKBento v1.8 refresh error: %s" % exc)
         finally:
             if tick_started is not None:
                 self._record_duration("tick", max(0.0, time.monotonic() - tick_started))
