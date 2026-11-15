@@ -44,7 +44,7 @@ a review manually using the CodeRabbit status-comment action or
 `@coderabbitai review`.
 
 - Setup and public-repository review guidance:
-  https://kb.coderabbit.ai/articles/8856795235-how-do-i-activate-coderabbit-pro-for-our-open-source-project
+  https://kb.coderabbit.ai/articles/8856795235-how-do-i-activate-coderabbit-pro-for-my-open-source-project
 - CodeRabbit GitHub review documentation:
   https://docs.coderabbit.ai/
 
