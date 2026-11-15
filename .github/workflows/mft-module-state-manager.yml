@@ -3,6 +3,10 @@ on:
   push:
     branches:
       - feature/mft-module-state-manager-prototype-20261115
+  pull_request:
+    paths:
+      - "MF_Twister_Module_State_Manager/**"
+      - ".github/workflows/mft-module-state-manager.yml"
 permissions:
   contents: read
 jobs:
@@ -15,8 +19,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Compile core and tests
-        run: |
-          python -m compileall -q MF_Twister_Module_State_Manager
-      - name: Run isolated core tests
+        run: python -m compileall -q MF_Twister_Module_State_Manager
+      - name: Run all isolated core tests
         working-directory: MF_Twister_Module_State_Manager
-        run: python -m unittest -v test_module_state.py
+        run: python -m unittest discover -v -p "test_*.py"
