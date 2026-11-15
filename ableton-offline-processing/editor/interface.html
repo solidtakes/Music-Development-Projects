@@ -102,6 +102,12 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
 .metric-label{font-size:8px;letter-spacing:.08em;color:#888;text-transform:uppercase}
 .metric-value{font-size:10px;color:#d3d3d3;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .metric-value.pending{color:#777}
+.step-diagnostics{margin-top:2px;border:1px solid #444;background:#242424}
+.step-head,.step-row{display:grid;grid-template-columns:minmax(90px,1.4fr) .7fr .7fr .7fr .8fr;gap:8px;padding:5px 7px;align-items:center}
+.step-head{font-size:8px;color:#777;letter-spacing:.07em;border-bottom:1px solid #444}
+.step-row{font-size:9px;color:#bdbdbd;border-bottom:1px solid #333;font-variant-numeric:tabular-nums}
+.step-row:last-child{border-bottom:0}
+.step-row .hit{color:var(--live-green)}.step-row .miss{color:var(--live-accent)}.step-row .bypassed{color:#888}
 .notice{margin-top:8px;font-size:9px;color:#8c8c8c;line-height:1.45}
 .notice strong{color:#c0c0c0;font-weight:500}
 .demo-flag{color:#f0b16e;border:1px solid rgba(240,177,110,.4);padding:3px 6px;font-size:8px;letter-spacing:.09em}
@@ -173,6 +179,11 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
       <div class="metric"><div class="metric-label">CACHE</div><div class="metric-value pending" id="cache-state">Awaiting render</div></div>
       <div class="metric"><div class="metric-label">OUTPUT</div><div class="metric-value pending" id="output-size">Awaiting render</div></div>
       <div class="metric"><div class="metric-label">CACHE / PROJECT</div><div class="metric-value pending" id="footprint">Awaiting render</div></div>
+    </div>
+    <div class="step-diagnostics" id="step-diagnostics" hidden>
+      <div class="section-label" style="margin:9px 0 5px">LAST RENDER · OPERATION DETAIL</div>
+      <div class="step-head"><span>OPERATION</span><span>RESULT</span><span>RENDER</span><span>LOOKUP</span><span>FILE SIZE</span></div>
+      <div id="step-rows"></div>
     </div>
     <div class="notice"><strong>Live workflow:</strong> this window collects the operation plan. Rendering and cache diagnostics are produced by the Extension Host after Apply; values above remain pending until a real render report is supplied.</div>
   </footer>
@@ -294,9 +305,14 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
     order.append(orderLabel,buttons);controls.append(order);
   }
   function render(){renderDevices();renderInspector();$("status").textContent=state.operations.length+" operation"+(state.operations.length===1?"":"s")+" · edits are local until Apply."}
+  let opSequence=0;
+  function newId(type){
+    opSequence++;
+    const salt=globalThis.crypto?.randomUUID?.() || (Date.now().toString(36)+"-"+opSequence.toString(36));
+    return type+"-"+salt;
+  }
   function add(type){
-    if(type==="gain"&&state.operations.some(op=>op.type==="gain")){state.selectedId=state.operations.find(op=>op.type==="gain").id;render();$("status").textContent="A Gain operation already exists. Select it to edit its value.";return}
-    const op=type==="gain"?{id:"gain-"+crypto.randomUUID(),type:"gain",db:-3,enabled:true}:{id:"reverse-"+crypto.randomUUID(),type:"reverse",enabled:true};
+    const op=type==="gain"?{id:newId("gain"),type:"gain",db:-3,enabled:true}:{id:newId("reverse"),type:"reverse",enabled:true};
     state.operations.push(op);state.selectedId=op.id;render();
   }
   $("add-menu").addEventListener("click",()=>{
@@ -325,12 +341,24 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
   });
   function renderDiagnostics(report){
     if(!report)return;
-    const total=report.steps?.reduce((n,s)=>n+(s.renderMs||0),0);
+    const steps=report.steps||[];
+    const total=steps.reduce((n,s)=>n+(s.renderMs||0),0);
     $("render-time").textContent=Number.isFinite(total)?total.toFixed(1)+" ms":"—";
-    $("cache-state").textContent=(report.steps||[]).filter(s=>s.status==="hit").length+" hit / "+(report.steps||[]).filter(s=>s.status==="miss").length+" miss";
+    $("cache-state").textContent=steps.filter(s=>s.status==="hit").length+" hit / "+steps.filter(s=>s.status==="miss").length+" miss";
     $("output-size").textContent=fmtBytes(report.outputBytes);
     $("footprint").textContent=fmtBytes(report.cacheBytes)+" / "+fmtBytes(report.projectBytes);
     document.querySelectorAll(".metric-value").forEach(el=>el.classList.remove("pending"));
+    const rows=$("step-rows");rows.innerHTML="";
+    steps.forEach(step=>{
+      const row=document.createElement("div");row.className="step-row";
+      [step.operationId,step.status,(Number(step.renderMs)||0).toFixed(1)+" ms",(Number(step.lookupMs)||0).toFixed(1)+" ms",fmtBytes(step.bytes)].forEach((value,index)=>{
+        const cell=document.createElement("span");cell.textContent=String(value);
+        if(index===1)cell.className=String(step.status);
+        row.append(cell);
+      });
+      rows.append(row);
+    });
+    $("step-diagnostics").hidden=steps.length===0;
   }
   renderSource();render();renderDiagnostics(initial.diagnostics);
 })();
