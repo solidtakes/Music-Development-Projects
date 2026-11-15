@@ -1,0 +1,64 @@
+name: MF4TRKBento v1.7 EXP
+on:
+  push:
+    branches:
+      - feature/mf4trkbento-v1.7-next-four-20261115
+permissions:
+  contents: read
+jobs:
+  regression-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile source and tests
+        run: |
+          python -m compileall -q MF4TRKBento_REVIEW/v1.7/MF4TRKBento
+          python -m compileall -q MF4TRKBento_REVIEW/v1.7/tests
+      - name: Run feature matrix, startup lifecycle and v1.7 tests
+        working-directory: MF4TRKBento_REVIEW/v1.7/tests
+        run: python -m unittest discover -v -p 'test_*.py'
+      - name: Build experimental ZIP and print SHA-256
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED, ZipInfo
+          package = Path("MF4TRKBento_REVIEW/v1.7/MF4TRKBento")
+          output = Path("dist/MF4TRKBento_v1.7_EXP.zip")
+          output.parent.mkdir(parents=True, exist_ok=True)
+          with ZipFile(output, "w", ZIP_DEFLATED) as archive:
+              for path in sorted(package.rglob("*")):
+                  if not path.is_file():
+                      continue
+                  if "__pycache__" in path.parts or path.suffix == ".pyc":
+                      continue
+                  info = ZipInfo(path.relative_to(package.parent).as_posix(),
+                                 date_time=(2020, 1, 1, 0, 0, 0))
+                  info.compress_type = ZIP_DEFLATED
+                  info.create_system = 3
+                  info.external_attr = 0o100644 << 16
+                  archive.writestr(info, path.read_bytes())
+          with ZipFile(output) as archive:
+              members = archive.namelist()
+              forbidden = [
+                  name for name in members
+                  if "__pycache__" in Path(name).parts or name.endswith(".pyc")
+              ]
+              if forbidden:
+                  raise SystemExit("Unexpected bytecode in installable ZIP: " + repr(forbidden))
+              print(f"ZIP_ENTRIES={len(members)}")
+              print("BYTECODE_ENTRIES=0")
+          digest = hashlib.sha256(output.read_bytes()).hexdigest()
+          print(f"ZIP={output}")
+          print(f"SHA256={digest}")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MF4TRKBento-v1.7-EXP
+          path: dist/MF4TRKBento_v1.7_EXP.zip
+          if-no-files-found: error
+          retention-days: 30
