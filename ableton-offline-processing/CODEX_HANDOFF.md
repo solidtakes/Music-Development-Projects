@@ -45,7 +45,7 @@ Three Codex workstreams divide research, core engineering and UI implementation.
 
 ### Required coordination gates
 
-1. **First:** each workstream fetches the canonical `ableton-offline-processing/alpha-0.1` branch and synchronizes safely. The current AOPX-01 and AOPX-02 remote branches are 19 commits behind and 0 commits ahead; inspect and preserve local/uncommitted work before merging or fast-forwarding. Never hard-reset or discard work. AOPX-03 was created directly from the current canonical branch.
+1. **First:** each workstream fetches the canonical `ableton-offline-processing/alpha-0.1` branch and checks its current ahead/behind status. All child branches may lag subsequent canonical documentation updates; inspect and preserve local/uncommitted work before merging or fast-forwarding. Never hard-reset or discard work. AOPX-03 was created from the canonical branch but must also check for later canonical commits.
 2. **AOPX-01 and AOPX-02:** work independently and report concrete evidence. AOPX-01 must not block AOPX-02.
 3. **AOPX-03:** may build the floating-window shell, design tokens, waveform presentation and mock Reverse/Gain controls immediately. Use a narrow typed adapter/interface placeholder. Do not create fake render/cache behaviour; mark mock values as mock. Once AOPX-02 provides the real engine API, replace the mock adapter and add integration tests.
 4. **Integration:** agree the engine request/result types and operation schema between AOPX-02 and AOPX-03 before wiring UI. AOPX-01 supplies the host adapter and Live-specific lifecycle.
