@@ -1,16 +1,17 @@
 OFFLINE TEST RESULTS — PASS (GitHub Actions)
 
 Verified source/test commit: 62edbda472049d5d05a4274844c0d2c378e7dc58
+Latest documentation/head commit: 9721b40d6623951e6ffdad8e0ff5f0d3700e7f09
 Python: CPython 3.11.18
-Workflow run: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43669648559
+Latest workflow run: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43669790111
 
 - compileall: PASS for remote-script package and test directory
-- unittest discovery: 23 tests passed in 0.195 seconds
+- unittest discovery: 23 tests passed in 0.309 seconds
 - Existing feature matrix: 10 tests passed
 - Startup lifecycle suite: 13 tests passed
 - Existing smoke script: both smoke assertion sequences printed PASS
 - ZIP build/upload: PASS
-- ZIP SHA-256: ca4df80e4c25206c4b3dcfc530617449b0a80cbf6e4c8e8a6a01347b8b8a2e4d
+- ZIP SHA-256: a8939a503fe48e3b67b442a493126529e0285b5f00ce1986f69abcaafc4fe36e
 
 The startup suite covers:
 - 1,000 scheduled callbacks, callback count and scan/highlight bounds
@@ -27,9 +28,9 @@ The startup suite covers:
   default, and repeated init/disconnect
 
 Artifact: MF4TRKBento-v1.6-startup-repair-EXP
-Artifact ID: 14143925861
-Artifact expires: 2026-12-15T02:50:47Z
-Download page: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43669648559
+Artifact ID: 14143414808
+Artifact expires: 2026-12-15T02:52:41Z
+Download page: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43669790111
 
 IMPORTANT: These are offline host-mock tests, not Ableton Live 13 Beta hardware
 startup results. Independent startup-focused review is still pending; do not
