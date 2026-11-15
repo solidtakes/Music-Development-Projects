@@ -1,17 +1,33 @@
 MF4TRKBento v1.7 EXP — TEST RESULTS
 
-Status: PENDING GitHub Actions.
+<CI PASS>
+Workflow: 43682365234
+Commit: 7632914362194cb5519651552879682345163ada
+Run URL: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43682365234
 
-Required gates:
-- Python compileall for package and tests.
-- unittest discovery (feature matrix, startup lifecycle and v1.7 features).
-- Existing smoke assertions.
-- ZIP integrity: no __pycache__ or .pyc entries.
-- Installable ZIP SHA-256 and artifact ID recorded after a successful workflow.
+Automated verification:
+- Python compileall: PASS (package and tests).
+- unittest discovery: PASS — 33 tests.
+- Existing feature matrix: PASS.
+- Startup lifecycle suite: PASS.
+- v1.7 feature regressions: PASS.
+- Existing smoke assertions: PASS (module matrix, scene feedback, scrolling,
+  alternate mode, Arm/Solo/Mute/Sends, LED cache and cleanup).
+- Installable ZIP integrity: PASS — 3 entries, zero .pyc / __pycache__ entries.
+
+Installable package:
+- File: MF4TRKBento_v1.7_EXP.zip
+- SHA-256: 5012296c707ea0dbc063b52d64158507a2aca8b9ec840a1c83493327a5acdb83
+- GitHub Actions artifact ID: 14149495148
+- Artifact name: MF4TRKBento-v1.7-EXP
+- Artifact archive digest: sha256:c7aeda71e7883b99a7a6df972c92500bf2820428d2a28d6488da052e344d249b
 
 Hardware status:
 - v1.6 owner-reported launch: PASS (no crashes).
 - v1.7 Live 13 launch: NOT TESTED.
 - FX Returns highlight: NOT TESTED on Live.
 - Twister push/rotary event ordering: NOT CAPTURED.
-- End-to-end volume latency: NOT MEASURED.
+- End-to-end volume latency and press-detent transient: NOT MEASURED.
+
+CI success is not a substitute for owner hardware validation or an independent
+Live-runtime review. PR #35 remains draft and unmerged; v1.6 remains rollback.
