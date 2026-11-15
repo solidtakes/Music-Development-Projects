@@ -61,7 +61,7 @@ Key findings:
 - [#32 AOPX-03 — floating GUI and storage/performance monitor](https://github.com/solidtakes/Music-Development-Projects/issues/32)  
   Branch: `codex/aopx-03-floating-gui` (created from the current canonical branch). Start the visual shell in parallel with mock data; integrate the real engine only after AOPX-02 publishes a stable API and passing core tests.
 
-AOPX-01 and AOPX-02 branches predate the latest canonical documentation and are currently 19 commits behind with 0 commits ahead; Codex must inspect/preserve any local work and synchronize safely before coding. AOPX-03 was created directly from the current canonical branch. The three GitHub issues contain their workstream handoffs. No implementation commits are currently ahead of the canonical branch, and no GitHub assignee/Codex agent is attached to the issues.
+AOPX-01 and AOPX-02 branches predate the latest canonical documentation; AOPX-03 was created from the canonical branch but may also lag subsequent documentation commits. Each Codex workstream must inspect the current ahead/behind status, preserve local/uncommitted work and synchronize safely before coding. The three GitHub issues contain their workstream handoffs. No implementation commits are currently ahead of the canonical branch, and no GitHub assignee/Codex agent is attached to the issues.
 
 ## Live version and SDK gate
 
