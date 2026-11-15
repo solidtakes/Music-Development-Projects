@@ -289,7 +289,9 @@ class Matrix(unittest.TestCase):
                 self.assertEqual(self.surface._frame[4 + col][:3],
                                  (color, 4 if track.mute else 0, expected_ring))
         self.alt()
-        self.assertTrue(all(cc not in self.surface._frame for cc in (3, 7, 11, 15)))
+        self.assertEqual(self.surface._frame[3][:2], (32, 0))
+        self.assertEqual(self.surface._frame[7][:2], (32, 0))
+        self.assertTrue(all(cc not in self.surface._frame for cc in (11, 15)))
 
     def test_clip_release_and_master_pan(self):
         self.rows("RClip", "Pan", "RClip", "Sends")

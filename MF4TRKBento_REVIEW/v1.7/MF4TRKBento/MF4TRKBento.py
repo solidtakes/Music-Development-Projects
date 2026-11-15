@@ -262,6 +262,8 @@ class MF4TRKBento(ControlSurface):
         # E1 held FIRST, then E16 pressed: switch the controlled group and
         # Session highlight between regular tracks and FX Returns.
         if cc == 15 and down and self._held[0]:
+            if self._row_modules[3] == "Mute" and not self._alt_mode:
+                self._cancel_press_induced_volume_step(cc)
             self._consume_held()
             self._toggle_fx_mode()
             return

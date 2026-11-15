@@ -178,7 +178,7 @@ class ButtonElement:
 class SessionComponent:
     created_count = 0
     def __init__(self,t,s,**kw):
-        type(self).created_count += 1
+        SessionComponent.created_count += 1
         self.t=t;self.s=s;self.offset=(0,0);self.enabled=False
         self.set_offsets_calls=0;self.disconnect_calls=0
     def set_offsets(self,t,s):
