@@ -35,31 +35,30 @@ Future plugin hosting is important to the product direction but **not part of Al
 
 ## GUI visual direction — owner requirement
 
-The current generic mockup is not close enough. The user wants the editor to read visually as a compact Ableton Live workspace/panel at first glance, not merely a dark web app with orange buttons.
+The editor is intentionally a **floating window** launched from Ableton Live. It does not need to dock into Arrangement View or replace Live's main interface. It should feel like a natural Live utility/device window, not a generic web application.
 
-Use Live's general interface conventions while maintaining a distinct product identity. Do not copy Live's logo, proprietary icons, fonts or artwork, and do not claim pixel-perfect imitation.
+Use Live's broad interface conventions while keeping the Offline Processing Suite's own identity. Do not copy Live's logo, proprietary icons, fonts or artwork; do not claim pixel-perfect imitation.
 
-- Dense, precisely aligned workstation layout with narrow headers and compact controls.
-- Layered charcoal/grey panels, low-contrast separators, darker inset waveform/parameter surfaces, restrained orange for active/selected/focused states.
-- Familiar horizontal time ruler with bar/beat or time markings, grid divisions, clip bounds and a clear playhead.
-- Waveform presented like an Arrangement audio clip lane, not a decorative waveform card.
-- Processing history should resemble a Live device chain: compact device-like blocks/rows with activator/bypass, title strip, operation name, concise parameters, selected state and menu/remove affordance.
-- Selected operation gets clear orange focus treatment; bypassed operations visibly dim.
-- Parameter inspector resembles Live device controls: compact sliders/knobs, numeric values and aligned labels, not large web-form fields.
-- Small square/rectangular buttons, subtle corner radii, tight spacing and consistent alignment.
-- Avoid oversized cards, large rounded corners, excessive whitespace, gradients, drop shadows, oversized headings and generic dashboard tiles.
-- Use track/clip colours sparingly and semantically. Orange is the main focus accent; other colours identify version branches or audio states.
-- Use a restrained UI font hierarchy similar in density to a DAW, with readable small labels and tabular numeric values.
-- Keep the same visual grammar across waveform, processing chain, inspector and status strip.
+- Compact DAW utility-window proportions, fitted to the actual SDK modal size. Live/the OS owns the native outer title bar and frame where the SDK does not expose them; do not fake a second title bar.
+- Dark charcoal/graphite surfaces, slightly lighter control panels, darker inset waveform areas and subtle grey separators.
+- Restrained orange/amber for selected, active, focused and primary-action states; use other clip colours sparingly and semantically.
+- Dense, precise alignment, compact readable typography, tabular numeric values, tight spacing and small square/rectangular controls.
+- Waveform should resemble an Arrangement audio clip lane with horizontal time/bar ruler, grid, clip bounds, waveform and playhead.
+- History should resemble a Live device chain: compact device-like blocks with activator/bypass, title strip, operation name, concise parameter summary, selected state and remove/menu affordance.
+- Selected device gets orange focus treatment; bypassed device is visibly dimmed.
+- Parameter controls resemble Live devices: compact knobs/sliders, aligned labels and numeric readouts, not large web forms.
+- Slim footer for audition/render/cancel/progress and cache/storage diagnostics.
+- Avoid generic SaaS cards, oversized rounded corners, excess whitespace, gradients, decorative shadows and oversized headings.
+- Use explicit labels/icons as well as colour for processing, bypass, completion, cache-hit and error states.
 
-### Revised Alpha 0.1 composition
-1. Compact title/header strip: product label, source clip name, duration, sample rate, bit depth and channel count.
-2. Arrangement-style audio lane: full-width waveform, ruler, clip bounds and playhead. Whole clip only; do not imply range editing.
-3. Lower device/history area: ordered device-like processing blocks for Reverse and Gain. Each block has activator/bypass, title, concise summary and selected state. Add/remove and reorder only where the first interaction model supports it.
-4. Device parameter area: selected operation opens a compact parameter panel. Gain uses a DAW-style numeric dB readout and compact slider/knob; Reverse has a clear active toggle.
-5. Thin bottom status/transport strip: audition controls if supported, render/cancel, progress, cache hit/miss, per-step time, source/output bytes and cache footprint.
+### Alpha 0.1 floating-window layout
+1. Narrow header: product identity, source clip name and duration/sample-rate/bit-depth/channel metadata.
+2. Arrangement-style waveform lane with compact time ruler, clip bounds and playhead. Whole-clip only; do not imply range editing.
+3. Device/history area with ordered Reverse and Gain modules, activator/bypass, concise summaries and selected state.
+4. Contextual device controls: Gain gets a compact dB readout and slider/knob; Reverse gets a clear enabled state.
+5. Slim footer: audition if supported, render/cancel, progress, per-step time, cache hit/miss, source/output bytes and cache footprint.
 
-Use `PRODUCT_ARCHITECTURE.md` as the detailed visual reference. User-provided Live screenshots may be used as references if available. Design responsively within the actual SDK modal size. Verify host-theme support; if unavailable, offer a manual theme choice.
+The SDK documents a modal Webview flow; treat this as the floating utility window for Alpha 0.1. Do not build a docked panel or separate desktop app. Verify actual modal dimensions and available window controls. Do not draw fake native window chrome. Default to the dark Live-inspired palette; host theme detection must be verified before use. A light theme can be added later.
 
 ## Global rules
 
