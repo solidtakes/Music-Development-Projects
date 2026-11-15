@@ -15,6 +15,10 @@ The two historical MIDI Fighter Twister Python project records remain separate f
 
 These are distinct projects. Do not merge the two Python scripts or mix their version numbers.
 
+## Five separate projects
+
+5. [Ableton Offline Processing Extension](ABLETON_OFFLINE_PROCESSING/README.md) — Alpha 0.1 proof of editable offline processing history, incremental rendering, cache diagnostics, and Ableton Live handoff. Development is isolated on `ableton-offline-processing/alpha-0.1-foundation`; no automatic merge.
+
 ## Sync workflow
 
 - At the start of each session, pull/fetch current GitHub files and read the project's PROJECT_STATUS.md.
