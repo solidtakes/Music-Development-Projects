@@ -26,7 +26,7 @@ jobs:
           python - <<'PY'
           import hashlib
           from pathlib import Path
-          from zipfile import ZipFile, ZIP_DEFLATED
+          from zipfile import ZipFile, ZIP_DEFLATED, ZipInfo
           package = Path("MF4TRKBento_REVIEW/v1.7/MF4TRKBento")
           output = Path("dist/MF4TRKBento_v1.7_EXP.zip")
           output.parent.mkdir(parents=True, exist_ok=True)
@@ -36,7 +36,12 @@ jobs:
                       continue
                   if "__pycache__" in path.parts or path.suffix == ".pyc":
                       continue
-                  archive.write(path, path.relative_to(package.parent))
+                  info = ZipInfo(path.relative_to(package.parent).as_posix(),
+                                 date_time=(2020, 1, 1, 0, 0, 0))
+                  info.compress_type = ZIP_DEFLATED
+                  info.create_system = 3
+                  info.external_attr = 0o100644 << 16
+                  archive.writestr(info, path.read_bytes())
           with ZipFile(output) as archive:
               members = archive.namelist()
               forbidden = [
