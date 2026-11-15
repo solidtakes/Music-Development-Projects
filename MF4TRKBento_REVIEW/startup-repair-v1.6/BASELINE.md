@@ -12,7 +12,7 @@
 
 - Branch: repair/mf4trkbento-v1.6-startup-guard-20261115
 - PR #27: open, draft, unmerged
-- Current code/test and build checkout commit: 7de7fef242b1c455c95565ef72f8a195fb3f8b91
+- Code/test snapshot and build checkout commit: 010eb0d7eebf87719a1785622430b9413dcf925e
 - Stacked PR base: bento/mf4trkbento-v1.6-experimental
 - Repair source blob: 39a1a0b0464dea2de87c8a725b72ecf9351f6f37
 - Startup test blob: 607cf830169ccf8a3135ccc25f6462b57a8c26bc
@@ -21,19 +21,19 @@
 
 ## Latest successful build
 
-- Workflow run: 43676200193
-- Workflow job: 132696792431 (regression-and-package, completed/success)
+- Workflow run: 43676416345
+- Workflow job: 132697440552 (regression-and-package, completed/success)
 - Artifact name: MF4TRKBento-v1.6-startup-repair-EXP
-- Artifact ID: 14145964115
-- Artifact expires: 2026-12-15T04:18:48Z
+- Artifact ID: 14146785354
+- Artifact expires: 2026-12-15T04:21:42Z
 - Installable ZIP path inside the artifact: dist/MF4TRKBento_v1.6_STARTUP_REPAIR_EXP.zip
-- Installable ZIP SHA-256: ede31000eb20eedda14ea8c1607deaf63a120330a5c02576dcb8d212d5423050
-- GitHub Actions outer artifact archive SHA-256: 607aa0429fbe851d7dc08abccc210c2e8976ab0d211b2611f861d8ceeabe2113
+- Installable ZIP SHA-256: 61a59f2689bb5b27d731e565eb8009c293a12baa6ed85568c0ed13d3d4f5e276
+- GitHub Actions outer artifact archive SHA-256: 562a0f0058c5ced32ac5a71589704e4c7fd2b50e6c8d84f16c3de59505c997fd
 
 The two SHA-256 values refer to different files: the first is the installable
 MF4TRKBento ZIP built by the workflow; the second is GitHub's uploaded artifact
 wrapper containing that ZIP. The workflow log prints the installable ZIP hash,
-and GitHub's artifact metadata reports the outer archive digest.
+and GitHub's artifact metadata reports the outer artifact digest.
 
 The downloaded artifact was independently inspected: its outer archive digest
 matches GitHub's artifact digest; the extracted installable ZIP matches the
@@ -41,8 +41,8 @@ workflow's inner ZIP hash; the ZIP contains exactly three files and no
 __pycache__ directories or .pyc files. The packaged Python source Git blob
 matches 39a1a0b0464dea2de87c8a725b72ecf9351f6f37.
 
-The previous artifact 14143644854 and its hashes are superseded. Do not use it
-as an installable candidate.
+Earlier artifacts 14143644854 and 14145964115 and their hashes are
+superseded. Do not use either as an installable candidate.
 
 The installable package preserves the v1.6 feature paths and changes scheduler,
 refresh-state, shutdown/render lifecycle guards; it adds the four requested

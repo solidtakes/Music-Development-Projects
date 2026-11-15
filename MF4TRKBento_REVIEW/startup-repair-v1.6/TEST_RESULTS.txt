@@ -1,10 +1,10 @@
 OFFLINE TEST RESULTS — PASS (GitHub Actions)
 
-Code/test snapshot: 7de7fef242b1c455c95565ef72f8a195fb3f8b91
-Build checkout commit: 7de7fef242b1c455c95565ef72f8a195fb3f8b91
+Code/test snapshot: 010eb0d7eebf87719a1785622430b9413dcf925e
+Build checkout commit: 010eb0d7eebf87719a1785622430b9413dcf925e
 Python: CPython 3.11.18
-Latest successful workflow: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43676200193
-Workflow job: 132696792431 (regression-and-package, completed/success)
+Latest successful workflow: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43676416345
+Workflow job: 132697440552 (regression-and-package, completed/success)
 
 - compileall: PASS for remote-script package and test directory
 - unittest discovery: 27 tests passed
@@ -13,7 +13,7 @@ Workflow job: 132696792431 (regression-and-package, completed/success)
 - Existing smoke script: both smoke assertion sequences printed PASS
 - Experimental ZIP build/upload: PASS
 - ZIP contents: 3 files; no __pycache__ directories or .pyc files
-- Installable ZIP SHA-256: ede31000eb20eedda14ea8c1607deaf63a120330a5c02576dcb8d212d5423050
+- Installable ZIP SHA-256: 61a59f2689bb5b27d731e565eb8009c293a12baa6ed85568c0ed13d3d4f5e276
 
 The startup suite covers:
 - 1,000 scheduled callbacks, callback count and scan/highlight bounds
@@ -38,11 +38,11 @@ The startup suite covers:
   default, and repeated init/disconnect
 
 Artifact: MF4TRKBento-v1.6-startup-repair-EXP
-Artifact ID: 14145964115
-Artifact expires: 2026-12-15T04:18:48Z
-Download page: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43676200193
+Artifact ID: 14146785354
+Artifact expires: 2026-12-15T04:21:42Z
+Download page: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43676416345
 GitHub Actions outer artifact archive SHA-256:
-607aa0429fbe851d7dc08abccc210c2e8976ab0d211b2611f861d8ceeabe2113
+562a0f0058c5ced32ac5a71589704e4c7fd2b50e6c8d84f16c3de59505c997fd
 
 Independent artifact inspection:
 - Downloaded the outer artifact archive and verified its SHA-256 against the
