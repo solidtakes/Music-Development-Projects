@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.8"
       - name: Compile core and tests
         run: python -m compileall -q MF_Twister_Module_State_Manager
       - name: Run all isolated core tests
