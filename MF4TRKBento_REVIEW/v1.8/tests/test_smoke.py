@@ -105,7 +105,7 @@ assert u._send_parameter(3,0) is SONG.tracks[0].mixer_device.sends[1]
 right(4,3);assert SONG.tracks[0].mixer_device.sends[0].value>0
 right(12,3);assert SONG.tracks[0].mixer_device.sends[1].value>0
 prior = SONG.tracks[0].mixer_device.sends[0].value
-tap(4);assert SONG.tracks[0].mixer_device.sends[0].value == prior
+tap(4);assert SONG.tracks[0].mixer_device.sends[0].value == 0.0
 hold(15);hold(0);release(0);release(15)
 assert u._alt_mode
 assert u._send_parameter(1,3) is None and u._send_parameter(3,3) is None
