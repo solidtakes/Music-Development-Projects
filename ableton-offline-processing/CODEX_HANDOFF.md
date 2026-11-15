@@ -2,11 +2,13 @@
 
 Repository: `solidtakes/Music-Development-Projects`  
 Canonical branch: `ableton-offline-processing/alpha-0.1`  
-Project: **Ableton Offline Processing Extension**  
+Working product name: **Offline Processing Suite for Ableton Live**  
+Development target: **Live Suite / SDK-compatible Suite beta**  
 Milestone: **Alpha 0.1 — one clip, editable two-step history, incremental re-render**
 
 ## Read first
 
+- `ableton-offline-processing/PRODUCT_ARCHITECTURE.md` — product layers, cache identity, future plugin boundary and milestone roadmap
 - `ableton-offline-processing/README.md`
 - `ableton-offline-processing/PROJECT_STATUS.md`
 - `ableton-offline-processing/ALPHA_0_1_SPEC.md`
@@ -15,12 +17,28 @@ Milestone: **Alpha 0.1 — one clip, editable two-step history, incremental re-r
 
 The user supplied the actual `extensions-sdk-1.0.0-beta.1.zip`; the detailed archive review is committed. Do not commit the SDK archive or its licensed package contents.
 
+## Product direction
+
+This is intended to become a full offline processing suite, not a one-off Reverse/Gain utility. Alpha 0.1 is deliberately narrow to prove the key technology first: editable history and incremental rendering.
+
+Keep the system layered:
+1. Ableton Live integration adapter.
+2. Modal editor UI.
+3. Edition-independent versioned operation graph/cache engine.
+4. Native DSP operation suite.
+5. Future third-party VST3/AU offline processor adapter.
+6. Future advanced clip/range/time/ARA integrations.
+
+The user selected Live Suite as the initial development target. Keep the processing engine and DSP modules edition-neutral wherever possible. The actual license/account entitlement and exact SDK-compatible Live beta remain to be verified. Do not assume stable Live 12.5 or Live 13 support from the archive.
+
+Future plugin hosting is important to the product direction but **not part of Alpha 0.1**. The supplied Extensions SDK does not document VST3/AU hosting, post-FX rendering or ARA. Design a clean processor adapter boundary and cache identity that can accommodate plugins later; do not build or claim plugin support now.
+
 ## Global rules
 
 - Work only on the issue-specific Codex child branch. AOPX-01: `codex/aopx-01-sdk-feasibility`; AOPX-02: `codex/aopx-02-engine-proof`. PRs must target `ableton-offline-processing/alpha-0.1`, never `main`.
-- These child branches were created before the latest SDK review/spec commits. Fetch and merge/rebase the canonical branch before coding; preserve local work and do not hard-reset.
+- These child branches were created before the latest SDK review/spec/architecture commits. Fetch and merge/rebase the canonical branch before coding; preserve local work and do not hard-reset.
 - Do not modify other project folders or branches.
-- Do not change the user's production Live 12.5 or Live 13 installations or Sets. Use only a confirmed SDK-compatible side-by-side Live beta and a disposable Set, with explicit user approval before installation or Set changes.
+- Do not change the user's production Live 12.5 or Live 13 installations or Sets. Use only a confirmed SDK-compatible side-by-side Live Suite beta and a disposable Set, with explicit user approval before installation or Set changes.
 - Do not commit SDK packages, plugin binaries, user audio, licenses, credentials or secrets.
 - Do not claim API support, successful integration or test results without direct evidence.
 - Preserve immutable source audio and never overwrite the original clip.
@@ -33,14 +51,14 @@ Issue: [#30 — AOPX-01](https://github.com/solidtakes/Music-Development-Project
 Branch: `codex/aopx-01-sdk-feasibility`
 
 Use the supplied beta.1 archive and its examples. Verify:
-1. Exact compatible Live Beta build for this SDK release; do not assume stable Live 12.5 or Live 13 support.
+1. Exact compatible Live Suite Beta build for this SDK release; do not assume stable Live 12.5 or Live 13 support.
 2. Node version: bundled npm package manifests require Node >=24.16.0.
-3. Build/run the official minimal example using Developer Mode (Live Settings → Extensions).
+3. Build/run the official minimal Extension using Developer Mode (Live Settings → Extensions).
 4. Register an `AudioClip` context-menu action and resolve its handle/parent AudioTrack.
 5. On a disposable Set, test `renderPreFxAudio(track, clip.startTime, clip.endTime)` on a track with exactly one isolated clip. Confirm WAV format, content, duration, sample rate, channels and frame count. Test/report whether overlaps, take lanes, fades or automation alter the output.
 6. Use `importIntoProject` for the processed output, then `Song.createAudioTrack()` and `AudioTrack.createAudioClip()` to create a new clip on a separate track at the original Arrangement start/duration. Preserve the original.
 7. Verify which warp/loop properties can be copied. The generated API docs do not show a warp-marker write method.
-8. Verify modal Webview return flow and cancellable progress dialog.
+8. Verify modal Webview result flow and cancellable progress dialog.
 9. Record filesystem restrictions: only Extension storage/temp; use host import API for project import.
 10. Report that `renderPreFxAudio` is pre-FX and does not render the Live device chain; `insertDevice` only inserts built-in devices and cannot load third-party plug-ins.
 
@@ -65,6 +83,7 @@ Tasks:
 9. Persist manifest/cache under a configurable storage root suitable for the SDK's `storageDirectory`; use temp for disposable renders.
 10. Save/reopen graph and cache references.
 11. Test stereo frame alignment, mono/stereo, source immutability, numerical output, invalidation, cache hits, branch isolation, cancellation and stale-render prevention.
+12. Define the future processor-adapter interface and document which plugin state/version fields must enter cache identity, but do not implement plugin hosting.
 
 Core proof: Original -> Reverse -> Gain; remove Reverse; final output must match direct Gain applied to Original within a documented numeric tolerance. Report real measurements.
 
