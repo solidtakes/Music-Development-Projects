@@ -474,8 +474,8 @@ class MF4TRKBento(ControlSurface):
             self._frame.pop(cc, None)
         else:
             self._frame[cc] = self._mute_volume_state(track)
-        # Render the cached frame only; do not rescan the Live Set on every turn.
-        self._render_frame(update_rings=True)
+        # Render this cell only; do not rescan or redraw the other encoders.
+        self._render_cell(cc)
 
     def _turn_master_volume(self, row, col, step):
         cc = row * 4 + col
@@ -514,8 +514,9 @@ class MF4TRKBento(ControlSurface):
     def _refresh_master_unsolo_cell(self, row):
         if self._closed or not self._alt_mode or self._row_modules[row] != "Mute":
             return
-        self._frame[row * 4 + 3] = self._master_unsolo_state()
-        self._render_frame(update_rings=True)
+        cc = row * 4 + 3
+        self._frame[cc] = self._master_unsolo_state()
+        self._render_cell(cc)
 
     def _turn_volume(self, row, col, step):
         cc = row * 4 + col
@@ -750,7 +751,7 @@ class MF4TRKBento(ControlSurface):
         self._refresh_parameter_cell(row, col, parameter, color)
 
     def _refresh_parameter_cell(self, row, col, parameter, color):
-        """Update only the affected encoder; never rescan the Live Set per detent."""
+        """Update and render only the affected encoder; never rescan the Live Set."""
         if self._closed:
             return
         cc = row * 4 + col
@@ -762,7 +763,26 @@ class MF4TRKBento(ControlSurface):
             self._frame.pop(cc, None)
         else:
             self._frame[cc] = state
-        self._render_frame(update_rings=True)
+        self._render_cell(cc)
+
+    def _render_cell(self, cc):
+        """Render one cached cell without touching any other Live object."""
+        if self._closed:
+            return
+        now = time.monotonic()
+        color, rate, ring_data, scene = self._frame.get(cc, (0, 0, None, False))
+        if scene and rate:
+            is_off = int(self._beat_position() * rate) % 2 == 1
+        else:
+            is_off = bool(rate and int(now * rate) % 2 == 1)
+        self._rgb(cc, 0 if is_off else color)
+        if ring_data is None:
+            ring = 0
+        elif isinstance(ring_data, (int, float)):
+            ring = ring_data
+        else:
+            ring = self._playing_ring(ring_data)
+        self._ring(cc, ring)
 
     def _reset_send(self, row, col):
         parameter = self._send_parameter(row, col)
