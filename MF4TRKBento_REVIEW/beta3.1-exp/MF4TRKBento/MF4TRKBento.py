@@ -58,6 +58,7 @@ class MF4TRKBento(ControlSurface):
         # modules are added from the TOP down by the existing row selector.
         self._row_modules = ["Clip Launch", "Arm", "Solo", "Mute"]
         self._device_bank = 0  # 4 parameters per banking step, no wrap label assumptions.
+        self._last_device = None  # Detect external device/track selection changes.
         self._multi_chord = set()
         self._press_order = []
         self._alt_mode = False
@@ -205,12 +206,13 @@ class MF4TRKBento(ControlSurface):
         except (AttributeError, RuntimeError, TypeError, ValueError):
             return None
 
-    def _device_parameters(self, device=None):
+    def _device_parameters(self, device=None, raw_parameters=None):
         device = device if device is not None else self._selected_device()
         if device is None:
             return ()
         try:
-            parameters = tuple(device.parameters)
+            parameters = (tuple(device.parameters) if raw_parameters is None
+                          else raw_parameters)
         except (AttributeError, RuntimeError, TypeError):
             return ()
         # Live's first device parameter is usually 'Device On'. Keep it for
@@ -222,43 +224,50 @@ class MF4TRKBento(ControlSurface):
             return ()
         return parameters
 
-    def _device_power(self, device):
+    def _device_power(self, device, raw_parameters=None):
         if device is None:
             return None
         try:
-            for param in device.parameters:
+            parameters = (device.parameters if raw_parameters is None
+                          else raw_parameters)
+            for param in parameters:
                 if getattr(param, "name", None) == "Device On":
                     return param
         except (AttributeError, RuntimeError, TypeError):
             return None
         return None
 
-    def _device_parameter(self, row, col):
+    def _device_parameter(self, row, col, params=None):
         if row >= self._device_row_count():
             return None
-        device = self._selected_device()
-        if device is None:
-            return None
-        params = self._device_parameters(device)
+        if params is None:
+            params = self._device_parameters()
         index = 4 * (self._device_bank + row) + col
         return params[index] if 0 <= index < len(params) else None
 
     def _select_adjacent_device(self, direction):
         try:
             track = self.song().view.selected_track
-            devices = tuple(track.devices)
-            current = track.view.selected_device
+            current = self._selected_device()
+            if track is None or current is None:
+                return
+            # Rack-chain devices are siblings in their canonical parent; the
+            # selected track's top-level devices omit those nested devices.
+            parent = getattr(current, "canonical_parent", None)
+            devices = tuple(parent.devices if parent is not None else track.devices)
             if current not in devices or not devices:
                 return
             index = devices.index(current) + direction
             if not 0 <= index < len(devices):
                 return
-            new_device = devices[index]
             view = self.song().view
-            if callable(getattr(view, "select_device", None)):
-                view.select_device(new_device)
-            else:
-                track.view.selected_device = new_device
+            selector = getattr(view, "select_device", None)
+            if not callable(selector):
+                self.log_message("MF4TRKBento Song.View.select_device unavailable")
+                return  # Track.View.selected_device is read-only in Live.
+            new_device = devices[index]
+            selector(new_device)
+            self._last_device = new_device
             self._device_bank = 0
             self._refresh_all()
         except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
@@ -593,13 +602,14 @@ class MF4TRKBento(ControlSurface):
             self.log_message("MF4TRKBento %s error: %s" % (flag, exc))
         self._refresh_all()
 
-    def _inherited_parameter(self, row, col, columns=None, mixers=None):
-        """Resolve the rotary parameter assigned to this button-only row."""
+    def _inherited_parameter(self, row, col, columns=None, mixers=None,
+                             device_params=None):
+        """Resolve the rotary parameter independent of its push module."""
         function = self._rotary_function(row)
         if function is None:
             return None
         if function == "Device Control":
-            return self._device_parameter(row, col)
+            return self._device_parameter(row, col, device_params)
         if function == "Volume":
             if self._alt_mode and col == 3:
                 try:
@@ -1030,23 +1040,34 @@ class MF4TRKBento(ControlSurface):
         any_soloed = self._any_soloed() if any(m == "Mute" for m in self._row_modules) and self._alt_mode else False
 
         device = self._selected_device() if self._device_row_count() else None
+        try:
+            device_changed = device != self._last_device
+        except (RuntimeError, TypeError, ValueError):
+            device_changed = True
+        if device_changed:
+            self._device_bank = 0
+            self._last_device = device
+        device_params, power = (), None
         if device is not None:
-            params = self._device_parameters(device)
-            max_bank = max(0, (len(params) - 1) // 4)
+            try:
+                raw_device_params = tuple(device.parameters)
+            except (AttributeError, RuntimeError, TypeError):
+                raw_device_params = ()
+            device_params = self._device_parameters(device, raw_device_params)
+            power = self._device_power(device, raw_device_params)
+            max_bank = max(0, (len(device_params) - 1) // 4)
             if self._device_bank > max_bank:
                 self._device_bank = 0
         for row, module in enumerate(self._row_modules):
-            if module not in self.BUTTON_ONLY_MODULES and module != "Device Control":
-                continue
             for col, cc in enumerate(self.ROWS[row]):
-                parameter = self._inherited_parameter(row, col, columns, mixers)
+                parameter = self._inherited_parameter(
+                    row, col, columns, mixers, device_params)
                 ring = self._parameter_ring(parameter)
 
                 if module == "Device Control":
                     if device is None:
                         continue
                     if row == 0:
-                        power = self._device_power(device)
                         if col == 0:
                             enabled = False
                             try:
@@ -1122,6 +1143,11 @@ class MF4TRKBento(ControlSurface):
                 elif module == "Stop":
                     if columns[col] is not None or (self._alt_mode and col == 3):
                         frame[cc] = (self.STOP_COLOR, 0, ring, False)
+
+                # Blank and unavailable push functions must not erase an
+                # independently assigned Volume/Pan/Send white ring.
+                if cc not in frame and ring is not None:
+                    frame[cc] = (0, 0, ring, False)
 
         self._frame = frame
         self._refresh_highlight(clip_rows, tracks, scenes)
