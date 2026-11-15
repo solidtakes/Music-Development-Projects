@@ -225,10 +225,13 @@ class StartupLifecycle(unittest.TestCase):
         elapsed = [0.0]
         def slow_getter(_track):
             elapsed[0] += 0.05
+            self.clock += 0.05
         for item in self.song.visible_tracks[:4]:
             item.audio_output_hook = slow_getter
         self.surface._refresh_all()
         self.assertAlmostEqual(elapsed[0], 0.20)
+        self.assertAlmostEqual(self.surface._diagnostics["scan_seconds_total"], 0.20)
+        self.assertAlmostEqual(self.surface._diagnostics["scan_seconds_max"], 0.20)
         self.assertEqual(len(self.surface.scheduled), 1)
         self.assertGreaterEqual(self.surface._diagnostics["audio_output_probes"], 8)
 
