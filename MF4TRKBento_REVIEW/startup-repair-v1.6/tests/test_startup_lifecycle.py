@@ -195,6 +195,16 @@ class StartupLifecycle(unittest.TestCase):
         self.assertEqual(self.surface.schedule_message_calls, 1)
         self.assertEqual(self.surface._diagnostics.get("reentrant_refreshes", 0), 0)
 
+    def test_diagnostics_are_disabled_by_default_and_emit_no_tick_logs(self):
+        surface = module.create_instance(None)
+        self.assertFalse(surface._diagnostics_enabled)
+        self.assertEqual(surface._diagnostics, {})
+        queued = surface.scheduled.pop(0)[1]
+        queued()
+        self.assertEqual(surface._diagnostics, {})
+        self.assertFalse(any("tick" in message.lower() for message in surface.messages))
+        surface.disconnect()
+
     def test_queued_callback_after_disconnect_is_inert(self):
         self.assertEqual(len(self.surface.scheduled), 1)
         callback = self.surface.scheduled.pop(0)[1]
@@ -213,6 +223,7 @@ class StartupLifecycle(unittest.TestCase):
             self.assertEqual(len(surface.scheduled), 1)
             queued = surface.scheduled.pop(0)[1]
             elements = [element for element, _ in surface._elements]
+            component = surface._session_component
             surface.disconnect()
             surface.sent.clear()
             queued()
@@ -220,6 +231,9 @@ class StartupLifecycle(unittest.TestCase):
             self.assertFalse(surface.sent)
             self.assertTrue(all(not element.listeners for element in elements))
             self.assertEqual(surface.base_disconnect_calls, 1)
+            self.assertIsNone(surface._session_component)
+            self.assertEqual(component.disconnect_calls, 1)
+            self.assertFalse(component.enabled)
 
 
 if __name__ == "__main__":
