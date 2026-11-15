@@ -70,11 +70,26 @@ class V18Features(unittest.TestCase):
         self.surface._row_modules[:] = ["Pan", "Sends", "Mute", "Pan"]
         self.surface._refresh_all()
         scans = []
+        renders = []
         self.surface._scan_frame = lambda: scans.append("scan")
+        self.surface._render_frame = lambda update_rings: renders.append("full-render")
         self.turn(0)
         self.turn(4)
         self.tap(0)
+        self.tap(4)
         self.assertEqual(scans, [])
+        self.assertEqual(renders, [])
+
+
+    def test_pan_push_first_suppresses_turn_then_resets_to_center(self):
+        self.surface._row_modules[:] = ["Pan", "Sends", "Mute", "Pan"]
+        parameter = self.song.tracks[0].mixer_device.panning
+        parameter.value = 0.5
+        self.push(0, 127)
+        self.turn(0, 3)
+        self.assertEqual(parameter.value, 0.5)
+        self.push(0, 0)
+        self.assertEqual(parameter.value, 0.0)
 
     def test_master_volume_uses_fourth_mute_encoder_in_alt_mode(self):
         self.surface._row_modules[:] = ["Pan", "Pan", "Mute", "Pan"]
