@@ -1,40 +1,78 @@
 # Ableton Extensions SDK — Access and Compatibility Notes
 
-Last checked: 2026-11-14
+Last updated: 2026-11-15  
+Supplied archive reviewed: `extensions-sdk-1.0.0-beta.1.zip`
 
-## Verified from Ableton's public documentation
+## User-provided SDK archive
 
-- The Extensions SDK is currently described as a public beta.
-- Ableton's SDK landing page says it is available with the Live 12.4.5 public beta and subsequent beta releases.
-- Ableton's Extensions FAQ says SDK access requires a Live 12 Suite license and access to the Live 12 Suite beta.
-- Ableton's FAQ says to access the beta via Centercode and refers users to the Extensions SDK page in the Centercode forum.
-- The SDK requires Node.js v24.16.0 LTS or higher.
-- The SDK itself is free and is documented as less than 5 MB.
-- Extensions are run-once tools invoked from compatible Live context menus; they are not described as a persistent real-time audio-processing/plugin-host environment.
+The user supplied `extensions-sdk-1.0.0-beta.1.zip`. Its contents were inspected directly. See [SDK Archive Review — 1.0.0-beta.1](SDK_ARCHIVE_REVIEW_BETA_1.md) for detailed source-derived findings.
 
-Official references:
+The archive contains the SDK, CLI, project generator, API reference, offline documentation and seven examples. It is a developer toolkit, not a Live application installer.
+
+### Node.js requirement
+
+All three bundled npm package manifests declare:
+
+```json
+"engines": { "node": ">=24.16.0" }
+```
+
+The bundled Quick Start page says Node.js >=24.14.1, but the package engine metadata is stricter. Use Node 24.16.0 or later in the Node 24 line and verify `node --version`.
+
+### Compatible Live build
+
+The bundled Quick Start says to use the Live Beta build from the SDK release page on Centercode. The Execution guide's example references `Ableton Live 12.4 Beta.app`. This archive does not establish that stable Live 12.5 or Live 13 can load this SDK. AOPX-01 must test the exact Live beta build supplied for this SDK version.
+
+Do not change the user's production Live 12.5 or Live 13 installations. Use a supported side-by-side beta and a disposable Set.
+
+## Documented SDK capabilities
+
+- Extensions run in Node.js alongside Live and can use npm packages and Node APIs.
+- Context-menu actions can target `AudioClip` objects.
+- `Resources.renderPreFxAudio(track, startBeat, endBeat)` renders an audio track's pre-FX signal over an Arrangement beat range to the Extension temp directory.
+- The rendered file type follows Live's Record File Type setting. The bundled Strip Silence example supports WAV only and instructs users to change Live's Record File Type setting to WAV if it renders AIFF.
+- The Extension can read/write its own `storageDirectory` (persistent) and `tempDirectory` (temporary).
+- `Resources.importIntoProject(path)` imports an output file into the Live project and returns the path to use for subsequent API calls.
+- `AudioTrack.createAudioClip({ filePath, startTime, duration, isWarped, loopSettings })` creates a clip in Arrangement.
+- `Song.createAudioTrack()` creates a new audio track.
+- Custom HTML/CSS/JS interfaces are available through modal Webviews using `Ui.showModalDialog`.
+- `Ui.withinProgressDialog` provides cancellable progress for long-running work.
+- `withinTransaction` groups Live Set changes into an undo step.
+
+## Important API limitations
+
+- `renderPreFxAudio` is explicitly pre-FX. It does not render the Live track's device chain.
+- The `AudioTrack.insertDevice` API inserts built-in Live devices only; its docs explicitly say third-party plug-ins cannot be loaded this way.
+- The SDK does not document a post-FX render API or VST3/AU/ARA hosting.
+- `AudioClip` exposes `warping` and `warpMode` setters, plus loop properties and warp-marker data. Its API does not document clip-level transpose or clip gain properties.
+- `AudioClip.warpMarkers` is documented as a getter; no warp-marker write method is shown.
+- The filesystem guide restricts extension code to the extension's storage and temp directories. Do not access arbitrary Documents, Downloads or Desktop paths. Child processes and native addons must obey the same restrictions.
+- Webviews are modal dialogs. The documented message pattern returns a result string and closes the dialog; this beta documentation does not describe a persistent always-on editor or general bidirectional host messaging.
+
+## Alpha 0.1 recommendation
+
+Build the first proof as an SDK-native Extension:
+1. Right-click one AudioClip to invoke the Extension.
+2. Resolve the clip handle and inspect its parent track/timing.
+3. For the first test, render the isolated track's clip time range pre-FX to WAV.
+4. Show a compact modal Webview with waveform and editable Reverse/Gain operation list.
+5. Return the operation list as JSON when the modal closes.
+6. Run the Node/TypeScript incremental processing/cache engine in the Extension Host.
+7. Use a cancellable progress dialog.
+8. Import the processed WAV into the Live project and create a new clip on a separate audio track, preserving the original.
+9. Report render timing, cache hits and measured storage.
+
+The pre-FX render is track/range based, not a documented raw AudioClip-file render. AOPX-01 must test isolation on a track containing one clip only and report effects of overlaps, take lanes, fades and automation.
+
+Keep the history graph branch-capable from the start. A separate companion application is not required for the Alpha 0.1 proof unless later UI or SDK constraints establish that it is necessary.
+
+## Account and Centercode
+
+The user located and supplied the SDK archive through a different Ableton/Centercode account. Do not infer that this account owns the user's Live license or has the required Live beta entitlement. Verify the actual beta build and account/license eligibility separately.
+
+## Official references
+
 - https://ableton.github.io/extensions-sdk/
 - https://help.ableton.com/hc/en-us/articles/27303428331420-Ableton-Extensions-FAQ
 - https://www.ableton.com/en/live/extensions/
 - https://help.ableton.com/hc/en-us/articles/115001663870-Live-Beta-FAQ
-
-## User's available Live versions
-
-User reports having Live 13, Live 12.5 and current release versions installed. These are not, by themselves, proof of SDK compatibility. The currently published SDK docs specifically identify Live 12.4.5 public beta and subsequent beta releases, and the Suite edition requirement.
-
-Do not install an experimental beta over a production installation. Use a side-by-side beta install and a disposable Set.
-
-## Centercode troubleshooting checklist
-
-1. Confirm the user can sign in to the Ableton Beta Test Community at Centercode.
-2. Confirm the account is enrolled in the Live 12 Suite beta project, not merely another Live beta or the Live 13 beta.
-3. Confirm the user's registered Live 12 license edition is Suite. Live 12 Standard/Intro/Lite are not listed as eligible for Extensions SDK access.
-4. Open the relevant Live 12 Suite beta project and look for its Extensions SDK page/resources, not only the installer download area.
-5. If the page is missing despite Suite ownership and project enrollment, capture the Centercode project list and ask Ableton beta support/community for the project entitlement. Do not invent a direct download URL.
-6. Do not assume that Live 13 or stable Live 12.5 can load SDK Extensions unless Ableton documentation or a reproducible test confirms it.
-
-## Known architectural constraint
-
-An Extension is a Live integration/command layer. The editor's persistent waveform UI, audio DSP, plugin hosting, history graph and cache should be treated as a separate companion application/engine until the SDK's actual UI lifetime, process/file permissions and handoff APIs have been verified.
-
-Do not claim the SDK itself can host arbitrary VST3/AU plugins or perform offline audio rendering.
