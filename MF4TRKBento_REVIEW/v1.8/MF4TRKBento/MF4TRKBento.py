@@ -224,7 +224,8 @@ class MF4TRKBento(ControlSurface):
             self._cycle_module(row, step)
             return
         if self._row_modules[row] == "Pan":
-            self._turn_pan(row, cc % 4, step)
+            if not self._held[cc]:
+                self._turn_pan(row, cc % 4, step)
         elif self._row_modules[row] == "Sends" and not (self._alt_mode and cc % 4 == 3):
             if not self._held[cc]:
                 self._turn_send(row, cc % 4, step)
