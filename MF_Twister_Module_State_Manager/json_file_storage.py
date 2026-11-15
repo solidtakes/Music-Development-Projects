@@ -10,7 +10,7 @@ import os
 import tempfile
 import threading
 
-from module_state import validate_document
+try:\n    from .module_state import validate_document\nexcept (ImportError, ValueError):  # Direct import when this folder is the script root.\n    from module_state import validate_document
 
 
 FORMAT_VERSION = 1
