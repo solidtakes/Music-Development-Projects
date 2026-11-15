@@ -46,10 +46,17 @@ Master Pan, Stop safety and the existing four-row behavior.
 The test-only probe-off control produces an identical frame when all four
 tracks report audio output, while reducing getter reads to zero. The existing
 per-scan implementation reads each visible track once even when Pan and Sends
-both consume its mixer. A separate test-only persistent Track-identity cache
-fails the device-removal case by leaving stale Pan/Sends controls visible.
-This supports retaining per-scan availability rather than a cross-scan proxy
-cache. See VARIANT_ISOLATION.md.
+both consume its mixer. A test-only listener-invalidated per-track cache uses
+Track.add_has_audio_output_listener to refresh on device graph changes and
+reduces reads across 100 scans, but requires listener registration and cleanup.
+A persistent cache without invalidation fails the device-removal case by
+leaving stale Pan/Sends controls visible.
+
+The listener triplet is present in third-party Live 9/10 API references, but
+we do not have a Live 13 Beta runtime capture proving its behavior here. Given
+only four availability reads per scan, the extra listener lifecycle is not
+justified for this crash repair. Keep the simpler per-scan cache. See
+VARIANT_ISOLATION.md.
 
 ## Causality limits
 
