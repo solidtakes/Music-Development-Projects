@@ -1,49 +1,53 @@
 # MF Twister Module State Manager — research and architecture
 
-Status: research-backed design; persistence integration is **not yet approved**.
+Status: **persistent core implemented; Live surface integration remains a separate, runtime-verified step.**
 
-## Findings
+## Verified API research
 
-1. Ableton's official Remote Script guidance confirms that custom control surfaces are Python scripts loaded by Live, and that Live 11+ uses Python 3. It documents script installation and MIDI configuration, not a supported durable key/value persistence API. [Ableton: Installing third-party remote scripts](https://help.ableton.com/hc/en-us/articles/209072009-Installing-third-party-Remote-Scripts).
+1. Ableton's official Remote Script guidance confirms that custom control surfaces are Python scripts loaded by Live, and that Live 11+ uses Python 3. It documents installation and MIDI configuration, not a built-in durable Control Surface key/value persistence contract. [Ableton: Installing third-party remote scripts](https://help.ableton.com/hc/en-us/articles/209072009-Installing-third-party-Remote-Scripts).
 2. Ableton's official custom Control Surface article documents the User Remote Scripts folder and basic configuration, but does not document a Set-scoped storage API. [Ableton: Creating your own Control Surface script](https://help.ableton.com/hc/en-us/articles/206240184-Creating-your-own-Control-Surface-script).
-3. Community LiveAPI research describes `c_instance` as an opaque bridge exposing methods such as `song()`, `show_message()`, `log_message()`, and MIDI callbacks. It also states the Python Live API is not publicly documented and relies on runtime introspection/decompiled shipped scripts. This is useful research, not an Ableton support guarantee. [LiveAPI Remote Scripts reference](https://photonicvelocity.github.io/LiveAPI/remote-scripts/) and [LiveAPI project](https://github.com/kamalexandre/LiveAPI).
-4. `Live.Application.get_application().get_document()` is reported by community introspection as returning the current Song. This identifies the current in-memory document, but does not by itself establish a durable, unique identifier for a Set across Save As, duplicate names, moved files, or unsaved sessions. [LiveAPI project](https://github.com/kamalexandre/LiveAPI).
-5. No evidence found in the official documentation above establishes a built-in Remote Script `get_data/set_data` persistence contract. Do not call such a method unless a target-version runtime probe proves it exists.
+3. The Live Object Model documents `Song.file_path` as a read-only path to the current Set, empty when the Set has not been saved. [Cycling '74 Song LOM reference](https://docs.cycling74.com/apiref/lom/song/).
+4. There are community reports that `Song.file_path` is not exposed as a Python attribute in some Remote Script/Max contexts. That is why `set_key_from_song()` probes the attribute defensively and returns `None` on absence or runtime error; it never substitutes a Set title, track names, or object address. [Ableton forum discussion](https://forum.ableton.com/viewtopic.php?t=249763).
+5. Community LiveAPI research describes `c_instance` as an opaque bridge and relies on runtime introspection/decompiled shipped scripts. It is useful for investigation, not an Ableton support guarantee. [LiveAPI Remote Scripts reference](https://photonicvelocity.github.io/LiveAPI/remote-scripts/).
+6. No evidence found in official Remote Script guidance establishes a built-in `get_data/set_data` persistence contract. The manager therefore owns its storage adapter and does not call undocumented host persistence methods.
 
-## Decisions
+## Implemented components
 
-- Keep the core independent of Ableton imports and filesystem operations.
-- Persist only module IDs assigned to stable surface slots (row/column); never encoder values, Live parameters, MIDI routing, LED state, or transient state.
-- Use a versioned JSON-compatible schema with stable surface IDs and stable module IDs.
-- Registry resolution is allow-list based. Unknown module IDs are reported and preserved in the source document; they are not silently rewritten or replaced.
-- Startup restore is an explicit coordinator step after the surface has registered its module catalog and default layout.
-- Storage is an injected interface. The initial prototype uses an in-memory fake adapter only.
-- Global named presets and per-Set presets are distinct namespaces in the interface.
-- Do not enable a filesystem adapter until location, permissions, atomic replacement behavior, and recovery have been tested in the actual Live 12/13 embedded Python runtime on Windows.
+- `module_state.py`: stable module registry, strict assignment-only schema, schema v0-to-v1 migration, validation, missing-module resolution, last-layout and named-preset API.
+- `json_file_storage.py`: standard-library JSON file adapter; per-user AppData location on Windows; hashed namespace filenames; atomic same-directory replacement; last-known-good `.bak` recovery; corrupt primary plus missing/corrupt backup fails closed; list/load/save/delete for global and Set-scoped presets.
+- `live_set_identity.py`: guarded `Song.file_path` resolver. Saved path becomes a SHA-256 path key. Unsaved Sets or unsupported Python exposure return `None` and remain session-only. Save As/move changes the key by design.
+- `layout_controller.py`: host-supplied callbacks for startup restore, assignment-change persistence, named preset load/save/delete, and safe defaults for missing modules. A supplied scheduler defers and coalesces last-layout disk writes so MIDI callbacks need not perform I/O.
+- Tests cover the pure core, file storage, identity rules, corruption recovery, missing modules, preset namespaces, schema migration, startup defaults, and deferred writes.
 
-## Set identity — unresolved gate
+## Storage policy
 
-A Set title is not a safe key: duplicate names are possible and Save As/moves can change identity. A path-based key may be a practical fallback only if the target Live version exposes a stable, readable saved-set path at the required lifecycle point. That has not yet been verified against the user's Live 12.5 and Live 13 installations. Unsaved Sets must remain session-only until a durable identity is available. Do not guess based on title, track names, or runtime object addresses.
+Windows global storage root: `%APPDATA%\\MF_Twister\\ModuleStateManager` (fallback `%LOCALAPPDATA%` only if APPDATA is unavailable). The path is user-scoped, not inside a Remote Script install directory, so script upgrades do not erase presets.
 
-Proposed future resolver order:
-1. A verified persistent document UUID, if a target Live version exposes one.
-2. Otherwise a normalized saved-set path, with explicit behavior for Save As/moves and case-insensitive Windows paths.
-3. Otherwise session-only state; do not write a per-Set preset under an ambiguous identity.
+Global presets are keyed by surface ID and preset name. Set presets are keyed by the hash of the canonical saved-set path, surface ID, and preset name. Raw names and Set paths are not used as filesystem paths. An unsaved Set has no Set-scoped key.
 
-## Storage design
+The file adapter validates every document and rejects unknown fields. It only accepts module assignment IDs; it has no API for volume, pan, sends, device parameters, MIDI routing, LED state, or encoder values.
 
-- `Storage.load_global()/save_global()/delete_global()`
-- `Storage.load_set()/save_set()/delete_set()`
-- Core accepts any adapter implementing this contract; tests use a fake store.
-- A future file adapter should write a temporary file in the same directory, flush and close it, then atomically replace the destination; retain a last-known-good backup and validate schema before accepting a file.
-- Do not perform disk I/O on MIDI callbacks. Queue writes through a bounded/coalescing persistence coordinator, with explicit shutdown flush only if the Live lifecycle supports it safely.
+## Set identity limitations
 
-## Startup and multi-surface ownership
+The key is **path-scoped**, not a permanent document UUID. Save As, Save a Copy, or moving a project creates a new key; presets do not silently follow the file. Duplicate Set names at different paths remain separate. Unsaved Sets remain session-only. The target Live 12.5 and Live 13 Remote Script runtimes still need a direct probe to establish whether `song.file_path` is exposed consistently.
 
-Each surface registers a unique surface ID and its own module catalog. State keys are namespaced by surface ID and layout slot. A manager instance must not globally overwrite another surface's last layout. Restore only after registration is complete; apply the resolved layout in one controlled operation, then refresh LEDs once. Repeated restore of the same state must be idempotent.
+## Startup, event ordering, and integration
+
+Each surface must register its stable module catalog and establish defaults before calling `LayoutStateController.restore_startup()`. Apply the returned layout in one controlled surface operation, then refresh LEDs once. On every module-assignment change, call `on_layout_changed()`; in Live, pass a scheduler callback such as `lambda callback: surface.schedule_message(1, callback)` so disk writes are deferred and coalesced. Do not save on rotary parameter turns.
+
+The current prototype is not yet wired into either Bento. The next integration task must:
+1. copy/import the shared manager as a versioned package without circular imports;
+2. register stable IDs for the surface's module catalog;
+3. connect its module-assignment getter/setter;
+4. schedule startup restore after module initialization;
+5. schedule persistence after assignment changes only;
+6. provide an intentional user interaction for listing/loading/saving/deleting presets;
+7. verify Live 12.5 and Live 13 path exposure, AppData permissions, disconnect behavior, and startup timing.
 
 ## Go / no-go
 
-**GO** for an isolated pure-Python schema/registry/restore core and fake-storage tests.
+**GO** for the persistent standard-library storage core and pure callback controller. It is implemented and testable outside Live.
 
-**NO-GO** for real filesystem persistence, Set-scoped identity, Live integration, or automatic startup restoration until a Windows Live 12.5/13 probe confirms the needed APIs, path behavior, permissions, and lifecycle timing. This boundary is intentional, not a blocker to the independent core prototype.
+**CONDITIONAL GO** for Set-scoped presets: only when the target Live runtime exposes a valid absolute `Song.file_path`. Otherwise Set-specific saving is disabled for that session; global presets and last-layout restoration remain available.
+
+**NO-GO** for automatic installation or production Bento integration until offline CI is green and the integration branch passes independent code review plus owner hardware testing. PR #35, PR #27, and all accepted rollback builds remain untouched.
