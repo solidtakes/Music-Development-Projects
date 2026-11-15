@@ -1,0 +1,76 @@
+OFFLINE TEST RESULTS — PASS (GitHub Actions)
+
+Code/test snapshot: 010eb0d7eebf87719a1785622430b9413dcf925e
+Build checkout commit: 010eb0d7eebf87719a1785622430b9413dcf925e
+Python: CPython 3.11.18
+Latest successful workflow: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43676416345
+Workflow job: 132697440552 (regression-and-package, completed/success)
+
+- compileall: PASS for remote-script package and test directory
+- unittest discovery: 27 tests passed
+- Existing feature matrix: 10 tests passed
+- Startup lifecycle suite: 17 tests passed
+- Existing smoke script: both smoke assertion sequences printed PASS
+- Experimental ZIP build/upload: PASS
+- ZIP contents: 3 files; no __pycache__ directories or .pyc files
+- Installable ZIP SHA-256: 61a59f2689bb5b27d731e565eb8009c293a12baa6ed85568c0ed13d3d4f5e276
+
+The startup suite covers:
+- 1,000 scheduled callbacks, callback count and scan/highlight bounds
+- reentrant tick and refresh coalescing
+- initial schedule_message registration failure clears the pending flag and
+  permits a later retry
+- scan and render exceptions reset lifecycle flags and safely re-arm the
+  one-shot scheduler
+- refresh_state reentrancy during a render-only tick is deferred; reentrancy
+  during an active scan is coalesced without nested scan/render
+- disconnect during an in-flight scan cannot recreate the highlight component
+- disconnect during LED rendering prevents further MIDI output after close
+- property exceptions and deterministic slow-getter timing, including aggregate
+  scan-duration measurement
+- probe-off control and exact has_audio_output property-read counts
+- listener-invalidated per-track cache variant, including device add/remove,
+  deleted-track cleanup and listener teardown
+- deliberately stale persistent-cache control
+- instrument-less MIDI, instrument-backed MIDI, silent instruments and audio
+  tracks
+- repeated refresh_state, callback after disconnect, diagnostics disabled by
+  default, and repeated init/disconnect
+
+Artifact: MF4TRKBento-v1.6-startup-repair-EXP
+Artifact ID: 14146785354
+Artifact expires: 2026-12-15T04:21:42Z
+Download page: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43676416345
+GitHub Actions outer artifact archive SHA-256:
+562a0f0058c5ced32ac5a71589704e4c7fd2b50e6c8d84f16c3de59505c997fd
+
+Independent artifact inspection:
+- Downloaded the outer artifact archive and verified its SHA-256 against the
+  GitHub artifact digest above.
+- Extracted the installable ZIP and independently verified its SHA-256 against
+  the workflow log above.
+- Inspected all three ZIP entries; no __pycache__ path or .pyc file is present.
+- The packaged MF4TRKBento.py Git blob SHA matches source blob
+  39a1a0b0464dea2de87c8a725b72ecf9351f6f37.
+
+The outer artifact hash and installable ZIP hash refer to different files:
+the outer artifact wraps the installable ZIP; these hashes are not
+interchangeable.
+
+IMPORTANT VALIDATION LIMITS:
+These are offline host-mock tests, not Ableton Live 13 Beta hardware startup
+results. The schedule_message mock is list-backed: it stores callbacks and
+the tests invoke them manually. It does not reproduce or validate Live 13
+Beta's real TaskGroup, update_display, component_guard, or callback-dispatch
+environment.
+
+Track.has_audio_output remains read in _audio_mixer() to preserve Pan/Sends
+availability behavior. Its latency and actual Live 13 Beta runtime behavior
+remain unverified. The original startup hang's root cause has not been proven,
+and this repair must not be described as proving or fixing that cause.
+
+Independent startup-focused review remains pending. No Ableton installation or
+hardware testing has occurred or is authorized. Keep v1.5 EXP as the rollback
+baseline. Do not install this package until independent review is complete,
+findings are reconciled, and the owner explicitly authorizes the one-launch
+hardware validation.
