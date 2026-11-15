@@ -97,12 +97,12 @@ class Track:
     def add_device(self, audio_output=True):
         device = types.SimpleNamespace(audio_output=bool(audio_output))
         self.devices.append(device)
-        self._has_audio_output = any(item.audio_output for item in self.devices)
+        self.has_audio_output = any(item.audio_output for item in self.devices)
         return device
 
     def remove_device(self, device):
         self.devices.remove(device)
-        self._has_audio_output = any(item.audio_output for item in self.devices)
+        self.has_audio_output = any(item.audio_output for item in self.devices)
 
     def stop_all_clips(self):
         self.stop_count += 1
