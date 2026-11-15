@@ -1,6 +1,29 @@
-MF4TRKBento v1.8 EXP — verification status
+MF4TRKBento v1.8 EXP — verification results
 
-Status: CI pending.
+Git commit: 671d71115f2b1256bba0d7c83c6e4f93ba6aee84
+GitHub Actions: PASS
+Workflow run: 43689348315
+Workflow URL: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43689348315
 
-No Live runtime or hardware test has been run for v1.8.
-Do not install until GitHub Actions passes and the owner authorizes hardware testing.
+Automated verification:
+- Python compilation: PASS
+- Full unittest suite: 42 passed
+- Feature matrix and startup lifecycle regressions: PASS
+- v1.7 regression tests: PASS
+- v1.8 feature tests: PASS
+- Smoke sequence: PASS
+- ZIP integrity and bytecode inspection: PASS
+- ZIP entries: 3
+- Bytecode entries: 0
+
+Installable package:
+- File: MF4TRKBento_v1.8_EXP.zip
+- ZIP SHA-256: f0c72b0081e4385e47130de4eca4b698d2411be9a063c3daf6cb14b61be08a5c
+- GitHub artifact ID: 14151204350
+- Artifact expires: 2026-12-15
+
+Validation boundary:
+No Ableton Live runtime test or MIDI Fighter Twister hardware test has been run.
+The automated suite uses host mocks and does not prove hardware event ordering,
+actual Live 13 behavior, LED timing or end-to-end latency. Keep this build
+experimental pending independent review and owner hardware validation.
