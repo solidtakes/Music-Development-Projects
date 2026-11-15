@@ -233,7 +233,7 @@ class MF4TRKBento(ControlSurface):
             # preserving the push-to-Unsolo action and teal status indicator.
             if self._alt_mode and cc % 4 == 3:
                 if not self._held[cc]:
-                    self._turn_master_volume(step)
+                    self._turn_master_volume(row, cc % 4, step)
             elif not self._held[cc]:
                 self._turn_volume(row, cc % 4, step)
 
@@ -333,7 +333,7 @@ class MF4TRKBento(ControlSurface):
             else:
                 self._toggle_track_flag(col, "mute")
         elif module == "Pan":
-            self._reset_pan(col)
+            self._reset_pan(row, col)
         elif module == "Sends":
             self._reset_send(row, col)
         elif module == "Stop" and stop_press is not None:
@@ -476,8 +476,9 @@ class MF4TRKBento(ControlSurface):
         # Render the cached frame only; do not rescan the Live Set on every turn.
         self._render_frame(update_rings=True)
 
-    def _turn_master_volume(self, step):
-        if self._closed or self._held[15]:
+    def _turn_master_volume(self, row, col, step):
+        cc = row * 4 + col
+        if self._closed or self._held[cc]:
             return
         try:
             track = self.song().master_track
@@ -491,9 +492,9 @@ class MF4TRKBento(ControlSurface):
             if updated == previous:
                 return
             parameter.value = updated
-            self._mute_volume_last_turn[15] = (
+            self._mute_volume_last_turn[cc] = (
                 time.monotonic(), track, parameter, previous, updated)
-            self._refresh_master_unsolo_cell(3)
+            self._refresh_master_unsolo_cell(row)
         except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
             self.log_message("MF4TRKBento master volume turn error: %s" % exc)
 
@@ -735,7 +736,7 @@ class MF4TRKBento(ControlSurface):
         color = self.MASTER_PAN_COLOR if self._alt_mode and col == 3 else self.PAN_COLOR
         self._refresh_parameter_cell(row, col, parameter, color)
 
-    def _reset_pan(self, col):
+    def _reset_pan(self, row, col):
         parameter = self._pan_parameter(col)
         if parameter is None:
             return
@@ -745,11 +746,7 @@ class MF4TRKBento(ControlSurface):
             self.log_message("MF4TRKBento pan reset error: %s" % exc)
             return
         color = self.MASTER_PAN_COLOR if self._alt_mode and col == 3 else self.PAN_COLOR
-        self._refresh_parameter_cell(self._first_module_row("Pan"), col, parameter, color)
-
-    def _first_module_row(self, module):
-        return next((row for row, active in enumerate(self._row_modules)
-                     if active == module), 0)
+        self._refresh_parameter_cell(row, col, parameter, color)
 
     def _refresh_parameter_cell(self, row, col, parameter, color):
         """Update only the affected encoder; never rescan the Live Set per detent."""
