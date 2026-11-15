@@ -57,6 +57,7 @@ class Track:
         self.mixer_device = Mixer()
         self.stop_count = 0
         self._has_audio_output = True
+        self._has_audio_output_listeners = []
         self.audio_output_reads = 0
         self.audio_output_error = None
         self.audio_output_hook = None
@@ -75,7 +76,23 @@ class Track:
 
     @has_audio_output.setter
     def has_audio_output(self, value):
-        self._has_audio_output = bool(value)
+        value = bool(value)
+        changed = value != self._has_audio_output
+        self._has_audio_output = value
+        if changed:
+            for callback in tuple(self._has_audio_output_listeners):
+                callback()
+
+    def add_has_audio_output_listener(self, callback):
+        if callback not in self._has_audio_output_listeners:
+            self._has_audio_output_listeners.append(callback)
+
+    def has_audio_output_has_listener(self, callback):
+        return callback in self._has_audio_output_listeners
+
+    def remove_has_audio_output_listener(self, callback):
+        if callback in self._has_audio_output_listeners:
+            self._has_audio_output_listeners.remove(callback)
 
     def add_device(self, audio_output=True):
         device = types.SimpleNamespace(audio_output=bool(audio_output))
