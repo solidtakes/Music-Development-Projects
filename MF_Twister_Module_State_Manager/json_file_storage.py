@@ -10,7 +10,7 @@ import os
 import tempfile
 import threading
 
-from module_state import StateError, validate_document
+from module_state import validate_document
 
 
 FORMAT_VERSION = 1
@@ -108,7 +108,7 @@ class JSONFileStorage:
     def _atomic_bytes(path, data):
         directory = os.path.dirname(path)
         if not os.path.isdir(directory):
-            os.makedirs(directory)
+            os.makedirs(directory, exist_ok=True)
         fd, temporary = tempfile.mkstemp(prefix=".mft-state-", suffix=".tmp", dir=directory)
         try:
             with os.fdopen(fd, "wb") as handle:
