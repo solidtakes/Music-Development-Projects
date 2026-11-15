@@ -719,10 +719,11 @@ class MF4TRKBento(ControlSurface):
         # Do not retain Live Track proxies across scans: device-graph changes
         # must be visible on the very next scan. _frame_mixer shares this
         # result across Pan and Sends within one scan.
-        self._record_diagnostic("audio_output_probes")
         try:
-            if track is not None and track.has_audio_output:
-                return track.mixer_device
+            if track is not None:
+                self._record_diagnostic("has_audio_output_reads")
+                if track.has_audio_output:
+                    return track.mixer_device
         except (AttributeError, RuntimeError, TypeError, ValueError):
             pass
         return None
