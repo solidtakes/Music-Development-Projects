@@ -776,6 +776,13 @@ class MF4TRKBento(ControlSurface):
         if self._diagnostics_enabled:
             self._diagnostics[name] = self._diagnostics.get(name, 0) + 1
 
+    def _record_duration(self, name, elapsed):
+        if self._diagnostics_enabled:
+            total_key = name + "_seconds_total"
+            max_key = name + "_seconds_max"
+            self._diagnostics[total_key] = self._diagnostics.get(total_key, 0.0) + elapsed
+            self._diagnostics[max_key] = max(self._diagnostics.get(max_key, 0.0), elapsed)
+
     def _schedule_tick(self):
         if self._closed or self._tick_pending or self._tick_running:
             return
@@ -798,7 +805,12 @@ class MF4TRKBento(ControlSurface):
         self._refresh_running = True
         self._record_diagnostic("refreshes")
         try:
-            self._scan_frame()
+            scan_started = time.monotonic() if self._diagnostics_enabled else None
+            try:
+                self._scan_frame()
+            finally:
+                if scan_started is not None:
+                    self._record_duration("scan", max(0.0, time.monotonic() - scan_started))
             if not self._closed:
                 self._ticks_until_scan = 2
                 self._render_frame(update_rings=True)
@@ -819,6 +831,7 @@ class MF4TRKBento(ControlSurface):
         self._tick_pending = False
         self._tick_running = True
         self._record_diagnostic("ticks")
+        tick_started = time.monotonic() if self._diagnostics_enabled else None
         try:
             self._ticks_until_scan -= 1
             if self._ticks_until_scan <= 0:
@@ -828,6 +841,8 @@ class MF4TRKBento(ControlSurface):
         except Exception as exc:
             self.log_message("MF4TRKBento v1.6 refresh error: %s" % exc)
         finally:
+            if tick_started is not None:
+                self._record_duration("tick", max(0.0, time.monotonic() - tick_started))
             self._tick_running = False
             self._schedule_tick()
 
