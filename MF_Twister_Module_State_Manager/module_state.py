@@ -63,22 +63,31 @@ def make_document(surface_id, assignments, preset_name=None):
     }
 
 
-def validate_document(document):
+def migrate_document(document):
+    """Migrate the only defined legacy schema (v0) without guessing fields."""
     if not isinstance(document, dict):
         raise StateError("document must be an object")
     version = document.get("schema_version")
-    if version != SCHEMA_VERSION:
-        raise StateError("unsupported schema_version: %r" % (version,))
-    normalized = make_document(
-        document.get("surface_id"),
-        document.get("assignments"),
-        document.get("preset_name"),
-    )
-    # Reject unknown fields rather than accidentally persisting parameter data.
-    allowed = {"schema_version", "surface_id", "preset_name", "assignments"}
-    if set(document) - allowed:
-        raise StateError("document contains unsupported fields")
-    return deepcopy(normalized)
+    if version == 0:
+        allowed_v0 = {"schema_version", "surface_id", "assignments"}
+        if set(document) - allowed_v0:
+            raise StateError("legacy document contains unsupported fields")
+        return make_document(document.get("surface_id"),
+                             document.get("assignments"), None)
+    if version == SCHEMA_VERSION:
+        allowed = {"schema_version", "surface_id", "preset_name", "assignments"}
+        if set(document) - allowed:
+            raise StateError("document contains unsupported fields")
+        return make_document(
+            document.get("surface_id"),
+            document.get("assignments"),
+            document.get("preset_name"),
+        )
+    raise StateError("unsupported schema_version: %r" % (version,))
+
+
+def validate_document(document):
+    return deepcopy(migrate_document(document))
 
 
 def resolve_document(document, surface_id, registry):
