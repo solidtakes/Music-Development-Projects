@@ -33,6 +33,34 @@ The user selected Live Suite as the initial development target. Keep the process
 
 Future plugin hosting is important to the product direction but **not part of Alpha 0.1**. The supplied Extensions SDK does not document VST3/AU hosting, post-FX rendering or ARA. Design a clean processor adapter boundary and cache identity that can accommodate plugins later; do not build or claim plugin support now.
 
+## Workstream ownership and execution order
+
+Three Codex workstreams divide research, core engineering and UI implementation. They may proceed in parallel within the boundaries below.
+
+| Workstream | Responsibility | Branch | Parallel-work rule |
+|---|---|---|---|
+| **AOPX-01 — SDK research + Live adapter** | Research exact SDK/Live Suite beta compatibility; build and test the minimal Extension; prove clip context, isolated-track audio render, modal Webview result, import and new-clip creation. | `codex/aopx-01-sdk-feasibility` | Independent of the audio engine. Complete offline API research even if the user has not installed the compatible beta. |
+| **AOPX-02 — audio engine** | Build the Node/TypeScript WAV engine, Reverse/Gain DSP, versioned DAG, immutable renders, cache, incremental invalidation, persistence and tests. | `codex/aopx-02-engine-proof` | Start immediately; no Live runtime or GUI dependency. This is the critical-path engineering deliverable. |
+| **AOPX-03 — floating GUI** | Build the Ableton-inspired floating Webview: waveform/timeline, device-style history modules, parameter controls and measured storage/render diagnostics. | `codex/aopx-03-floating-gui` | Start the visual shell and UI interactions in parallel using typed mock data only. Do not implement DSP, cache/history engine or duplicate AOPX-02. Integrate with the real engine only after AOPX-02 publishes a stable API contract and passing core tests. |
+
+### Required coordination gates
+
+1. **First:** each workstream fetches the canonical `ableton-offline-processing/alpha-0.1` branch and synchronizes safely. The current AOPX-01 and AOPX-02 remote branches are 19 commits behind and 0 commits ahead; inspect and preserve local/uncommitted work before merging or fast-forwarding. Never hard-reset or discard work. AOPX-03 was created directly from the current canonical branch.
+2. **AOPX-01 and AOPX-02:** work independently and report concrete evidence. AOPX-01 must not block AOPX-02.
+3. **AOPX-03:** may build the floating-window shell, design tokens, waveform presentation and mock Reverse/Gain controls immediately. Use a narrow typed adapter/interface placeholder. Do not create fake render/cache behaviour; mark mock values as mock. Once AOPX-02 provides the real engine API, replace the mock adapter and add integration tests.
+4. **Integration:** agree the engine request/result types and operation schema between AOPX-02 and AOPX-03 before wiring UI. AOPX-01 supplies the host adapter and Live-specific lifecycle.
+5. Each workstream opens a draft PR targeting `ableton-offline-processing/alpha-0.1`, not `main`. No automatic merge.
+6. Keep the first demo narrow: one whole clip, Reverse -> Gain -> remove Reverse -> re-render Gain, then import as a new Live clip without modifying the original.
+
+### Who does what
+
+- **Codex AOPX-01:** SDK research, compatibility report and minimal Live integration implementation.
+- **Codex AOPX-02:** core audio processing/history/cache implementation and automated tests.
+- **Codex AOPX-03:** floating GUI implementation and visual polish; initially with mock adapter, then real engine integration.
+- **Project coordinator / user:** architecture and scope decisions, review PRs and test evidence, provide the compatible Live beta/hardware environment when needed, and perform final in-Live acceptance testing. Codex must not change production Live installations or Sets.
+
+The three issues and branches are the task handoffs. A GitHub issue comment is not proof that a Codex agent has been launched or assigned; report the actual Codex run/branch/commit when execution begins.
+
 ## GUI visual direction — owner requirement
 
 The editor is intentionally a **floating window** launched from Ableton Live. It does not need to dock into Arrangement View or replace Live's main interface. It should feel like a natural Live utility/device window, not a generic web application.
