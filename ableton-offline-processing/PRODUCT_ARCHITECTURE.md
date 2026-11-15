@@ -37,6 +37,29 @@ The SDK is a host integration layer, not the audio engine or plugin host.
 
 ### 2. Editor UI
 
+The GUI must feel at home inside Ableton Live, not like a generic web dashboard or a separate consumer audio app. Use an **Ableton-inspired visual language** while maintaining a distinct product identity; do not copy Live's branding, logo or proprietary artwork.
+
+#### Visual design direction
+
+- Default to a dark Live-inspired workspace: deep charcoal/graphite canvas, slightly lighter work panels, subtle grey separators and high-contrast readable text.
+- Use a warm amber/orange accent for primary actions, selection, focus and active processing states.
+- Use restrained Live-like clip/track colours as semantic accents for waveforms, version branches and status—not as random decoration.
+- Provide a coherent light counterpart using the same semantic colour tokens. If the SDK exposes the host's current appearance reliably, follow it; otherwise default to dark and offer a simple in-editor Dark/Light choice. Do not assume a host-theme API exists until verified.
+- Keep controls compact and information-dense: small typography, short labels, aligned values, clear numeric readouts and tight spacing.
+- Prefer flat rectangular controls, thin borders, subtle corner radii and restrained hover/selection states. Avoid oversized rounded cards, pill-heavy controls, gradients, decorative shadows and generic dashboard tiles.
+- Use familiar audio-workstation patterns: horizontal waveform/timeline, clear time ruler, transport-like audition controls, ordered processing/device rows, bypass/enable controls, parameter inspector and a narrow status/footer area.
+- Preserve strong contrast and make selected, bypassed, processing, completed, cache-hit and error states distinguishable without relying on colour alone.
+
+#### Alpha 0.1 layout
+
+1. **Top strip:** source/clip name, duration, sample rate, bit depth/channel metadata and version indicator.
+2. **Waveform/timeline:** prominent horizontal waveform with a compact time ruler and play/audition position. It is a whole-clip view in Alpha 0.1; do not imply range editing is available yet.
+3. **Processing history:** ordered, compact operation rows for Reverse and Gain. Each row shows operation name, enable/bypass state, selected state and a clear remove affordance. Keep ordering legible.
+4. **Parameter inspector:** contextual controls for the selected operation. Gain gets a clear dB value and slider/numeric entry; Reverse has a simple enabled state.
+5. **Bottom/status strip:** render/cancel action, progress, per-operation render time and cache hit/miss, output size, source size and total cache footprint. Keep diagnostics visible but visually secondary to the audio workflow.
+
+The supplied SDK documents a modal Webview, not a persistent always-open editor. The first GUI must fit that modal lifecycle and return an operation plan; processing/progress uses the documented host flow.
+
 Alpha 0.1:
 - Compact SDK modal Webview.
 - Source filename, duration, sample rate, channel count and waveform.
@@ -53,6 +76,7 @@ Later:
 - Range/selection editing.
 - Preset chains and reusable processing macros.
 - Searchable operation suite and plugin parameter panels.
+- Theme preference that follows Live where supported, with a user override.
 
 Do not assume a persistent always-open Webview; the supplied SDK documents a modal dialog/result flow.
 
@@ -172,6 +196,7 @@ The milestone is complete only when:
 9. Actual render times and file sizes are displayed.
 10. The SDK integration can obtain one isolated clip's audio, import the processed file and create a new clip on another track without modifying the original.
 11. The test report records exact Live, SDK, Node and OS versions and all limitations.
+12. The modal GUI follows the visual design direction above and remains compact, audio-focused and readable in both supported themes.
 
 ## Non-negotiable safety and engineering rules
 
