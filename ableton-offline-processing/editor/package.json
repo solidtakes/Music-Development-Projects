@@ -1,0 +1,13 @@
+{
+  "name": "@aopx/editor-ui",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "test:browser": "node scripts/run-browser-tests.mjs"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}
