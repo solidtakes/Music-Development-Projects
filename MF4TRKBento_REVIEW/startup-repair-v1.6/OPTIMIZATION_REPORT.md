@@ -40,6 +40,17 @@ Master Pan, Stop safety and the existing four-row behavior.
   reverting purple Sends, Pan/Sends availability, directional chords, or Stop
   safety. They remain unchanged in this candidate.
 
+
+## Controlled variant evidence
+
+The test-only probe-off control produces an identical frame when all four
+tracks report audio output, while reducing getter reads to zero. The existing
+per-scan implementation reads each visible track once even when Pan and Sends
+both consume its mixer. A separate test-only persistent Track-identity cache
+fails the device-removal case by leaving stale Pan/Sends controls visible.
+This supports retaining per-scan availability rather than a cross-scan proxy
+cache. See VARIANT_ISOLATION.md.
+
 ## Causality limits
 
 The owner-supplied log proves v1.6 initialization reached its loaded message;
