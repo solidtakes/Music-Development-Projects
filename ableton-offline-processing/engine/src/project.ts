@@ -20,7 +20,7 @@ import {
   type RenderStep,
   type SourceInfo,
 } from './contract.ts';
-import { ContentCache, ENGINE_VERSION, computeCacheKey, directoryBytes, type CacheKeyInputs, type VerifyMode } from './cache.ts';
+import { ContentCache, ENGINE_VERSION, computeCacheKey, directoryBytes, writeImmutable, type CacheKeyInputs, type VerifyMode } from './cache.ts';
 import { GraphError, VersionGraph, rootId, type GraphSnapshot, type OperationNode } from './graph.ts';
 import { sha256File, sha256Hex } from './hash.ts';
 import { getAdapter, normalizeOperation, toContractOperation } from './operations.ts';
@@ -231,10 +231,9 @@ export class Project {
     const storedPath = join('sources', `${fingerprint}.wav`);
     const abs = join(this.storageRoot, storedPath);
     if (!this.sources[fingerprint]) {
-      const tmp = `${abs}.${process.pid}.tmp`;
-      await writeFile(tmp, bytes);
-      await chmod(tmp, 0o444);
-      await rename(tmp, abs);
+      // The stored copy may already exist on disk without being in the manifest (e.g. a crash before
+      // save). A copy whose sha256 matches the fingerprint is reused; an invalid one is replaced.
+      await writeImmutable(abs, bytes, `${abs}.${process.pid}.tmp`, fingerprint);
       this.sources[fingerprint] = { name, fingerprint, bytes: bytes.byteLength, format, storedPath, importedFrom: path };
     }
     this.graph.addSource(fingerprint);

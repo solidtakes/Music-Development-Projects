@@ -170,13 +170,11 @@ export class ContentCache {
     await mkdir(dir, { recursive: true });
     const stage = join(this.root, 'staging', randomUUID());
     try {
-      await writeFile(`${stage}.wav`, bytes);
-      await chmod(`${stage}.wav`, 0o444);
-      await rename(`${stage}.wav`, this.objectPath(key));
+      // An object may already exist without metadata (e.g. a crash before the commit marker).
+      await writeImmutable(this.objectPath(key), bytes, `${stage}.wav`, entry.contentSha256);
       await writeFile(`${stage}.json`, JSON.stringify(entry, null, 2));
       await rename(`${stage}.json`, this.metaPath(key)); // commit marker last
     } finally {
-      await rm(`${stage}.wav`, { force: true });
       await rm(`${stage}.json`, { force: true });
     }
     return entry;
@@ -217,6 +215,49 @@ export class ContentCache {
     await rm(join(this.root, 'staging'), { recursive: true, force: true });
     await mkdir(join(this.root, 'staging'), { recursive: true });
     return before - (await this.totalBytes());
+  }
+}
+
+/** True if `path` exists and its sha256 is `sha256`; false if it does not exist. Other errors propagate. */
+async function hasContent(path: string, sha256: string): Promise<boolean> {
+  try {
+    return (await sha256File(path)) === sha256;
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw e;
+  }
+}
+
+/**
+ * Place an immutable (0444), content-addressed file at `dest` holding `bytes` (sha256 `sha256`).
+ *
+ * - If `dest` already holds exactly this content, it is reused (and kept read-only); nothing is written.
+ * - Otherwise any existing `dest` is invalid and is removed first. Windows refuses to rename onto a
+ *   read-only file (EPERM), so the engine never renames onto an existing destination.
+ * - The bytes are staged at `stagedPath` and renamed into place, so `dest` never holds partial data.
+ * - If the rename still fails but `dest` now holds this content (a concurrent writer of the same
+ *   content won), that is treated as success.
+ *
+ * Returns true if an existing file was reused.
+ */
+export async function writeImmutable(dest: string, bytes: Uint8Array, stagedPath: string, sha256: string): Promise<boolean> {
+  if (await hasContent(dest, sha256)) {
+    await chmod(dest, 0o444);
+    return true;
+  }
+  await rm(dest, { force: true });
+  try {
+    await writeFile(stagedPath, bytes);
+    await chmod(stagedPath, 0o444);
+    try {
+      await rename(stagedPath, dest);
+      return false;
+    } catch (e) {
+      if (await hasContent(dest, sha256)) return true;
+      throw e;
+    }
+  } finally {
+    await rm(stagedPath, { force: true });
   }
 }
 
