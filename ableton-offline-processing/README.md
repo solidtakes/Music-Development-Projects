@@ -51,4 +51,4 @@ Clip-level Live properties (such as clip transpose, gain and warp settings) are 
 - No production Live installation should be modified for SDK experiments.
 - No SDK access or working prototype is claimed until independently verified.
 
-See [Alpha 0.1 specification](ALPHA_0_1_SPEC.md), [Codex handoff](CODEX_HANDOFF.md), and [SDK access notes](SDK_ACCESS_NOTES.md).
+See [Project Status](PROJECT_STATUS.md), [Alpha 0.1 specification](ALPHA_0_1_SPEC.md), [Codex handoff](CODEX_HANDOFF.md), and [SDK access notes](SDK_ACCESS_NOTES.md).
