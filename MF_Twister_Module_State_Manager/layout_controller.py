@@ -8,12 +8,17 @@ from module_state import StateError
 
 class LayoutStateController:
     def __init__(self, manager, read_layout, apply_layout, default_layout,
-                 report_callback=None):
+                 report_callback=None, schedule_save=None):
         self.manager = manager
         self.read_layout = read_layout
         self.apply_layout = apply_layout
         self.default_layout = default_layout
         self.report_callback = report_callback
+        # In Live, inject schedule_save=lambda callback: surface.schedule_message(1, callback)
+        # so no disk I/O occurs inside a MIDI value listener.
+        self.schedule_save = schedule_save
+        self._pending_last = None
+        self._save_scheduled = False
 
     def _defaults(self):
         value = self.default_layout()
@@ -35,7 +40,7 @@ class LayoutStateController:
                     assignments.pop(slot, None)
         self.apply_layout(dict(assignments))
         if persist_as_last:
-            self.manager.save_last(assignments)
+            self._queue_last(assignments)
         report = {
             "assignments": dict(assignments),
             "missing": missing,
@@ -48,9 +53,32 @@ class LayoutStateController:
     def restore_startup(self):
         return self._apply_resolved(self.manager.restore_last(), False)
 
+    def _queue_last(self, assignments):
+        snapshot = self.manager.snapshot(assignments)
+        if self.schedule_save is None:
+            self.manager.save_last(snapshot["assignments"])
+            return
+        self._pending_last = snapshot
+        if not self._save_scheduled:
+            self._save_scheduled = True
+            self.schedule_save(self.flush_pending)
+
+    def flush_pending(self):
+        """Scheduled persistence boundary; coalesces rapid module changes."""
+        self._save_scheduled = False
+        pending = self._pending_last
+        self._pending_last = None
+        if pending is None:
+            return None
+        return self.manager.save_last(pending["assignments"])
+
+    def cancel_pending(self):
+        self._pending_last = None
+        self._save_scheduled = False
+
     def on_layout_changed(self):
-        """Call after a user changes module assignment; values are not captured."""
-        return self.manager.save_last(self.read_layout())
+        """Call after module assignment changes; parameter values are never read."""
+        self._queue_last(self.read_layout())
 
     def save_global_preset(self, name):
         return self.manager.save_global(name, self.read_layout())
