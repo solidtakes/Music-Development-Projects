@@ -60,16 +60,23 @@ const rowIds = page => page.$$eval('#device-list .device', rows => rows.map(r =>
 const selectedId = page => page.$eval('#device-list .device.selected', r => r.dataset.opId);
 
 // Drag a row's handle so the pointer ends `fraction` of the way down a target row.
+// Returns the state observed just before release: pointer travel (dy), whether the
+// dragged row is in its active `.dragging` state, and whether an indicator is shown.
 async function dragHandle(page, fromId, toId, fraction, { release = true, pressEscape = false } = {}) {
   const h = await page.locator(`.drag-handle[data-op-id="${fromId}"]`).boundingBox();
   const t = await page.locator(`.device[data-op-id="${toId}"]`).boundingBox();
-  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+  const startY = h.y + h.height / 2, endY = t.y + t.height * fraction;
+  await page.mouse.move(h.x + h.width / 2, startY);
   await page.mouse.down();
-  await page.mouse.move(h.x + h.width / 2, t.y + t.height * fraction, { steps: 8 });
-  const indicatorVisible = await page.locator('#drop-indicator:not(.hidden)').count();
+  await page.mouse.move(h.x + h.width / 2, endY, { steps: 8 });
+  const before = {
+    dy: endY - startY,
+    dragging: await page.locator(`.device.dragging[data-op-id="${fromId}"]`).count(),
+    indicatorVisible: await page.locator('#drop-indicator:not(.hidden)').count(),
+  };
   if (pressEscape) await page.keyboard.press('Escape');
   if (release) await page.mouse.up();
-  return indicatorVisible;
+  return before;
 }
 async function applyPlan(page) {
   await page.click('#apply');
@@ -91,8 +98,9 @@ test('drag-and-drop reorder in a real browser', { skip }, async t => {
       if (shots && viewport.width === 860 && viewport.height === 660) await page.screenshot({ path: join(shots, '1-before.png') });
 
       // Drag step 3 (Gain +6.25) above step 1.
-      const shown = await dragHandle(page, 'op-gain-2', 'op-reverse-1', 0.2, { release: false });
-      assert.equal(shown, 1, 'insertion indicator is visible during drag');
+      const during = await dragHandle(page, 'op-gain-2', 'op-reverse-1', 0.2, { release: false });
+      assert.equal(during.dragging, 1, 'row is in its active dragging state');
+      assert.equal(during.indicatorVisible, 1, 'insertion indicator is visible during drag');
       if (shots && viewport.width === 860 && viewport.height === 660) await page.screenshot({ path: join(shots, '2-dragging.png') });
       await page.mouse.up();
 
@@ -136,11 +144,20 @@ test('drag-and-drop reorder in a real browser', { skip }, async t => {
     assert.equal(await selectedId(page), 'op-reverse-1');
     assert.equal(await page.locator('.device[data-op-id="op-gain-1"].bypassed').count(), 1);
 
-    // Drop back onto its own slot: no-op, indicator hidden.
-    const shown = await dragHandle(page, 'op-gain-1', 'op-gain-1', 0.55);
-    assert.equal(shown, 0, 'no indicator for a no-op position');
-    assert.deepEqual(await rowIds(page), ['op-reverse-1', 'op-gain-1', 'op-gain-2']);
-    assert.equal(await selectedId(page), 'op-reverse-1');
+    // Active drag that stays within its own insertion slot: no-op, no indicator.
+    // The handle starts at the row centre; 0.15 / 0.85 of a ~56px row is ~19px of travel,
+    // well past DRAG_THRESHOLD_PX (4) yet short of the neighbouring rows' midpoints.
+    for (const fraction of [0.85, 0.15]) {
+      const before = await dragHandle(page, 'op-gain-1', 'op-gain-1', fraction);
+      assert.ok(Math.abs(before.dy) >= 10, `pointer moved ${before.dy.toFixed(1)}px, enough to activate a drag`);
+      assert.equal(before.dragging, 1, 'drag became active before release');
+      assert.equal(before.indicatorVisible, 0, 'no indicator for a no-op position');
+      assert.deepEqual(await rowIds(page), ['op-reverse-1', 'op-gain-1', 'op-gain-2']);
+      assert.equal(await page.locator('#drop-indicator').count(), 0, 'indicator removed after release');
+      assert.equal(await page.locator('.device.dragging').count(), 0, 'dragging state cleared after release');
+      assert.equal(await selectedId(page), 'op-reverse-1');
+      assert.equal(await page.locator('.device[data-op-id="op-gain-1"].bypassed').count(), 1);
+    }
     await page.close();
   });
 
@@ -167,10 +184,38 @@ test('drag-and-drop reorder in a real browser', { skip }, async t => {
 
   await t.test('Escape cancels an in-progress drag', async () => {
     const page = await openEditor(browser, VIEWPORTS[0]);
-    await dragHandle(page, 'op-gain-2', 'op-reverse-1', 0.2, { pressEscape: true });
+    const before = await dragHandle(page, 'op-gain-2', 'op-reverse-1', 0.2, { pressEscape: true });
+    assert.equal(before.dragging, 1, 'drag was active before Escape');
     assert.deepEqual(await rowIds(page), ['op-reverse-1', 'op-gain-1', 'op-gain-2']);
     assert.match(await page.textContent('#status'), /cancelled/);
     assert.equal(await page.locator('.device.dragging').count(), 0);
+    await page.close();
+  });
+
+  await t.test('pointercancel cancels an active drag without changing the order', async () => {
+    const page = await openEditor(browser, VIEWPORTS[0]);
+    // Record the real pointerId of the gesture so the cancel targets the same pointer.
+    await page.evaluate(() => document.addEventListener('pointerdown', e => { window.__pointerId = e.pointerId; }, true));
+    const before = await dragHandle(page, 'op-gain-2', 'op-reverse-1', 0.2, { release: false });
+    assert.equal(before.dragging, 1, 'drag was active before pointercancel');
+    assert.equal(before.indicatorVisible, 1, 'indicator shown before pointercancel');
+    // Mouse input cannot produce pointercancel (the browser sends it when, e.g., a touch
+    // gesture is taken over), so dispatch it on the capturing handle with the live pointerId.
+    await page.evaluate(() => {
+      const handle = document.querySelector('.drag-handle[data-op-id="op-gain-2"]');
+      handle.dispatchEvent(new PointerEvent('pointercancel', { pointerId: window.__pointerId, bubbles: true }));
+    });
+    assert.deepEqual(await rowIds(page), ['op-reverse-1', 'op-gain-1', 'op-gain-2']);
+    assert.match(await page.textContent('#status'), /cancelled/);
+    assert.equal(await page.locator('.device.dragging').count(), 0, 'dragging state cleared');
+    assert.equal(await page.locator('#drop-indicator').count(), 0, 'indicator removed');
+    // Releasing the button afterwards must not drop, select, bypass or remove anything.
+    await page.mouse.up();
+    assert.deepEqual(await rowIds(page), ['op-reverse-1', 'op-gain-1', 'op-gain-2']);
+    assert.equal(await selectedId(page), 'op-reverse-1');
+    assert.equal(await page.locator('#device-list .device').count(), 3);
+    assert.equal(await page.locator('#device-list .device.bypassed').count(), 1);
+    assert.equal(await page.locator('.device[data-op-id="op-gain-1"].bypassed').count(), 1);
     await page.close();
   });
 
