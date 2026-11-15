@@ -1,0 +1,5 @@
+OFFLINE TEST RESULTS — awaiting GitHub Actions run.
+
+This file is intentionally not marked PASS before the candidate tests execute.
+The workflow on this branch runs syntax compilation, the existing v1.6 smoke
+and feature matrix, the new startup lifecycle suite, and packages the EXP ZIP.
