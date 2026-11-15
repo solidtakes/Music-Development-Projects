@@ -1,5 +1,27 @@
-OFFLINE TEST RESULTS — awaiting GitHub Actions run.
+OFFLINE TEST RESULTS — PASS (GitHub Actions)
 
-This file is intentionally not marked PASS before the candidate tests execute.
-The workflow on this branch runs syntax compilation, the existing v1.6 smoke
-and feature matrix, the new startup lifecycle suite, and packages the EXP ZIP.
+Verified commit under test: 944227b3baff3908b18e0ee2e3bb2da43ac65a48
+Python: CPython 3.11.18
+Workflow run: https://github.com/solidtakes/Music-Development-Projects/actions/runs/43669011342
+
+- compileall: PASS for remote-script package and test directory
+- unittest discovery: 22 tests passed in 0.192 seconds
+- Existing feature matrix: 10 tests passed
+- Startup lifecycle suite: 11 tests passed
+- Existing smoke script: both smoke assertion sequences printed PASS
+- ZIP build: PASS
+- ZIP SHA-256: b52ee9ee921e09b878fcf0722ce58686cdc883ceaf390e27e2c480e8aff488dd
+
+The startup suite covers 1,000 callbacks, reentrant tick/refresh, refresh cadence,
+property exceptions and deterministic slow getters, probe-on/off isolation,
+persistent-cache staleness after device removal, MIDI/audio track cases,
+deleted/replaced tracks, repeated refresh_state, queued callback after
+disconnect, diagnostics disabled by default, and repeated init/disconnect.
+
+Artifact: MF4TRKBento-v1.6-startup-repair-EXP
+Artifact ID: 14142839847
+Artifact expires: 2026-12-15T02:42:26Z
+
+IMPORTANT: These are offline host-mock tests, not Ableton Live 13 Beta hardware
+startup results. Independent startup-focused review is still pending; do not
+install or hardware-test until that review is complete.
