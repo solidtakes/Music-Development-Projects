@@ -40,7 +40,7 @@ class StartupLifecycle(unittest.TestCase):
         self.assertEqual(self.surface.schedule_message_calls, 1001)
         self.assertEqual(self.surface._diagnostics["ticks"], 1000)
         self.assertEqual(self.surface._diagnostics["scans"], 500)
-        self.assertEqual(self.surface._diagnostics["audio_output_probes"], 2000)
+        self.assertEqual(self.surface._diagnostics["has_audio_output_reads"], 2000)
         self.assertEqual([t.audio_output_reads for t in self.song.visible_tracks[:4]],
                          [500, 500, 500, 500])
         self.assertEqual(mock.SessionComponent.created_count, 1)
@@ -233,7 +233,7 @@ class StartupLifecycle(unittest.TestCase):
         self.assertAlmostEqual(self.surface._diagnostics["scan_seconds_total"], 0.20)
         self.assertAlmostEqual(self.surface._diagnostics["scan_seconds_max"], 0.20)
         self.assertEqual(len(self.surface.scheduled), 1)
-        self.assertGreaterEqual(self.surface._diagnostics["audio_output_probes"], 8)
+        self.assertGreaterEqual(self.surface._diagnostics["has_audio_output_reads"], 8)
 
     def test_repeated_refresh_state_does_not_duplicate_ticks_or_recreate_highlight(self):
         self.assertEqual(mock.SessionComponent.created_count, 1)
@@ -243,6 +243,7 @@ class StartupLifecycle(unittest.TestCase):
         self.assertEqual(mock.SessionComponent.created_count, 1)
         self.assertEqual(self.surface.schedule_message_calls, 1)
         self.assertEqual(self.surface._diagnostics.get("reentrant_refreshes", 0), 0)
+        self.assertEqual(self.surface._diagnostics["scans"], 25)
 
     def test_diagnostics_are_disabled_by_default_and_emit_no_tick_logs(self):
         surface = module.create_instance(None)
