@@ -12,7 +12,7 @@ Read these first:
 
 ## Global rules
 
-- Work only on this branch. Do not merge automatically.
+- Use the issue-specific Codex child branch for each assignment: `codex/aopx-01-sdk-feasibility` for Assignment 1 and `codex/aopx-02-engine-proof` for Assignment 2. Open PRs back to `ableton-offline-processing/alpha-0.1`; never target `main`. Assignment 3 (GUI) is sequenced after the engine contract is stable; create its child branch only then. Do not merge automatically.
 - Do not modify other project folders or their branches.
 - Do not change the user's production Ableton installations or Live Sets.
 - Do not commit the Extensions SDK, private SDK packages, plugin binaries, user audio, licenses, credentials or secrets.
@@ -24,7 +24,7 @@ Read these first:
 
 ## Assignment 1 — SDK compatibility and minimal integration spike
 
-Issue: see the GitHub issue titled `[AOPX-01] Verify Extensions SDK access and build a minimal Live clip integration spike`.
+Issue: [#30 — AOPX-01: Verify Extensions SDK access and build a minimal Live clip integration spike](https://github.com/solidtakes/Music-Development-Projects/issues/30). Branch: `codex/aopx-01-sdk-feasibility`.
 
 Tasks:
 1. Read current official Ableton Extensions SDK docs and FAQ.
@@ -39,7 +39,7 @@ No dependency on this task for the audio engine prototype.
 
 ## Assignment 2 — Offline audio engine proof
 
-Issue: see `[AOPX-02] Build the incremental WAV processing/history engine proof`.
+Issue: [#31 — AOPX-02: Build the incremental WAV processing and editable history engine proof](https://github.com/solidtakes/Music-Development-Projects/issues/31). Branch: `codex/aopx-02-engine-proof`.
 
 Tasks:
 1. Propose the smallest maintainable implementation stack before committing to a framework. Compare a quick standalone test harness with a path that can later support a polished desktop UI and VST3/AU hosting. Record the decision and trade-offs.
