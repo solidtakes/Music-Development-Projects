@@ -58,10 +58,10 @@ Key findings:
   Branch: `codex/aopx-01-sdk-feasibility`
 - [#31 AOPX-02 — Incremental WAV processing/history engine](https://github.com/solidtakes/Music-Development-Projects/issues/31)  
   Branch: `codex/aopx-02-engine-proof`
-- [#32 AOPX-03 — GUI and storage/performance monitor](https://github.com/solidtakes/Music-Development-Projects/issues/32)  
-  Start after AOPX-02's engine interface/tests are stable; create a dedicated child branch then.
+- [#32 AOPX-03 — floating GUI and storage/performance monitor](https://github.com/solidtakes/Music-Development-Projects/issues/32)  
+  Branch: `codex/aopx-03-floating-gui` (created from the current canonical branch). Start the visual shell in parallel with mock data; integrate the real engine only after AOPX-02 publishes a stable API and passing core tests.
 
-The child branches were created before the SDK review/spec commits. Codex has been instructed to synchronize safely with the canonical branch before coding, preserving local work. Latest repository inspection still showed no implementation commits ahead of the canonical branch and no Codex agent assigned through GitHub. The issues remain open.
+AOPX-01 and AOPX-02 branches predate the latest canonical documentation and are currently 19 commits behind with 0 commits ahead; Codex must inspect/preserve any local work and synchronize safely before coding. AOPX-03 was created directly from the current canonical branch. The three GitHub issues contain their workstream handoffs. No implementation commits are currently ahead of the canonical branch, and no GitHub assignee/Codex agent is attached to the issues.
 
 ## Live version and SDK gate
 
@@ -69,10 +69,10 @@ The user reports having Live 13 and Live 12.5 current-release installations and 
 
 ## Required next sequence
 
-1. AOPX-02 builds the Node/TypeScript Reverse/Gain engine and proves editable history/cache independently of Live.
-2. AOPX-01 builds the official minimal Extension and verifies the one-clip pre-FX WAV → modal UI → import/new-clip route in a compatible disposable Live Suite beta.
-3. AOPX-03 builds the modal Webview after the engine interface/tests are stable.
-4. User tests the working Alpha 0.1 flow before feature expansion.
+1. AOPX-01 researches SDK/Live compatibility and builds the minimal Live adapter proof; it does not block engine work.
+2. AOPX-02 immediately builds the Node/TypeScript Reverse/Gain engine and proves editable history/cache independently of Live.
+3. AOPX-03 builds the floating-window visual shell in parallel using clearly marked mock data, then integrates the real engine after AOPX-02's API contract and core tests are stable.
+4. Integrate the Live adapter, GUI and engine; the user tests the complete Alpha 0.1 flow before feature expansion.
 
 ## Safeguards
 
