@@ -17,9 +17,9 @@
 - Startup test blob: 85e803f5798b3010734c0189103d1a7994f4d208
 - Host mock blob: 1be5d77a8fa945158faa046fa90a5f0f10d02b28
 - Listener-cache comparison variant blob: a9a189ae27df2c0262536a1c6cb544f6d6b69943
-- ZIP SHA-256: 9e970fefd297b20d09341d9a3a8b174848f8afdcead512390976ea36c53496f6
-- Passing workflow run: 43669695245
-- Artifact ID: 14143806463
+- ZIP SHA-256: a8939a503fe48e3b67b442a493126529e0285b5f00ce1986f69abcaafc4fe36e
+- Passing workflow run: 43669790111
+- Artifact ID: 14143414808
 
 The installable package changes only the v1.6 scheduler/refresh lifecycle and
 adds disabled-by-default aggregate diagnostics. The listener-invalidated
