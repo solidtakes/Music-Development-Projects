@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 import types
 import mock_live as mock
+from availability_cache_variant import ListenerAvailabilityCache
 
 SOURCE = Path(__file__).resolve().parents[1] / "MF4TRKBento" / "MF4TRKBento.py"
 module = mock.load(SOURCE)
@@ -132,6 +133,51 @@ class StartupLifecycle(unittest.TestCase):
         tracks[0].audio_output_reads = 0
         self.surface._send_parameter(3, 0)
         self.assertEqual(tracks[0].audio_output_reads, 1)
+
+    def test_listener_invalidated_cache_variant_tracks_graph_changes_and_cleanup(self):
+        tracks = self.song.visible_tracks[:4]
+        midi_without_instrument, midi_with_instrument, silent_instrument, audio_track = tracks
+        midi_without_instrument.has_audio_output = False
+        midi_with_instrument.has_audio_output = False
+        midi_device = midi_with_instrument.add_device(True)
+        silent_instrument.has_audio_output = False
+        silent_instrument.add_device(True)
+        silent_instrument.output_meter_level = 0.0
+        audio_track.has_audio_output = True
+        for track in tracks:
+            track.audio_output_reads = 0
+
+        cache = ListenerAvailabilityCache()
+        cache.sync(tracks)
+        self.assertEqual([t.audio_output_reads for t in tracks], [1, 1, 1, 1])
+        self.assertIsNone(cache.mixer_for(midi_without_instrument))
+        self.assertIsNotNone(cache.mixer_for(midi_with_instrument))
+        self.assertIsNotNone(cache.mixer_for(silent_instrument))
+        self.assertIsNotNone(cache.mixer_for(audio_track))
+        for _ in range(100):
+            cache.sync(tracks)
+            for track in tracks:
+                cache.mixer_for(track)
+        self.assertEqual([t.audio_output_reads for t in tracks], [1, 1, 1, 1])
+
+        # Track.has_audio_output listener refreshes the cached value on device removal/addition.
+        midi_with_instrument.remove_device(midi_device)
+        self.assertIsNone(cache.mixer_for(midi_with_instrument))
+        self.assertEqual(midi_with_instrument.audio_output_reads, 2)
+        midi_with_instrument.add_device(True)
+        self.assertIsNotNone(cache.mixer_for(midi_with_instrument))
+        self.assertEqual(midi_with_instrument.audio_output_reads, 3)
+
+        # Removing a Track from the active set removes its listener and cache entry.
+        cache.sync(tracks[1:])
+        self.assertFalse(midi_without_instrument._has_audio_output_listeners)
+        self.assertNotIn(id(midi_without_instrument), cache._entries)
+        replacement = mock.Track()
+        cache.sync(tracks[1:] + [replacement])
+        self.assertEqual(replacement.audio_output_reads, 1)
+        cache.close()
+        self.assertTrue(all(not track._has_audio_output_listeners for track in tracks[1:]))
+        self.assertFalse(replacement._has_audio_output_listeners)
 
     def test_persistent_track_proxy_cache_goes_stale_after_device_removal(self):
         track = self.song.visible_tracks[0]
