@@ -1,8 +1,7 @@
 """Surface-independent module-layout state core.
 
-This module intentionally has no Ableton Live imports and performs no I/O.
-Adapters and Live lifecycle integration are separate, gated work.
-Compatible with Python 3.8+.
+No Ableton imports and no I/O. Storage is injected so the same logic can be
+used by Bento surfaces, tests, and future UI adapters. Python 3.8+.
 """
 from copy import deepcopy
 
@@ -14,6 +13,8 @@ class StateError(ValueError):
 
 
 class ModuleRegistry:
+    """Allow-list of stable module IDs known to one Bento surface."""
+
     def __init__(self):
         self._modules = {}
 
@@ -41,13 +42,19 @@ def make_document(surface_id, assignments, preset_name=None):
         raise StateError("surface_id must be a non-empty string")
     if not isinstance(assignments, dict):
         raise StateError("assignments must be a mapping of slot to module_id")
+    if preset_name is not None and (
+            not isinstance(preset_name, str) or not preset_name.strip()):
+        raise StateError("preset_name must be null or a non-empty string")
+
     clean = {}
     for slot, module_id in assignments.items():
         if not isinstance(slot, str) or not slot.strip():
             raise StateError("slot keys must be non-empty strings")
-        if module_id is not None and (not isinstance(module_id, str) or not module_id.strip()):
+        if module_id is not None and (
+                not isinstance(module_id, str) or not module_id.strip()):
             raise StateError("module_id must be null or a non-empty string")
         clean[slot] = module_id
+
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_id": surface_id,
@@ -62,16 +69,20 @@ def validate_document(document):
     version = document.get("schema_version")
     if version != SCHEMA_VERSION:
         raise StateError("unsupported schema_version: %r" % (version,))
-    make_document(
+    normalized = make_document(
         document.get("surface_id"),
         document.get("assignments"),
         document.get("preset_name"),
     )
-    return deepcopy(document)
+    # Reject unknown fields rather than accidentally persisting parameter data.
+    allowed = {"schema_version", "surface_id", "preset_name", "assignments"}
+    if set(document) - allowed:
+        raise StateError("document contains unsupported fields")
+    return deepcopy(normalized)
 
 
 def resolve_document(document, surface_id, registry):
-    """Return applicable assignments plus missing IDs without mutating source."""
+    """Resolve available modules while preserving missing IDs in source_document."""
     saved = validate_document(document)
     if saved["surface_id"] != surface_id:
         raise StateError("surface_id mismatch")
@@ -92,27 +103,32 @@ def resolve_document(document, surface_id, registry):
 
 
 class ModuleStateManager:
-    """Coordinates state using an injected storage adapter.
+    """Coordinates layouts using an injected storage adapter.
 
-    Adapter methods:
+    Required adapter methods:
       load_last(surface_id), save_last(surface_id, document)
       load_global(surface_id, name), save_global(surface_id, name, document),
-      delete_global(surface_id, name)
-      load_set(set_key, surface_id, name), save_set(...), delete_set(...)
+      delete_global(surface_id, name), list_global(surface_id)
+      load_set(set_key, surface_id, name), save_set(...), delete_set(...),
+      list_set(set_key, surface_id)
     """
 
     def __init__(self, surface_id, registry, storage):
-        if not surface_id:
+        if not isinstance(surface_id, str) or not surface_id.strip():
             raise StateError("surface_id is required")
+        if not isinstance(registry, ModuleRegistry):
+            raise StateError("registry must be a ModuleRegistry")
         self.surface_id = surface_id
         self.registry = registry
         self.storage = storage
 
     def snapshot(self, assignments, preset_name=None):
-        for module_id in assignments.values():
+        # Validate shape before iterating so malformed inputs fail consistently.
+        document = make_document(self.surface_id, assignments, preset_name)
+        for module_id in document["assignments"].values():
             if module_id is not None and not self.registry.contains(module_id):
                 raise StateError("cannot save unregistered module: " + module_id)
-        return make_document(self.surface_id, assignments, preset_name)
+        return document
 
     def save_last(self, assignments):
         document = self.snapshot(assignments)
@@ -121,9 +137,8 @@ class ModuleStateManager:
 
     def restore_last(self):
         document = self.storage.load_last(self.surface_id)
-        if document is None:
-            return None
-        return resolve_document(document, self.surface_id, self.registry)
+        return None if document is None else resolve_document(
+            document, self.surface_id, self.registry)
 
     def save_global(self, name, assignments):
         self._check_name(name)
@@ -134,11 +149,15 @@ class ModuleStateManager:
     def load_global(self, name):
         self._check_name(name)
         document = self.storage.load_global(self.surface_id, name)
-        return None if document is None else resolve_document(document, self.surface_id, self.registry)
+        return None if document is None else resolve_document(
+            document, self.surface_id, self.registry)
 
     def delete_global(self, name):
         self._check_name(name)
         return self.storage.delete_global(self.surface_id, name)
+
+    def list_global(self):
+        return self.storage.list_global(self.surface_id)
 
     def save_set(self, set_key, name, assignments):
         self._check_key(set_key)
@@ -151,12 +170,17 @@ class ModuleStateManager:
         self._check_key(set_key)
         self._check_name(name)
         document = self.storage.load_set(set_key, self.surface_id, name)
-        return None if document is None else resolve_document(document, self.surface_id, self.registry)
+        return None if document is None else resolve_document(
+            document, self.surface_id, self.registry)
 
     def delete_set(self, set_key, name):
         self._check_key(set_key)
         self._check_name(name)
         return self.storage.delete_set(set_key, self.surface_id, name)
+
+    def list_set(self, set_key):
+        self._check_key(set_key)
+        return self.storage.list_set(set_key, self.surface_id)
 
     @staticmethod
     def _check_name(name):
