@@ -96,6 +96,17 @@ class ModuleStateTests(unittest.TestCase):
         with self.assertRaises(StateError):
             validate_document({"schema_version": 1, "surface_id": "mf4track", "assignments": []})
 
+    def test_v0_layout_migrates_without_inventing_parameter_state(self):
+        legacy = {"schema_version": 0, "surface_id": "mf4track",
+                  "assignments": {"row1.col1": "clip.launcher"}}
+        migrated = validate_document(legacy)
+        self.assertEqual(migrated["schema_version"], 1)
+        self.assertIsNone(migrated["preset_name"])
+        self.assertEqual(migrated["assignments"], legacy["assignments"])
+        with self.assertRaises(StateError):
+            validate_document({"schema_version": 0, "surface_id": "mf4track",
+                               "assignments": {}, "volume": 0.7})
+
 
 if __name__ == "__main__":
     unittest.main()
