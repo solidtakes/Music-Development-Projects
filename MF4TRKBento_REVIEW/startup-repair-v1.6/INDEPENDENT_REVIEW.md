@@ -51,7 +51,17 @@ a review manually using the CodeRabbit status-comment action or
 CodeRabbit is a separate AI reviewer, not a human reviewer. Its installation
 and an actual review on this exact PR head must be verified before counting
 the independent-review gate as passed. No CodeRabbit review is claimed here.
-If a human review is preferred, a human GitHub username must be supplied or
+
+Human-review alternative: **PullRequest** on GitHub Marketplace offers
+on-demand reviews by a vetted network of human engineers and lists Python
+among its supported languages. Its published Team pricing starts at
+$129 per developer per month, billed annually, so this is a paid option and
+has not been installed or requested.
+
+- PullRequest GitHub Marketplace: https://github.com/marketplace/pullrequest
+- PullRequest pricing: https://www.pullrequest.com/pricing/
+
+If neither service is selected, a human GitHub username must be supplied or
 invited to the repository.
 
 ## Hardware gate
