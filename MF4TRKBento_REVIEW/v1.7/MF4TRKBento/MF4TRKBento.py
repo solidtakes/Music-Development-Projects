@@ -1070,8 +1070,9 @@ class MF4TRKBento(ControlSurface):
                     component.set_enabled(True)
                 configuring = False
                 self._last_highlight = None
-            state = (self._fx_mode, track_offset, self._scene_offset,
-                     tuple(id(track) for track in tracks))
+            # Group changes recreate the component in _toggle_fx_mode;
+            # keep the steady-state cache independent of transient LOM proxy ids.
+            state = (self._fx_mode, track_offset, self._scene_offset)
             if state != self._last_highlight:
                 self._session_component.set_offsets(track_offset, self._scene_offset)
                 self._last_highlight = state
