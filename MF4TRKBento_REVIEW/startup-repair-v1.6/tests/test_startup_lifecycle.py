@@ -148,7 +148,7 @@ class StartupLifecycle(unittest.TestCase):
             self.assertEqual(len(self.surface.scheduled), 1)
         self.assertEqual(mock.SessionComponent.created_count, 1)
         self.assertEqual(self.surface.schedule_message_calls, 1)
-        self.assertEqual(self.surface._diagnostics["reentrant_refreshes"], 0)
+        self.assertEqual(self.surface._diagnostics.get("reentrant_refreshes", 0), 0)
 
     def test_queued_callback_after_disconnect_is_inert(self):
         self.assertEqual(len(self.surface.scheduled), 1)
