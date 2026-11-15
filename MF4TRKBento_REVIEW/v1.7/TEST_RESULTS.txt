@@ -1,0 +1,17 @@
+MF4TRKBento v1.7 EXP — TEST RESULTS
+
+Status: PENDING GitHub Actions.
+
+Required gates:
+- Python compileall for package and tests.
+- unittest discovery (feature matrix, startup lifecycle and v1.7 features).
+- Existing smoke assertions.
+- ZIP integrity: no __pycache__ or .pyc entries.
+- Installable ZIP SHA-256 and artifact ID recorded after a successful workflow.
+
+Hardware status:
+- v1.6 owner-reported launch: PASS (no crashes).
+- v1.7 Live 13 launch: NOT TESTED.
+- FX Returns highlight: NOT TESTED on Live.
+- Twister push/rotary event ordering: NOT CAPTURED.
+- End-to-end volume latency: NOT MEASURED.
