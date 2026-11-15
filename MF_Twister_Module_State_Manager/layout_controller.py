@@ -3,7 +3,7 @@
 The host surface supplies callbacks; this module does not import Ableton or
 schedule work. Call restore_startup only after the module catalog/defaults exist.
 """
-from module_state import StateError
+try:\n    from .module_state import StateError\nexcept (ImportError, ValueError):  # Direct import when this folder is the script root.\n    from module_state import StateError
 
 
 class LayoutStateController:
