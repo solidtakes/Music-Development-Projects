@@ -110,6 +110,51 @@ class StartupLifecycle(unittest.TestCase):
         self.assertIn(5, self.surface._frame)
         self.assertIn(13, self.surface._frame)
 
+    def test_audio_output_probe_off_control_isolates_gate_only(self):
+        self.surface._row_modules[:] = ["Pan", "Pan", "Mute", "Sends"]
+        self.surface._refresh_all()
+        baseline_frame = dict(self.surface._frame)
+        original = self.surface._audio_mixer
+        tracks = self.song.visible_tracks[:4]
+        for track in tracks:
+            track.audio_output_reads = 0
+        # Test-only feature flag: bypass the availability probe without changing
+        # any mixer, Pan, Sends, rendering, or MIDI code.
+        self.surface._audio_mixer = lambda track: track.mixer_device if track is not None else None
+        self.surface._refresh_all()
+        self.assertEqual(self.surface._frame, baseline_frame)
+        self.assertEqual([track.audio_output_reads for track in tracks], [0, 0, 0, 0])
+        self.surface._audio_mixer = original
+        # The normal encoder paths perform one probe per direct operation.
+        tracks[0].audio_output_reads = 0
+        self.surface._pan_parameter(0)
+        self.assertEqual(tracks[0].audio_output_reads, 1)
+        tracks[0].audio_output_reads = 0
+        self.surface._send_parameter(3, 0)
+        self.assertEqual(tracks[0].audio_output_reads, 1)
+
+    def test_persistent_track_proxy_cache_goes_stale_after_device_removal(self):
+        track = self.song.visible_tracks[0]
+        original = self.surface._audio_mixer
+        cached = {}
+        def persistent_variant(item):
+            key = id(item)
+            if key not in cached:
+                cached[key] = original(item)
+            return cached[key]
+        self.surface._audio_mixer = persistent_variant
+        self.surface._refresh_all()
+        self.assertIn(4, self.surface._frame)
+        track.has_audio_output = False
+        self.surface._refresh_all()
+        # This test-only persistent-cache variant keeps exposing Pan/Sends.
+        self.assertIn(4, self.surface._frame)
+        self.assertIn(12, self.surface._frame)
+        self.surface._audio_mixer = original
+        self.surface._refresh_all()
+        self.assertNotIn(4, self.surface._frame)
+        self.assertNotIn(12, self.surface._frame)
+
     def test_deleted_track_is_not_retained_by_availability_cache(self):
         deleted = self.song.visible_tracks[1]
         self.surface._refresh_all()
