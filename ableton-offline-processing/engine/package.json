@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test --test-reporter=spec \"test/**/*.test.ts\"",
     "demo": "node scripts/demo.ts",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test && npm run demo"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

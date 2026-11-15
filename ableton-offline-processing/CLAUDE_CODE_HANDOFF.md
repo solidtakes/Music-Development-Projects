@@ -1,4 +1,11 @@
 # Claude Code Handoff — AOPX-02 Audio Engine
+
+> **Superseded: historical handoff, kept for context.** The instructions and branch state below describe the start of AOPX-02. They are **not** current branch instructions. Current status, verified 15 Nov 2026:
+> - PR #36 (contract only, `7c169c8`) is **merged** into canonical `ableton-offline-processing/alpha-0.1` at `a4f1404`, and is frozen.
+> - The engine implementation is on `claude/aopx-02-engine-proof` ([PR #41](https://github.com/solidtakes/Music-Development-Projects/pull/41)), which Claude owns. PR #41 is **open and draft, not merged**, and targets canonical. Its head was `a3868d0` when the runtime checks ran.
+> - Engine check passes 50/50 tests and the demo passes 15/15 checks on standalone Node 22.23.4 / npm 10.9.9 and on Node 24.22.1 / npm 11.19.1 on Linux. The editor passes 24/24 tests and 10/10 browser tests on both. The Node 24 run was **not inside Ableton Live's Extension host**.
+> - **Windows is untested.** The Extension host adapter and the Live round trip are not built or verified.
+> - Current assignments, decisions and gates live on [Issue #40](https://github.com/solidtakes/Music-Development-Projects/issues/40). Where this file disagrees with Issue #40, Issue #40 wins. In particular, the "Branch base" and "Current Codex PR" lines below are historical, and only the owner authorizes merges.
 **Project:** Offline Processing Suite for Ableton Live  
 **Repository:** `solidtakes/Music-Development-Projects`  
 **Issue:** [#31 — Incremental WAV processing and editable history engine](https://github.com/solidtakes/Music-Development-Projects/issues/31)  

@@ -7,19 +7,20 @@ It has no dependency on the GUI, the Ableton SDK adapter or a plugin host. Those
 ## Stack
 
 - **TypeScript with zero runtime dependencies.** Code runs directly in Node via built-in type stripping, so there is no build step inside the Extension. The code uses erasable syntax only (`erasableSyntaxOnly`, `verbatimModuleSyntax`) and imports with `.ts` extensions.
-- **Runtime:** Node ≥ 22.18. The target is the Live-bundled Node 24.22.1, which strips types by default. Development and tests ran on Node 22.23.4, because Node 24 was not available in that sandbox. Every API used exists in both: `AbortSignal.any`, `node:test`, `fs/promises`, `crypto`.
+- **Runtime:** Node ≥ 22.18. The target is the Live-bundled Node 24.22.1, which strips types by default. Development ran on Node 22.23.4; the full check (typecheck, tests, demo) has since also passed on a standalone Node 24.22.1 on Linux (see [Verification status](#verification-status)). Every API used exists in both: `AbortSignal.any`, `node:test`, `fs/promises`, `crypto`.
 - **WAV codec:** an in-house reader/writer in `src/wav.ts`. Owning the codec gives exact control over quantization, clipping, chunk validation and deterministic output bytes, and the cache and correctness guarantees depend on all four.
 - **Tests:** `node:test` and `node:assert`.
-- **Dev-only dependencies:** `typescript` (≥ 5.8, for `erasableSyntaxOnly`; also checked with tsc 7.0.2) and `@types/node`.
+- **Dev-only dependencies:** `typescript` (≥ 5.8, for `erasableSyntaxOnly`; also checked with tsc 7.0.2) and `@types/node`. `package-lock.json` (lockfile v3) pins TypeScript 5.9.3, @types/node 24.19.2 and undici-types 7.24.6, so `npm ci` gives a reproducible install.
 
 ## Commands
 
 ```sh
 cd ableton-offline-processing/engine
-npm install              # dev-only: typescript, @types/node
+npm ci                   # reproducible install from package-lock.json (dev-only: typescript, @types/node)
+npm run check            # standard gate: typecheck, then the full test suite, then the acceptance demo
 npm run typecheck        # tsc --noEmit
 npm test                 # node --test "test/**/*.test.ts"
-npm run demo             # acceptance demo (30 s stereo 24-bit fixture)
+npm run demo             # acceptance demo alone (30 s stereo 24-bit fixture)
 node scripts/demo.ts --seconds 60 --format float32 --verify size --storage ./.demo-storage
 ```
 
@@ -32,7 +33,7 @@ Demo options:
 - `--storage DIR`
 - `--json`
 
-The demo exits non-zero if any check fails and writes `demo-report.json` into the storage directory.
+The demo exits non-zero if any check fails, which also fails `npm run check`. It writes `demo-report.json` into the storage directory, which defaults to a fresh OS temp directory, so a default run leaves nothing in the worktree. `.demo-storage/` is git-ignored for runs that use `--storage ./.demo-storage`.
 
 ## Modules
 
@@ -152,7 +153,7 @@ All byte counts come from `fs.stat`. `collectGarbage()` keeps only the entries r
 
 ## Measurements
 
-These are from `scripts/demo.ts` on Node 22.23.4 in a Linux cloud sandbox, with stereo at 48 kHz unless noted. Times are wall-clock milliseconds.
+These are from `scripts/demo.ts` on Node 22.23.4 in a Linux cloud sandbox, with stereo at 48 kHz unless noted. Times are wall-clock milliseconds. The Node 24.22.1 runs checked pass/fail only; they did not repeat or validate these measurements.
 
 | Fixture | Source size | Reverse miss | Gain miss | Gain re-render after removing Reverse | Hit lookup, `hash` mode | Hit lookup, `size` mode | Cache after demo | Project after demo |
 |---|---|---|---|---|---|---|---|---|
@@ -173,7 +174,8 @@ Each rendered node stores one full-size WAV, so the cache grows by roughly the s
 - **One output format.** The output format always equals the source format. There is no format conversion or dither option.
 - **Single process only.** A project is not safe to open from two processes at once; there is no lock file.
 - **Hash verification costs time.** `hash` mode re-hashes the whole object on every hit, at about 1 ms per MiB here. `size` mode is faster but cannot detect bit flips of the same length.
-- **Node 24 not tested yet.** The engine has not yet been run under the Live-bundled Node 24.22.1. That is the first check to make on the target machine: `npm test` plus `npm run demo`.
+- **Standalone Node only.** Node 24.22.1 has been verified as a standalone binary on Linux, not inside Ableton Live's Extension host. The Extension host adapter and the Live round trip are not built or verified yet.
+- **Windows untested.** No run on Windows has been made. Sources and cache objects are written read-only (`0444`), and rename-over and removal of read-only files may behave differently there.
 
 ## Processor adapter seam (future plugins)
 
@@ -189,9 +191,25 @@ Each rendered node stores one full-size WAV, so the cache grows by roughly the s
 
 A future VST3/AU host would implement this interface out of process. It would populate `binaryHash` from the plugin bundle and `stateHash` from the serialized plugin state. **No plugin hosting is implemented in Alpha 0.1.**
 
+## Verification status
+
+Status as of 15 Nov 2026. Canonical `ableton-offline-processing/alpha-0.1` is at `a4f1404`, the merge of PR #36, which landed as the contract-only precursor (`src/contract.ts`, commit `7c169c8`). The engine branch `claude/aopx-02-engine-proof` (PR #41, open and draft) was at `a3868d0` when the runs below were made; that commit merged canonical into the engine branch and changed no engine files.
+
+| Runtime (Linux, standalone Node) | Engine `npm run check` (typecheck + tests) | Engine `npm run demo` | Editor `npm test` | Editor `npm run test:browser` |
+|---|---|---|---|---|
+| Node 22.23.4 / npm 10.9.9 | pass, 50/50 tests | 15/15 checks | 24/24 | 10/10 |
+| Node 24.22.1 / npm 11.19.1 | pass, 50/50 tests | 15/15 checks | 24/24 | 10/10 |
+
+After the lockfile was committed and the demo was added to `npm run check`, a clean `npm ci` followed by `npm run check` passed on both runtimes again: typecheck clean, 50/50 tests and 15/15 demo checks. This was an engine-only run; the editor was unchanged.
+
+Not verified:
+- **Windows.** Untested.
+- **Inside Live.** The Node 24.22.1 run used a standalone binary, not Ableton Live's Extension host.
+- **Live integration.** The Extension host adapter and the Live round trip (Alpha acceptance tests 11–13) do not exist yet. This engine is a standalone proof.
+
 ## Next integration step
 
-Run `npm test` and `npm run demo` under the Live-bundled Node 24.22.1. Then wire up the Extension adapter:
+Run `npm ci` and `npm run check` on Windows and inside the Live-bundled Node 24.22.1. Then wire up the Extension adapter:
 1. `renderPreFxAudio` produces a WAV in `tempDirectory`.
 2. Call `Project.importSource`.
 3. Commit the modal's returned `OperationPlan` with `setPlan`.
