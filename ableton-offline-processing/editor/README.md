@@ -20,7 +20,7 @@ The HTML UI is a **plan editor**, not an audio renderer:
 - displays source name, duration, sample rate, channels, bit depth and source bytes;
 - adds Reverse and Gain operations;
 - supports multiple instances of either operation;
-- selects, bypasses/enables, reorders and removes operations;
+- selects, bypasses/enables, reorders (drag-and-drop or keyboard) and removes operations;
 - edits Gain in dB (-60 to +24);
 - submits an Alpha 0.1 `OperationPlan` as JSON via the documented SDK `close_and_send` bridge;
 - accepts an optional real `RenderReport` to populate per-operation and aggregate diagnostics.
@@ -28,6 +28,29 @@ The HTML UI is a **plan editor**, not an audio renderer:
 It deliberately does not perform DSP, render audio, access the Live Set, or invent live progress inside the Webview. The Extension Host performs processing after the modal closes and can open a separate result/diagnostics dialog afterward.
 
 If opened directly in a browser, it uses labelled sample preview data. The Apply and Cancel buttons report that the host bridge is unavailable; no fake processing is claimed.
+
+## Reordering the processing history
+
+Each row in **Processing History** has a dedicated grip handle on its left edge.
+
+| Input | Result |
+| --- | --- |
+| Drag the grip handle up/down | Moves the operation. An orange insertion line shows where it will land; release to drop. |
+| `Esc` during a drag | Cancels; the order is unchanged. |
+| Focus the grip handle, press `↑` / `↓` | Moves the operation one step; focus stays on its handle. |
+| **↑ Move earlier / ↓ Move later** in Device View | Moves the selected operation one step (keyboard-accessible alternative). |
+
+Behaviour guarantees:
+- Only the grip handle starts a drag. Dragging the row body, or clicking the activator, remove button or row, never reorders.
+- A plain click on the handle does nothing (no selection change). A drag needs at least 4 px of movement.
+- Releasing a drag over another row's activator or remove button does not trigger it: the click produced by the drag gesture is swallowed.
+- Reordering changes array order only. Operation IDs, types, enabled/bypass state and parameters are carried over unchanged (the same objects).
+- Selection is tracked by operation ID, so the selected operation stays selected wherever it moves.
+- Dropping onto the operation's current position is a no-op (no indicator is shown there).
+- Apply emits `OperationPlan.operations` in exactly the order shown.
+- First/last boundaries are no-ops; the corresponding Move button is disabled.
+
+The order rules live in a small DOM-free script (`<script id="aopx-plan-core">`, exposed as `window.AOPX_PLAN_CORE`) so they can be unit tested. The drag uses Pointer Events rather than HTML5 drag-and-drop for consistent behaviour in WKWebView (macOS) and WebView2 (Windows).
 
 ## Host integration contract
 
@@ -87,7 +110,31 @@ From this folder, run:
 npm test
 ```
 
-The tests statically verify the UI's operation-plan and SDK bridge contract markers. They do not replace browser rendering or Live SDK runtime testing.
+Requires Node ≥ 22.18. The suite contains:
+- `test/ui-contract.test.mjs`: static checks of the operation-plan and SDK bridge contract markers.
+- `test/reorder-core.test.mjs`: unit tests of the shipped reorder/plan core (evaluated from `interface.html`): move earlier/later, first/last boundaries, drag to first/last slot, stable IDs and parameters, bypass preservation, input immutability, and emitted plan order.
+- `test/browser-reorder.test.mjs`: real Chromium interaction tests through Playwright at 860×660 (SDK modal size), 640×660 (single-column layout) and 860×480. They demonstrate a three-operation drag reorder (`reverse, gain −3 dB (bypassed), gain +6.25 dB` → `gain +6.25, reverse, gain −3 (bypassed)` → …) and check the payload Apply sends through a mocked `close_and_send` bridge. They also cover row-body drags, handle clicks, drops over activator/remove buttons, Esc cancel, keyboard reordering and focus, and horizontal overflow.
+
+If Playwright is not installed, the browser suite is **skipped** and `npm test` still runs the static and unit tests. To require it:
+
+```sh
+npm run test:browser          # fails if Playwright/Chromium is unavailable
+AOPX_SCREENSHOT_DIR=/some/dir npm run test:browser   # also saves before/dragging/after screenshots
+```
+
+Playwright is resolved from the environment (global install or `NODE_PATH`); this package adds no dependencies.
+
+None of this replaces testing in the Live SDK runtime. Browser preview never renders audio.
+
+### Manual verification checklist (browser preview)
+
+1. Open `interface.html` directly in Chrome/Safari at about 860×660. The preview data has two operations; use **+ ADD OP → Gain** to add a third.
+2. Drag the third row's grip handle above the first row. Check that the orange insertion line appears, the row lands at step 01, and the same row is still selected.
+3. Drag a row by its title or body. Check that nothing moves.
+4. Start a handle drag and press `Esc`. Check that the order is unchanged.
+5. End a drag over another row's × or activator. Check that nothing is removed or bypassed.
+6. Tab to a grip handle and press `↑`/`↓`. Then use **Move earlier/later**. Check that focus stays on the control you used.
+7. Press **Apply**. The status shows "host message bridge is not available" because no audio is rendered in preview. To inspect the plan, run the browser test above.
 
 ## Known limitations / next integration work
 
@@ -98,4 +145,6 @@ The tests statically verify the UI's operation-plan and SDK bridge contract mark
 - Result/diagnostics display can be opened as a second modal after rendering; this first UI currently supports an injected report for preview/testing.
 - Theme tokens use Live-inspired CSS variables with local fallbacks; host theme detection has not been assumed.
 - No range editing, plugin hosting, ARA or time/pitch processing.
+- Drag reordering has been tested with mouse input in Chromium. Touch/pen should work through Pointer Events (`touch-action:none` on the handle), but this is not yet verified on WKWebView/WebView2 inside Live.
+- No auto-scroll while dragging. If the history grows taller than the modal, use the keyboard or Move buttons for long moves.
 

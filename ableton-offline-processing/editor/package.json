@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:browser": "AOPX_REQUIRE_BROWSER=1 node --test test/browser-reorder.test.mjs"
   },
   "engines": {
     "node": ">=22.18.0"

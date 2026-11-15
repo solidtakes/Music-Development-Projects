@@ -59,11 +59,21 @@ button{color:inherit}
 .small-button{padding:4px 8px;font-size:10px;color:#ddd}
 .small-button:hover,.icon-button:hover{background:#555}
 .small-button:focus-visible,.icon-button:focus-visible,.action-button:focus-visible,input:focus-visible{outline:1px solid var(--live-accent);outline-offset:1px}
-.device-list{display:flex;flex-direction:column;gap:6px}
-.device{border:1px solid #222;background:#252525;min-height:56px;display:grid;grid-template-columns:28px minmax(0,1fr) 25px;align-items:stretch;cursor:pointer;position:relative}
+.device-list{display:flex;flex-direction:column;gap:6px;position:relative}
+.device{border:1px solid #222;background:#252525;min-height:56px;display:grid;grid-template-columns:16px 28px minmax(0,1fr) 25px;align-items:stretch;cursor:pointer;position:relative}
+.drag-handle{display:flex;align-items:center;justify-content:center;border:0;border-right:1px solid #3c3c3c;background:#2b2b2b;padding:0;cursor:grab;color:#707070;touch-action:none}
+.drag-handle:hover{color:#d0d0d0;background:#353535}
+.drag-handle:focus-visible{outline:1px solid var(--live-accent);outline-offset:-1px;color:var(--live-accent)}
+.grip{width:6px;height:16px;background-image:radial-gradient(circle,currentColor 1px,transparent 1.3px);background-size:3px 4px;pointer-events:none}
+.device-list.reordering,.device-list.reordering *{cursor:grabbing!important;user-select:none;-webkit-user-select:none}
+.device.dragging{z-index:3;border-color:var(--live-accent);background:#2b2b2b;box-shadow:0 5px 14px rgba(0,0,0,.5)}
+.device.dragging .drag-handle{color:var(--live-accent)}
+.drop-indicator{position:absolute;left:0;right:0;height:2px;background:var(--live-accent);box-shadow:0 0 5px rgba(243,154,66,.65);pointer-events:none;z-index:4}
+.drop-indicator:before,.drop-indicator:after{content:"";position:absolute;top:-3px;width:2px;height:8px;background:var(--live-accent)}
+.drop-indicator:before{left:0}.drop-indicator:after{right:0}
 .device.selected{border-color:var(--live-accent);box-shadow:inset 0 0 0 1px rgba(243,154,66,.18)}
 .device.bypassed{opacity:.48}
-.device-activator{display:flex;align-items:center;justify-content:center;border-right:1px solid #3c3c3c;background:#303030}
+.device-activator{display:flex;align-items:center;justify-content:center;border:0;border-right:1px solid #3c3c3c;background:#303030;padding:0;cursor:pointer}
 .led{width:8px;height:8px;border-radius:50%;background:var(--live-green);box-shadow:0 0 4px rgba(130,184,120,.45)}
 .device.bypassed .led{background:#555;box-shadow:none}
 .device-main{padding:6px 8px;min-width:0}
@@ -188,6 +198,40 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
     <div class="notice"><strong>Live workflow:</strong> this window collects the operation plan. Rendering and cache diagnostics are produced by the Extension Host after Apply; values above remain pending until a real render report is supplied.</div>
   </footer>
 </div>
+<script id="aopx-plan-core">
+/*
+ * Pure, DOM-free operation-order helpers. Kept separate so the reorder and
+ * plan-emission rules can be unit tested outside the Webview.
+ * Reordering only changes array order: operation objects (id, type, enabled,
+ * parameters) are carried over by reference, never rebuilt.
+ */
+window.AOPX_PLAN_CORE = (function(){
+  "use strict";
+  function indexOfId(ops,id){for(let i=0;i<ops.length;i++){if(ops[i].id===id)return i}return -1}
+  // Move operation `id` so it ends up at `toIndex` in the resulting order (clamped).
+  function moveToIndex(ops,id,toIndex){
+    const out=ops.slice(),from=indexOfId(out,id);
+    if(from<0||!Number.isFinite(toIndex))return out;
+    const [item]=out.splice(from,1);
+    out.splice(Math.max(0,Math.min(out.length,Math.trunc(toIndex))),0,item);
+    return out;
+  }
+  // Move by one step (Move earlier = -1, Move later = +1). Boundaries are no-ops.
+  function moveByDelta(ops,id,delta){
+    const from=indexOfId(ops,id),to=from+delta;
+    if(from<0||to<0||to>=ops.length)return ops.slice();
+    return moveToIndex(ops,id,to);
+  }
+  // Insertion slot among the non-dragged rows: number of row midpoints above the pointer.
+  function insertionIndex(midpoints,y){let k=0;for(const m of midpoints){if(y>m)k++;else break}return k}
+  function sameOrder(a,b){return a.length===b.length&&a.every((op,i)=>op.id===b[i].id)}
+  function buildPlan(ops){
+    const plan={version:1,operations:ops.map(op=>({...op, ...(op.type==="gain"?{db:Number(op.db.toFixed(6))}:{})}))};
+    return plan;
+  }
+  return Object.freeze({indexOfId,moveToIndex,moveByDelta,insertionIndex,sameOrder,buildPlan});
+})();
+</script>
 <script>
 /*
  * The Extension Host may inject window.AOPX_INITIAL_STATE before this script.
@@ -211,6 +255,8 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
     busy:false
   };
   const $ = id => document.getElementById(id);
+  const core = window.AOPX_PLAN_CORE;
+  const opLabel = op => op.type==="reverse"?"REVERSE":"GAIN";
   const fmtBytes = n => {
     if(!Number.isFinite(n)) return "—";
     const units=["B","KB","MB","GB"]; let v=n,u=0;
@@ -257,21 +303,32 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
     const list=$("device-list");list.innerHTML="";
     if(!state.operations.length){const empty=document.createElement("div");empty.className="chain-empty";empty.textContent="No operations · use + ADD OP to begin";list.append(empty)}
     state.operations.forEach((op,index)=>{
-      const device=document.createElement("div");device.className="device"+(op.id===state.selectedId?" selected":"")+(op.enabled?"":" bypassed");device.tabIndex=0;device.setAttribute("role","button");device.setAttribute("aria-pressed",String(op.id===state.selectedId));
+      const device=document.createElement("div");device.className="device"+(op.id===state.selectedId?" selected":"")+(op.enabled?"":" bypassed");device.tabIndex=0;device.setAttribute("role","button");device.setAttribute("aria-pressed",String(op.id===state.selectedId));device.dataset.opId=op.id;
+      const handle=document.createElement("button");handle.className="drag-handle";handle.type="button";handle.dataset.opId=op.id;
+      handle.title="Drag to reorder";handle.setAttribute("aria-label","Reorder step "+(index+1)+" of "+state.operations.length+", "+opLabel(op)+". Drag, or press Up or Down arrow to move.");handle.setAttribute("aria-keyshortcuts","ArrowUp ArrowDown");
+      handle.innerHTML='<span class="grip"></span>';
+      handle.addEventListener("pointerdown",e=>beginDrag(e,op,handle));
+      handle.addEventListener("click",e=>e.stopPropagation()); // the handle never selects, bypasses or removes
+      handle.addEventListener("keydown",e=>{
+        if(e.key!=="ArrowUp"&&e.key!=="ArrowDown")return;
+        e.preventDefault();e.stopPropagation();
+        reorder(core.moveByDelta(state.operations,op.id,e.key==="ArrowUp"?-1:1),op.id,{focus:"handle"});
+      });
       const activator=document.createElement("button");activator.className="device-activator";activator.type="button";activator.title=op.enabled?"Bypass operation":"Enable operation";activator.setAttribute("aria-label",activator.title);activator.innerHTML='<span class="led"></span>';
       activator.addEventListener("click",e=>{e.stopPropagation();op.enabled=!op.enabled;render()});
       const main=document.createElement("div");main.className="device-main";
       const row=document.createElement("div");row.className="device-title-row";
-      const title=document.createElement("span");title.className="device-title";title.textContent=String(index+1).padStart(2,"0")+" · "+(op.type==="reverse"?"REVERSE":"GAIN");
+      const title=document.createElement("span");title.className="device-title";title.textContent=String(index+1).padStart(2,"0")+" · "+opLabel(op);
       const summary=document.createElement("span");summary.className="device-summary";summary.textContent=op.type==="gain"?(op.db>=0?"+":"")+op.db.toFixed(1)+" dB":"FULL CLIP";
       row.append(title,summary);
       const subtitle=document.createElement("div");subtitle.className="device-subtitle";subtitle.textContent=op.enabled?"Audio operation · "+(op.type==="reverse"?"reverse playback direction":"amplitude adjustment"):"BYPASSED · output passes through unchanged";
       main.append(row,subtitle);
       const actions=document.createElement("div");actions.className="device-actions";
       const remove=document.createElement("button");remove.type="button";remove.title="Remove operation";remove.setAttribute("aria-label","Remove operation");remove.textContent="×";remove.addEventListener("click",e=>{e.stopPropagation();state.operations=state.operations.filter(x=>x.id!==op.id);if(state.selectedId===op.id)state.selectedId=state.operations[Math.max(0,index-1)]?.id||null;render()});
-      actions.append(remove);device.append(activator,main,actions);
+      actions.append(remove);device.append(handle,activator,main,actions);
       device.addEventListener("click",()=>{state.selectedId=op.id;render()});
-      device.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();state.selectedId=op.id;render()}});
+      // Only the row itself selects on Enter/Space; keys on its inner buttons keep their own meaning.
+      device.addEventListener("keydown",e=>{if(e.target!==device)return;if(e.key==="Enter"||e.key===" "){e.preventDefault();state.selectedId=op.id;render()}});
       list.append(device);
     });
   }
@@ -301,10 +358,82 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
     const orderLabel=document.createElement("div");orderLabel.className="control-row";orderLabel.textContent="Operation order";
     const buttons=document.createElement("div");buttons.style.display="flex";buttons.style.gap="6px";
     const idx=state.operations.indexOf(op);
-    [["↑","Move earlier",idx>0,-1],["↓","Move later",idx<state.operations.length-1,1]].forEach(([glyph,title,allowed,delta])=>{const b=document.createElement("button");b.className="small-button";b.type="button";b.textContent=glyph+" "+title;b.disabled=!allowed;b.addEventListener("click",()=>{const next=idx+delta;[state.operations[idx],state.operations[next]]=[state.operations[next],state.operations[idx]];render()});buttons.append(b)});
+    [["↑","Move earlier",idx>0,-1],["↓","Move later",idx<state.operations.length-1,1]].forEach(([glyph,title,allowed,delta])=>{const b=document.createElement("button");b.className="small-button";b.type="button";b.dataset.move=String(delta);b.textContent=glyph+" "+title;b.disabled=!allowed;b.addEventListener("click",()=>reorder(core.moveByDelta(state.operations,op.id,delta),op.id,{focus:"move",delta}));buttons.append(b)});
     order.append(orderLabel,buttons);controls.append(order);
   }
-  function render(){renderDevices();renderInspector();$("status").textContent=state.operations.length+" operation"+(state.operations.length===1?"":"s")+" · edits are local until Apply."}
+  function render(message){renderDevices();renderInspector();$("status").textContent=message||(state.operations.length+" operation"+(state.operations.length===1?"":"s")+" · edits are local until Apply.")}
+  /*
+   * Commit a new order. Selection is tracked by id, so it follows the moved
+   * operation automatically; nothing else about any operation is touched.
+   */
+  function reorder(next,movedId,opts={}){
+    if(core.sameOrder(next,state.operations))return false;
+    state.operations=next;
+    const op=state.operations[core.indexOfId(state.operations,movedId)];
+    render("Moved "+opLabel(op)+" to step "+(core.indexOfId(state.operations,movedId)+1)+" of "+state.operations.length+" · edits are local until Apply.");
+    if(opts.focus==="handle")$("device-list").querySelector('.drag-handle[data-op-id="'+CSS.escape(movedId)+'"]')?.focus();
+    if(opts.focus==="move"){const btns=[...$("inspector-controls").querySelectorAll("button[data-move]")];(btns.find(b=>b.dataset.move===String(opts.delta)&&!b.disabled)||btns.find(b=>!b.disabled))?.focus()}
+    return true;
+  }
+  /*
+   * Pointer-based drag from the dedicated handle only. Pointer events (rather
+   * than HTML5 drag-and-drop) behave the same in WKWebView and WebView2 and let
+   * us cancel with Escape and suppress the click that ends the gesture.
+   */
+  const DRAG_THRESHOLD_PX=4;
+  let drag=null,suppressClick=false;
+  window.addEventListener("click",e=>{if(suppressClick){suppressClick=false;e.preventDefault();e.stopPropagation()}},true);
+  window.addEventListener("keydown",e=>{if(drag&&e.key==="Escape"){e.preventDefault();e.stopPropagation();endDrag(false)}},true);
+  function beginDrag(e,op,handle){
+    if(e.button!==0||drag||state.busy)return;
+    e.preventDefault();e.stopPropagation();
+    try{handle.setPointerCapture(e.pointerId)}catch(_){}
+    drag={id:op.id,pointerId:e.pointerId,startY:e.clientY,active:false,handle,row:handle.closest(".device"),slot:null};
+    handle.addEventListener("pointermove",moveDrag);
+    handle.addEventListener("pointerup",upDrag);
+    handle.addEventListener("pointercancel",cancelDrag);
+    handle.addEventListener("lostpointercapture",cancelDrag);
+  }
+  function moveDrag(e){
+    if(!drag||e.pointerId!==drag.pointerId)return;
+    const dy=e.clientY-drag.startY;
+    if(!drag.active){
+      if(Math.abs(dy)<DRAG_THRESHOLD_PX)return;
+      drag.active=true;
+      $("device-list").classList.add("reordering");drag.row.classList.add("dragging");
+      const indicator=document.createElement("div");indicator.className="drop-indicator hidden";indicator.id="drop-indicator";indicator.setAttribute("aria-hidden","true");$("device-list").append(indicator);
+    }
+    drag.row.style.transform="translateY("+dy+"px)";
+    const others=[...$("device-list").querySelectorAll(".device")].filter(r=>r!==drag.row);
+    // Use layout positions (offsetTop) so the dragged row's transform never affects slot maths.
+    const listTop=$("device-list").getBoundingClientRect().top;
+    const mids=others.map(r=>listTop+r.offsetTop+r.offsetHeight/2);
+    drag.slot=core.insertionIndex(mids,e.clientY);
+    const preview=core.moveToIndex(state.operations,drag.id,drag.slot);
+    const indicator=$("drop-indicator");
+    if(core.sameOrder(preview,state.operations)){indicator.classList.add("hidden");$("status").textContent="Release to keep the current order · Esc cancels.";return}
+    const gap=3,before=others[drag.slot];
+    const y=before?before.offsetTop-gap-1:others[others.length-1].offsetTop+others[others.length-1].offsetHeight+gap-1;
+    indicator.style.top=y+"px";indicator.classList.remove("hidden");
+    const target=before?state.operations[core.indexOfId(state.operations,before.dataset.opId)]:state.operations[core.indexOfId(state.operations,others[others.length-1].dataset.opId)];
+    $("status").textContent="Drop to move "+opLabel(state.operations[core.indexOfId(state.operations,drag.id)])+(before?" before ":" after ")+"step "+(core.indexOfId(state.operations,target.id)+1)+" · Esc cancels.";
+  }
+  function upDrag(e){if(drag&&e.pointerId===drag.pointerId)endDrag(true)}
+  function cancelDrag(e){if(drag&&e.pointerId===drag.pointerId)endDrag(false)}
+  function endDrag(commit){
+    const d=drag;if(!d)return;drag=null;
+    d.handle.removeEventListener("pointermove",moveDrag);
+    d.handle.removeEventListener("pointerup",upDrag);
+    d.handle.removeEventListener("pointercancel",cancelDrag);
+    d.handle.removeEventListener("lostpointercapture",cancelDrag);
+    try{d.handle.releasePointerCapture(d.pointerId)}catch(_){}
+    if(!d.active)return; // a plain press/release on the handle does nothing
+    // Swallow the click generated by this gesture so it cannot select, bypass or remove anything.
+    suppressClick=true;setTimeout(()=>{suppressClick=false},0);
+    $("drop-indicator")?.remove();$("device-list").classList.remove("reordering");
+    d.row.classList.remove("dragging");d.row.style.transform="";
+    if(!(commit&&d.slot!==null&&reorder(core.moveToIndex(state.operations,d.id,d.slot),d.id)))render(commit?undefined:"Reorder cancelled · order unchanged.");
+  }
   let opSequence=0;
   function newId(type){
     opSequence++;
@@ -332,10 +461,10 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
   }
   $("cancel").addEventListener("click",()=>closeWith({action:"cancel"}));
   $("apply").addEventListener("click",()=>{
-    if(state.busy)return;
+    if(state.busy||drag)return;
     if(!state.operations.length){$("status").textContent="Add at least one operation before applying.";return}
     state.busy=true;$("apply").disabled=true;
-    const plan={version:1,operations:state.operations.map(op=>({...op, ...(op.type==="gain"?{db:Number(op.db.toFixed(6))}:{})}))};
+    const plan=core.buildPlan(state.operations);
     const ok=closeWith({action:"process",plan});
     if(!ok){state.busy=false;$("apply").disabled=false}
   });
