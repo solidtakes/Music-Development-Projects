@@ -17,6 +17,8 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 system-ui,Segoe UI,Arial,sans-serif}
 header{padding:10px 14px;background:var(--panel);border-bottom:1px solid #000;font-weight:600}
+#ask{padding:8px 14px;background:#3a2a00;color:var(--accent);font-weight:600}
+#ask:empty{display:none}
 main{padding:10px 14px;display:grid;gap:10px}
 table{border-collapse:collapse;width:100%}
 td{padding:3px 6px;border-bottom:1px solid #333;vertical-align:top;word-break:break-all}
@@ -29,7 +31,8 @@ pre{margin:0;background:#111;padding:8px;max-height:140px;overflow:auto;font:12p
 </style>
 </head>
 <body>
-<header>AOPX S3 modal probe <span id="probe-version">v1</span></header>
+<header>AOPX S3 modal probe <span id="probe-version">v2</span></header>
+<div id="ask"></div>
 <main>
   <table id="facts"><tbody></tbody></table>
   <div class="buttons">
@@ -45,7 +48,7 @@ pre{margin:0;background:#111;padding:8px;max-height:140px;overflow:auto;font:12p
 <script id="aopx-probe-main">
 "use strict";
 (function () {
-  const PROBE_VERSION = 1;
+  const PROBE_VERSION = 2;
   const log = (m) => { document.getElementById("log").textContent += m + "\n"; };
 
   // FNV-1a over UTF-16 code units: cheap, dependency-free, and reproduced in delivery.mjs so the
@@ -71,6 +74,16 @@ pre{margin:0;background:#111;padding:8px;max-height:140px;overflow:auto;font:12p
   const injected = window.AOPX_PROBE_STATE;
   const fromUrl = readUrlState();
   const state = injected || fromUrl || null;
+  // Optional per-case instruction from the host (textContent: never parsed as HTML).
+  if (state && typeof state.ask === "string") document.getElementById("ask").textContent = (typeof state.caseId === "string" ? state.caseId + ": " : "") + state.ask;
+  // Optional per-case button allow-list (S3 build 2): only the buttons the case asks for are shown
+  // and enabled, so a mis-click cannot record a different action. Without a list, all are shown.
+  const allow = state && Array.isArray(state.allow) ? state.allow.filter((b) => typeof b === "string") : null;
+  if (allow) {
+    for (const b of document.querySelectorAll(".buttons button")) {
+      if (!allow.includes(b.id)) { b.hidden = true; b.disabled = true; }
+    }
+  }
   const via = injected ? "inline-script" : fromUrl ? "url-query-or-hash" : "none";
   const payload = state && typeof state.payload === "string" ? state.payload : "";
   const mac = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.live;
@@ -130,12 +143,14 @@ pre{margin:0;background:#111;padding:8px;max-height:140px;overflow:auto;font:12p
   }
   const envelope = (extra) => JSON.stringify(Object.assign({ envelopeVersion: 1, probe: PROBE_VERSION }, extra));
 
+  // Every envelope names the button and carries the facts, so stateIntact is always recorded.
+  const withFacts = (button, extra) => Object.assign({ button, facts: Object.assign({}, facts, { sendAtMs: Math.round(performance.now()) }) }, extra);
   document.getElementById("send-report").onclick = () =>
-    send([envelope({ action: "process", plan: { version: 1, operations: [] }, facts: Object.assign({}, facts, { sendAtMs: Math.round(performance.now()) }) })]);
-  document.getElementById("send-cancel").onclick = () => send([envelope({ action: "cancel" })]);
-  document.getElementById("send-large").onclick = () => send([envelope({ action: "cancel", filler: "x".repeat(1024 * 1024) })]);
-  document.getElementById("send-object").onclick = () => send([{ envelopeVersion: 1, action: "cancel", note: "params[0] is an object, not a string" }]);
-  document.getElementById("send-twice").onclick = () => { send([envelope({ action: "cancel", n: 1 })]); send([envelope({ action: "cancel", n: 2 })]); };
+    send([envelope(withFacts("send-report", { action: "process", plan: { version: 1, operations: [] } }))]);
+  document.getElementById("send-cancel").onclick = () => send([envelope(withFacts("send-cancel", { action: "cancel" }))]);
+  document.getElementById("send-large").onclick = () => send([envelope(withFacts("send-large", { action: "cancel", filler: "x".repeat(1024 * 1024) }))]);
+  document.getElementById("send-object").onclick = () => send([Object.assign({ envelopeVersion: 1, probe: PROBE_VERSION, action: "cancel", note: "params[0] is an object, not a string" }, withFacts("send-object", {}))]);
+  document.getElementById("send-twice").onclick = () => { send([envelope(withFacts("send-twice", { action: "cancel", n: 1 }))]); send([envelope(withFacts("send-twice", { action: "cancel", n: 2 }))]); };
   document.getElementById("close-window").onclick = () => { log("window.close() called"); window.close(); };
   window.addEventListener("beforeunload", () => log("beforeunload"));
   log("probe ready via " + via + ", bridge " + facts.bridge);

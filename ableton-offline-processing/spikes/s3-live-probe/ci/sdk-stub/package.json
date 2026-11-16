@@ -1,0 +1,8 @@
+{
+  "name": "@ableton-extensions/sdk",
+  "version": "0.0.0-ci-stub",
+  "private": true,
+  "description": "CI-only stub of the SDK API subset VERIFIED from the owner's working examples/modal-dialog (Issue #40 comment 6909553882). Not the real SDK; never shipped.",
+  "main": "index.js",
+  "types": "index.d.ts"
+}
