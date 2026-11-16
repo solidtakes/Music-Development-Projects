@@ -1,0 +1,54 @@
+name: MF4TRKBento Beta 3.7 EXP (review-only)
+
+on:
+  push:
+    branches:
+      - feature/mf4trkbento-beta3-7-vertical-row-shortcuts-20261116
+  pull_request:
+    paths:
+      - "MF4TRKBento_REVIEW/beta3.7-exp/**"
+      - ".github/workflows/mf4trkbento-beta37-exp.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Python syntax check and mocked regressions
+        working-directory: MF4TRKBento_REVIEW/beta3.7-exp
+        run: |
+          python -m py_compile MF4TRKBento/MF4TRKBento.py
+          python -B -m unittest discover -s tests -p 'test_beta3.py' -v
+      - name: Create deterministic installable ZIP and inspect
+        working-directory: MF4TRKBento_REVIEW/beta3.7-exp
+        run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          import zipfile
+          names = ('MF4TRKBento/__init__.py', 'MF4TRKBento/MF4TRKBento.py', 'MF4TRKBento/README_INSTALL.txt')
+          path = Path('MF4TRKBento_Beta3.7_EXP_Vertical_Shortcuts.zip')
+          with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+              for name in names:
+                  info = zipfile.ZipInfo(name, date_time=(2026, 11, 15, 17, 0, 0))
+                  info.compress_type = zipfile.ZIP_DEFLATED
+                  z.writestr(info, Path(name).read_bytes())
+          digest = hashlib.sha256(path.read_bytes()).hexdigest()
+          print('Installable ZIP SHA-256:', digest)
+          with zipfile.ZipFile(path) as z:
+              assert z.testzip() is None
+              assert set(z.namelist()) == set(names)
+              assert not any(name.endswith(('.pyc', '.pyo')) or '__pycache__' in name for name in z.namelist())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MF4TRKBento-Beta3.7-EXP-Vertical-Shortcuts
+          path: MF4TRKBento_REVIEW/beta3.7-exp/MF4TRKBento_Beta3.7_EXP_Vertical_Shortcuts.zip
+          if-no-files-found: error
