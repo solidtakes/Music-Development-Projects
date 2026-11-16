@@ -1204,5 +1204,216 @@ class Beta3Tests(unittest.TestCase):
         self.assertEqual(len(self.surface.scheduled), initial)
 
 
+    # Beta 3.7 — vertical row actions must not change independent module APIs.
+    def test_37_vertical_action_table(self):
+        self.assertEqual(self.surface.VERTICAL_ACTIONS, {
+            "Clip Launch": {-1: "select", 1: "stop"},
+            "Mute": {1: "solo"},
+            "Solo": {-1: "mute", 1: "arm"},
+            "Arm": {-1: "solo"},
+        })
+
+    def test_37_clip_down_stops_track_with_both_release_orders(self):
+        for release_first in (False, True):
+            with self.subTest(release_first=release_first):
+                track = self.song.tracks[1]
+                before = track.stop_count
+                fire_count = sum(s.fire_count for t in self.song.tracks
+                                 for s in t.clip_slots)
+                self.chord(1, 5, release_first)
+                self.assertEqual(track.stop_count, before + 1)
+                self.assertEqual(sum(s.fire_count for t in self.song.tracks
+                                     for s in t.clip_slots), fire_count)
+                self.assertFalse(track.arm)
+                self.assertFalse(any(self.surface._consumed))
+
+    def test_37_clip_down_does_not_fire_normal_stop_module(self):
+        self.surface._row_modules[1] = "Stop"
+        self.surface._refresh_all()
+        self.chord(0, 4)
+        self.assertEqual(self.song.tracks[0].stop_count, 1)
+
+    def test_37_reverse_order_arm_above_solos_exclusively(self):
+        self.song.tracks[0].solo = True
+        self.chord(5, 1)  # Hold Arm E6, tap Clip E2 above.
+        self.assertTrue(self.song.tracks[1].solo)
+        self.assertFalse(self.song.tracks[0].solo)
+        self.assertFalse(self.song.tracks[1].arm)
+        self.assertEqual(self.song.tracks[1].clip_slots[0].fire_count, 0)
+
+    def test_37_solo_above_toggles_mute_without_normal_solo(self):
+        track = self.song.tracks[2]
+        self.chord(10, 6)  # Hold Solo E11, tap above E7.
+        self.assertTrue(track.mute)
+        self.assertFalse(track.solo)
+        self.chord(10, 6)
+        self.assertFalse(track.mute)
+
+    def test_37_solo_below_exclusive_arm_without_solo(self):
+        self.song.tracks[0].arm = True
+        self.chord(9, 13)
+        self.assertTrue(self.song.tracks[1].arm)
+        self.assertFalse(self.song.tracks[0].arm)
+        self.assertFalse(self.song.tracks[1].solo)
+
+    def test_37_mute_below_exclusive_solo_and_no_mute(self):
+        self.surface._row_modules = ["Blank", "Mute", "Clip Launch", "Arm"]
+        self.surface._refresh_all()
+        self.chord(4, 8)
+        self.assertTrue(self.song.tracks[0].solo)
+        self.assertFalse(self.song.tracks[0].mute)
+        self.assertEqual(self.song.tracks[0].clip_slots[0].fire_count, 0)
+
+    def test_37_clip_above_selects_track_without_clip_or_arm(self):
+        self.surface._row_modules = ["Arm", "Clip Launch", "Solo", "Mute"]
+        self.surface._refresh_all()
+        self.chord(5, 1)
+        self.assertIs(self.song.view.selected_track, self.song.tracks[1])
+        self.assertFalse(self.song.tracks[1].arm)
+        self.assertEqual(self.song.tracks[1].clip_slots[0].fire_count, 0)
+        self.assertTrue(any("Selected track:" in m for m in self.surface.messages))
+
+    def test_37_same_pair_reversed_means_stop_versus_solo(self):
+        target = self.song.tracks[0]
+        self.chord(0, 4)  # Clip held, Arm below tapped -> Stop.
+        self.assertEqual(target.stop_count, 1)
+        self.assertFalse(target.solo)
+        self.chord(4, 0)  # Arm held, Clip above tapped -> Solo.
+        self.assertEqual(target.stop_count, 1)
+        self.assertTrue(target.solo)
+        self.assertFalse(target.arm)
+
+    def test_37_same_column_adjacent_only_and_no_wrap(self):
+        self.chord(0, 8)  # Two rows apart, should not stop.
+        self.chord(1, 4)  # Different columns, should not stop.
+        self.assertFalse(any(t.stop_count for t in self.song.tracks))
+        self.surface._row_modules = ["Clip Launch"] * 4
+        self.surface._refresh_all()
+        self.chord(4, 8)  # Middle rows work.
+        self.assertEqual(self.song.tracks[0].stop_count, 1)
+        self.chord(12, 0)  # Bottom to top never wraps.
+        self.assertEqual(self.song.tracks[0].stop_count, 1)
+
+    def test_37_repeated_target_tap_is_consumed_until_source_release(self):
+        self.surface._push(0, 127)
+        self.push(4)
+        self.assertEqual(self.song.tracks[0].stop_count, 1)
+        self.push(4)
+        self.assertEqual(self.song.tracks[0].stop_count, 1)
+        self.assertFalse(self.song.tracks[0].arm)
+        self.surface._push(0, 0)
+        self.chord(0, 4)
+        self.assertEqual(self.song.tracks[0].stop_count, 2)
+
+    def test_37_select_track_respects_clipbox_track_offset(self):
+        self.surface._row_modules = ["Blank", "Clip Launch", "Solo", "Mute"]
+        self.surface._track_offset = 4
+        self.surface._refresh_all()
+        self.chord(5, 1)
+        self.assertIs(self.song.view.selected_track, self.song.tracks[5])
+
+    def test_37_track_select_resets_device_base_and_follows_new_device(self):
+        self.surface._row_modules = ["Blank", "Clip Launch", "Solo", "Mute"]
+        self.surface._rotary_overrides = ["Device Control", "Device Control",
+                                          "Pan", "Volume"]
+        new_device = self.song.tracks[1].devices[0]
+        new_device.parameters[1].value = 0.1
+        self.surface._refresh_all()
+        old_ring = self.surface._ring_cache[0]
+        self.chord(3, 1)  # Full page old track.
+        self.assertEqual(self.surface._device_base, 8)
+        self.chord(5, 1)  # Row2 Clip held, above selects track 2.
+        self.assertIs(self.song.view.selected_track, self.song.tracks[1])
+        self.assertIs(self.surface._selected_device(), new_device)
+        self.assertEqual(self.surface._device_base, 0)
+        self.assertIs(self.surface._device_parameter(0, 0),
+                      new_device.parameters[1])
+        self.assertNotEqual(self.surface._ring_cache[0], old_ring)
+
+    def test_37_select_track_without_selected_device_blanks_device_rings(self):
+        self.surface._row_modules = ["Blank", "Clip Launch", "Solo", "Mute"]
+        self.surface._rotary_overrides = ["Device Control", "Device Control",
+                                          "Pan", "Volume"]
+        self.song.tracks[1].view.selected_device = None
+        self.surface._refresh_all()
+        self.chord(5, 1)
+        self.assertIs(self.song.view.selected_track, self.song.tracks[1])
+        self.assertEqual(self.surface._ring_cache[0], 0)
+        self.assertEqual(self.surface._ring_cache[4], 0)
+
+    def test_37_alt_scene_fourth_column_never_stops_everything(self):
+        self.surface._alt_mode = True
+        self.surface._refresh_all()
+        self.chord(3, 7)  # Clip E4 -> E8, fourth column is scene.
+        self.assertEqual(self.song.stop_all_count, 0)
+        self.assertFalse(any(t.stop_count for t in self.song.tracks))
+        self.assertFalse(any(scene.fire_count for scene in self.song.scenes))
+        self.assertFalse(any(self.surface._consumed))
+
+    def test_37_alt_master_column_never_arms_or_selects(self):
+        self.surface._alt_mode = True
+        self.surface._row_modules = ["Arm", "Clip Launch", "Solo", "Mute"]
+        self.surface._refresh_all()
+        old = self.song.view.selected_track
+        self.chord(7, 3)   # Clip held, tap above = no Select on fourth col.
+        self.assertIs(self.song.view.selected_track, old)
+        self.chord(11, 15) # Solo held, tap below = no Arm Master.
+        self.assertFalse(any(t.arm for t in self.song.tracks))
+        self.assertEqual(self.song.stop_all_count, 0)
+
+    def test_37_fx_return_select_works_and_clip_stop_is_noop(self):
+        self.song.return_tracks = [FakeTrack("Return 1", armable=False)]
+        self.surface._row_modules = ["Blank", "Clip Launch", "Solo", "Mute"]
+        self.surface._toggle_fx_mode()
+        ret = self.song.return_tracks[0]
+        self.chord(4, 0)  # Clip held, select Return by tapping above.
+        self.assertIs(self.song.view.selected_track, ret)
+        self.chord(4, 8)  # Clip held, tap below => no clips on Returns.
+        self.assertEqual(ret.stop_count, 0)
+        self.assertEqual(self.song.stop_all_count, 0)
+
+    def test_37_fx_return_solo_to_arm_is_rejected_safely(self):
+        self.song.return_tracks = [FakeTrack("Return 1", armable=False)]
+        self.surface._toggle_fx_mode()
+        self.chord(8, 12)  # Solo held -> Arm beneath.
+        self.assertFalse(self.song.return_tracks[0].arm)
+
+    def test_37_same_row_utilities_and_global_e1_e16_survive(self):
+        self.surface._rotary_overrides = ["Device Control", "Sends", "Pan", "Volume"]
+        self.song.return_tracks = [FakeTrack("Return", armable=False)]
+        self.surface._refresh_all()
+        self.chord(3, 0)  # Device power.
+        self.assertEqual(self.song.tracks[0].devices[0].parameters[0].value, 0.0)
+        self.chord(7, 4)  # Sends shift.
+        self.assertEqual(self.surface._send_offset, 1)
+        self.chord(0, 15) # E1 then E16: FX Returns priority.
+        self.assertTrue(self.surface._fx_mode)
+        self.chord(15, 0) # E16 then E1: alt-mode priority.
+        self.assertTrue(self.surface._alt_mode)
+
+    def test_37_rotary_module_independence_and_no_scheduled_press_delay(self):
+        self.surface._rotary_overrides = ["Device Control", "Sends", "Pan", "Volume"]
+        self.surface._refresh_all()
+        count = len(self.surface.scheduled)
+        self.chord(0, 4)
+        self.assertEqual(self.song.tracks[0].stop_count, 1)
+        self.assertEqual(len(self.surface.scheduled), count)
+        self.assertEqual(self.surface._rotary_function(0), "Device Control")
+
+    def test_37_volume_target_press_noise_guard_survives_chord(self):
+        self.surface._rotary_overrides = ["Pan", "Volume", "Pan", "Volume"]
+        self.surface._refresh_all()
+        param = self.song.tracks[0].mixer_device.volume
+        previous = param.value
+        self.surface._push(0, 127)
+        self.surface._rotary(4, 65)
+        self.assertGreater(param.value, previous)
+        self.surface._push(4, 127)
+        self.assertAlmostEqual(param.value, previous)
+        self.surface._push(4, 0)
+        self.surface._push(0, 0)
+        self.assertEqual(self.song.tracks[0].stop_count, 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
