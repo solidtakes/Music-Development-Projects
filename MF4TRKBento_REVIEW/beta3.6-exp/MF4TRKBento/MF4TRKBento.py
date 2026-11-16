@@ -355,9 +355,43 @@ class MF4TRKBento(ControlSurface):
             return None
         if params is None:
             params = self._device_parameters()
-        index = (self._device_bank * self._device_bank_stride()
-                 + rows.index(row) * 4 + col)
-        return params[index] if 0 <= index < len(params) else None
+        index = self._device_base + rows.index(row) * 4 + col
+        max_params = self.MAX_DEVICE_BANKS * self._device_bank_stride()
+        # Partial final windows retain positions, with absent white rings off.
+        return params[index] if 0 <= index < min(len(params), max_params) else None
+
+    def _max_device_start(self, param_count):
+        """Allow the last partial group of four, capped to four full pages."""
+        visible = min(param_count, self.MAX_DEVICE_BANKS * self._device_bank_stride())
+        return ((visible - 1) // 4) * 4 if visible > 0 else 0
+
+    def _shift_device_window(self, direction):
+        params = self._device_parameters()
+        last = self._max_device_start(len(params))
+        self._device_base = max(0, min(last, self._device_base + 4 * direction))
+        self.show_message("MF4TRKBento | Device parameters starting %d" %
+                          (self._device_base + 1))
+        self._refresh_all()
+
+    @staticmethod
+    def _accumulate_detents(prior, step):
+        return prior + step if prior * step > 0 else step
+
+    def _slow_device_window(self, step):
+        total = self._accumulate_detents(self._device_window_scroll_steps, step)
+        if abs(total) >= self.DEVICE_NAV_DETENTS:
+            self._device_window_scroll_steps = 0
+            self._shift_device_window(1 if total > 0 else -1)
+        else:
+            self._device_window_scroll_steps = total
+
+    def _slow_device_select(self, step):
+        total = self._accumulate_detents(self._device_select_scroll_steps, step)
+        if abs(total) >= self.DEVICE_NAV_DETENTS:
+            self._device_select_scroll_steps = 0
+            self._select_adjacent_device(1 if total > 0 else -1)
+        else:
+            self._device_select_scroll_steps = total
 
     def _select_adjacent_device(self, direction):
         """Select devices through Song.View, including rack-chain siblings.
@@ -398,7 +432,9 @@ class MF4TRKBento(ControlSurface):
             new_device = devices[index]
             selector(new_device)  # Do not assign read-only Track.View.selected_device.
             self._last_device = new_device
-            self._device_bank = 0
+            self._device_base = 0
+            self._device_window_scroll_steps = 0
+            self._device_select_scroll_steps = 0
             self.show_message("MF4TRKBento | Device %d/%d: %s" %
                               (index + 1, len(devices),
                                getattr(new_device, "name", "Device")))
@@ -408,37 +444,33 @@ class MF4TRKBento(ControlSurface):
             self.show_message("MF4TRKBento | Device navigation failed (see Log.txt)")
 
     def _device_next_bank(self):
+        """Advance one full logical page, retaining legacy quick-tap wrap."""
         params = self._device_parameters()
         if not params:
+            self.show_message("MF4TRKBento | No Device parameters")
             return
-        # Advance by all visible Device rows together, at most four pages.
-        stride = self._device_bank_stride()
-        banks = min(self.MAX_DEVICE_BANKS, max(1, (len(params) + stride - 1) // stride))
-        self._device_bank = (self._device_bank + 1) % banks
-        self.show_message("MF4TRKBento | Device bank %d" % (self._device_bank + 1))
+        next_base = self._device_base + self._device_bank_stride()
+        self._device_base = (0 if next_base > self._max_device_start(len(params))
+                             else next_base)
+        self.show_message("MF4TRKBento | Device page, start %d" %
+                          (self._device_base + 1))
         self._refresh_all()
 
-    def _device_push(self, row, col):
-        if row != self._device_action_row():
-            return  # Additional Device push rows cannot duplicate navigation.
-        if col == 0:
-            device = self._selected_device()
-            if device is None:
-                return
-            power = self._device_power(device)
-            if power is None:
-                return
-            try:
-                power.value = float(power.min) if float(power.value) > float(power.min) else float(power.max)
-            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
-                self.log_message("MF4TRKBento device power error: %s" % exc)
-            self._refresh_all()
-        elif col == 1:
-            self._device_next_bank()
-        elif col == 2:
-            self._select_adjacent_device(-1)
-        elif col == 3:
-            self._select_adjacent_device(1)
+    def _toggle_device_power(self):
+        device = self._selected_device()
+        if device is None:
+            self.show_message("MF4TRKBento | No selected device")
+            return
+        power = self._device_power(device)
+        if power is None:
+            self.show_message("MF4TRKBento | Device has no power parameter")
+            return
+        try:
+            power.value = (float(power.min) if float(power.value) > float(power.min)
+                           else float(power.max))
+        except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+            self.log_message("MF4TRKBento device power error: %s" % exc)
+        self._refresh_all()
 
     def _turn_device(self, row, col, step):
         parameter = self._device_parameter(row, col)
