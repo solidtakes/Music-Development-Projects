@@ -1,4 +1,4 @@
-# MF4TRKBento Beta 3.5 EXP
+# MF4TRKBento Beta 3.6 EXP
 # Fixed mixer rotaries and top-down Device Control replacement.
 # Bank 2 MIDI routing retained from Beta 2 (CC0-15, channels 11/12).
 from _Framework.ControlSurface import ControlSurface
@@ -122,8 +122,8 @@ class MF4TRKBento(ControlSurface):
                     self._elements.append((element, callback))
         self._refresh_all()
         self._schedule_tick()
-        self.show_message("MF4TRKBento Beta 3.5 EXP | Device Rows")
-        self.log_message("MF4TRKBento Beta 3.5 EXP loaded - priority Device Control replacement; CC0-15 unchanged")
+        self.show_message("MF4TRKBento Beta 3.6 EXP | Device Rows")
+        self.log_message("MF4TRKBento Beta 3.6 EXP loaded - priority Device Control replacement; CC0-15 unchanged")
 
     def _make_rotary(self, cc):
         return lambda value: self._rotary(cc, value)
@@ -535,15 +535,17 @@ class MF4TRKBento(ControlSurface):
         step = self._relative(raw)
         if self._closed or not step:
             return
-        # Sends paging: HOLD second push + TURN third rotary of the topmost
-        # active Sends row. This is independent of Device banking, and normal
-        # parameter turning is suppressed while the chord is active.
-        send_rows = self._send_rows()
-        if send_rows:
-            page_row = send_rows[0]
-            if cc == self.ROWS[page_row][2] and self._held[self.ROWS[page_row][1]]:
+        # Topmost Device rotary row owns last-held + second/third twists.
+        row = self._row_for_cc(cc)
+        first, second, third, last = self.ROWS[row]
+        if row == self._device_utility_row() and self._held[last]:
+            if cc == second:
                 self._consume_held()
-                self._scroll_send_bank(step)
+                self._slow_device_window(step)
+                return
+            if cc == third:
+                self._consume_held()
+                self._slow_device_select(step)
                 return
         # Reverse selector: hold LAST row push and twist FIRST row encoder.
         # Consume the held push before normal parameter dispatch. E1-held
@@ -626,12 +628,12 @@ class MF4TRKBento(ControlSurface):
             self._multi_chord.discard(cc)
         if not down and cc % 4 == 0:
             self._module_scroll_steps[cc // 4] = 0
-        if not down and cc % 4 == 1 and self._send_rows():
-            if cc == self.ROWS[self._send_rows()[0]][1]:
-                self._send_scroll_steps = 0
         if not down and cc % 4 == 3:
             preview_row = cc // 4
             self._rotary_scroll_steps[preview_row] = 0
+            if preview_row == self._device_utility_row():
+                self._device_window_scroll_steps = 0
+                self._device_select_scroll_steps = 0
             if preview_row in self._rotary_preview_rows:
                 del self._rotary_preview_rows[preview_row]
                 self._render_frame(update_rings=False)
@@ -659,7 +661,27 @@ class MF4TRKBento(ControlSurface):
             return
 
         row = self._row_for_cc(cc)
-        first, last = self.ROWS[row][0], self.ROWS[row][-1]
+        first, second, third, last = self.ROWS[row]
+        # Consume all participants on target DOWN; release cannot trigger the
+        # original push actions. Global E1/E16 chords above retain priority.
+        if down and cc != last and self._held[last]:
+            action = None
+            if row == self._device_utility_row():
+                if cc == first:
+                    action = self._toggle_device_power
+                elif cc == second:
+                    action = self._device_next_bank
+                elif cc == third:
+                    action = lambda: self._select_adjacent_device(1)
+            elif row == self._send_utility_row():
+                if cc == first:
+                    action = lambda: self._shift_sends(1)
+                elif cc == second:
+                    action = lambda: self._shift_sends(-1)
+            if action is not None:
+                self._consume_held()
+                action()
+                return
         if down and self._rotary_function(row) == "Volume":
             self._cancel_press_induced_volume_step(cc)
         if down and cc == last and not self._held[first]:
@@ -693,9 +715,7 @@ class MF4TRKBento(ControlSurface):
                 if target is not None:
                     self._stop_press[cc] = (time.monotonic(), target)
             return
-        if module == "Device Control":
-            self._device_push(row, col)
-        elif module == "Clip Launch":
+        if module == "Clip Launch":
             self._clamp_offsets(self._control_tracks(), self._scenes())
             if self._alt_mode and col == 3:
                 self._launch_scene(self._scene_index(row))
@@ -729,30 +749,11 @@ class MF4TRKBento(ControlSurface):
         current = self.MODULES.index(self._row_modules[row])
         for hops in range(1, len(self.MODULES) + 1):
             next_module = self.MODULES[(current + hops * direction) % len(self.MODULES)]
-            # Duplicate Clip/Arm/Solo/Mute/Stop rows are valid. Button modules
-            # are truly independent across all four physical rows.
-            # Snap to independent row assignments if the legacy auto-layout
-            # would otherwise remove or insert a noncontiguous Device row.
-            was_auto = self._rotary_overrides is None
-            if (was_auto and
-                    (row < self._default_device_prefix_count() - 1 or
-                     (next_module == "Device Control" and
-                      row != self._default_device_prefix_count()))):
-                self._freeze_custom_rotaries()
+            if next_module in self.UNIQUE_BUTTON_MODULES and any(
+                    index != row and other == next_module
+                    for index, other in enumerate(self._row_modules)):
+                continue  # Arm, Solo, Mute and Stop are each single-instance.
             self._row_modules[row] = next_module
-            if (was_auto and current == self.MODULES.index("Device Control")
-                    and next_module != "Device Control"
-                    and self._rotary_overrides is not None):
-                # Removing a higher legacy Device module restores that row's
-                # original mixer rotary while preserving lower Device rows.
-                self._rotary_overrides[row] = self.MIXER_ROTARY_FUNCTIONS[row]
-                self._device_bank = 0
-            if next_module == "Device Control" and self._rotary_overrides is not None:
-                # Device push only makes sense with Device rotaries; do not
-                # shift any other row or disturb unrelated push assignments.
-                self._rotary_overrides[row] = "Device Control"
-            if next_module == "Device Control":
-                self._device_bank = 0
             self._mute_volume_last_turn.clear()
             self._clamp_offsets(self._control_tracks(), self._scenes())
             self.show_message("MF4TRKBento | Row %d push: %s" % (row + 1, next_module))
@@ -1284,8 +1285,26 @@ class MF4TRKBento(ControlSurface):
             device_changed = device != self._last_device
         except (RuntimeError, TypeError, ValueError):
             device_changed = True
+        # Reconfiguration must not carry stale offsets or slow-gesture state.
+        current_device_rows, current_send_rows = self._device_rows(), self._send_rows()
+        if self._last_device_rows is not None and current_device_rows != self._last_device_rows:
+            self._device_base = 0
+            self._device_window_scroll_steps = 0
+            self._device_select_scroll_steps = 0
+        if self._last_send_rows is not None and current_send_rows != self._last_send_rows:
+            self._send_offset = 0
+        self._last_device_rows, self._last_send_rows = current_device_rows, current_send_rows
+        try:
+            return_count = len(self._return_tracks())
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            return_count = 0
+        if self._last_return_count is not None and return_count != self._last_return_count:
+            self._send_offset = 0
+        self._last_return_count = return_count
         if device_changed:
-            self._device_bank = 0
+            self._device_base = 0
+            self._device_window_scroll_steps = 0
+            self._device_select_scroll_steps = 0
             self._last_device = device
         device_params, power = (), None
         if device is not None:
@@ -1295,34 +1314,15 @@ class MF4TRKBento(ControlSurface):
                 raw_device_params = ()
             device_params = self._device_parameters(device, raw_device_params)
             power = self._device_power(device, raw_device_params)
-            max_bank = min(self.MAX_DEVICE_BANKS - 1,
-                           max(0, (len(device_params) - 1) // self._device_bank_stride()))
-            if self._device_bank > max_bank:
-                self._device_bank = 0
+            if self._device_base > self._max_device_start(len(device_params)):
+                self._device_base = 0
         for row, module in enumerate(self._row_modules):
             for col, cc in enumerate(self.ROWS[row]):
                 parameter = self._inherited_parameter(
                     row, col, columns, mixers, device_params)
                 ring = self._visible_inherited_ring(row, col, parameter, columns)
 
-                if module == "Device Control":
-                    if device is None or self._rotary_function(row) != "Device Control":
-                        continue
-                    if row == self._device_action_row():
-                        if col == 0:
-                            enabled = False
-                            try:
-                                enabled = power is not None and float(power.value) > float(power.min)
-                            except (AttributeError, RuntimeError, TypeError, ValueError):
-                                pass
-                            color = self.DEVICE_POWER_COLOR if enabled else 0
-                        else:
-                            color = self.DEVICE_COLOR
-                    else:
-                        color = self.DEVICE_COLOR if parameter is not None else 0
-                    frame[cc] = (color, 0, ring, False)
-
-                elif module == "Clip Launch":
+                if module == "Clip Launch":
                     if self._alt_mode and col == 3:
                         index = self._scene_offset + clip_rows.index(row)
                         if index < len(scenes):
