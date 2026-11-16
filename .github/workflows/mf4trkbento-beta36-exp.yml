@@ -42,6 +42,8 @@ jobs:
                   z.writestr(info, Path(name).read_bytes())
           digest = hashlib.sha256(path.read_bytes()).hexdigest()
           print('Installable ZIP SHA-256:', digest)
+          expected = '2de87b5ec4c46cb04cbb3eccb36c47f8de9e2ef17948f21fe54c114c86580013'
+          assert digest == expected, 'Beta 3.6 ZIP differs from verified artifact'
           with zipfile.ZipFile(path) as z:
               assert z.testzip() is None
               assert set(z.namelist()) == set(names)
