@@ -17,6 +17,8 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 system-ui,Segoe UI,Arial,sans-serif}
 header{padding:10px 14px;background:var(--panel);border-bottom:1px solid #000;font-weight:600}
+#ask{padding:8px 14px;background:#3a2a00;color:var(--accent);font-weight:600}
+#ask:empty{display:none}
 main{padding:10px 14px;display:grid;gap:10px}
 table{border-collapse:collapse;width:100%}
 td{padding:3px 6px;border-bottom:1px solid #333;vertical-align:top;word-break:break-all}
@@ -30,6 +32,7 @@ pre{margin:0;background:#111;padding:8px;max-height:140px;overflow:auto;font:12p
 </head>
 <body>
 <header>AOPX S3 modal probe <span id="probe-version">v1</span></header>
+<div id="ask"></div>
 <main>
   <table id="facts"><tbody></tbody></table>
   <div class="buttons">
@@ -71,6 +74,8 @@ pre{margin:0;background:#111;padding:8px;max-height:140px;overflow:auto;font:12p
   const injected = window.AOPX_PROBE_STATE;
   const fromUrl = readUrlState();
   const state = injected || fromUrl || null;
+  // Optional per-case instruction from the host (textContent: never parsed as HTML).
+  if (state && typeof state.ask === "string") document.getElementById("ask").textContent = (typeof state.caseId === "string" ? state.caseId + ": " : "") + state.ask;
   const via = injected ? "inline-script" : fromUrl ? "url-query-or-hash" : "none";
   const payload = state && typeof state.payload === "string" ? state.payload : "";
   const mac = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.live;

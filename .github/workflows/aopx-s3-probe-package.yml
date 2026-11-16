@@ -1,0 +1,99 @@
+name: AOPX S3 live probe package
+
+# Builds the downloadable, read-only AOPX S3 Live probe (Issue #40). The ZIP holds sources only;
+# the owner builds it against the real SDK .tgz files on Windows. CI builds the same sources against
+# a stub of the VERIFIED SDK subset, drives the real bundle end to end in Chromium on Windows and
+# Linux, and uploads the ZIP only if both pass. Chromium is not Live: this checks the package.
+on:
+  pull_request:
+    branches: [ableton-offline-processing/alpha-0.1]
+    paths:
+      - 'ableton-offline-processing/spikes/s3-live-probe/**'
+      - 'ableton-offline-processing/spikes/s3-modal/**'
+      - 'ableton-offline-processing/editor/interface.html'
+      - 'ableton-offline-processing/host/src/**'
+      - '.github/workflows/aopx-s3-probe-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      PLAYWRIGHT_VERSION: '1.63.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Assemble the ZIP folder and its CI build variant (SDK stub)
+        run: node ableton-offline-processing/spikes/s3-live-probe/ci/assemble.mjs "${{ runner.temp }}/probe" --ci-build
+      - name: npm install + npm run build (tsc --noEmit, esbuild bundle as in the verified example)
+        working-directory: ${{ runner.temp }}/probe/ci-build
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+          ls -l dist
+      - name: Install pinned Playwright + Chromium outside the repository
+        run: |
+          PW_DIR="${{ runner.temp }}/pw"
+          mkdir -p "$PW_DIR"
+          npm install --prefix "$PW_DIR" --no-save --no-package-lock --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"
+          echo "NODE_PATH=$PW_DIR/node_modules" >> "$GITHUB_ENV"
+          if [ "$RUNNER_OS" = "Linux" ]; then "$PW_DIR/node_modules/.bin/playwright" install --with-deps chromium; else "$PW_DIR/node_modules/.bin/playwright" install chromium; fi
+      - name: End-to-end smoke of the built bundle (fake context, real Chromium modal)
+        run: node ableton-offline-processing/spikes/s3-live-probe/ci/smoke.mjs "${{ runner.temp }}/probe/ci-build" "$GITHUB_WORKSPACE/ableton-offline-processing"
+      - name: PowerShell syntax check of run.ps1
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("${{ runner.temp }}\probe\aopx-s3-probe\run.ps1", [ref]$null, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Host; exit 1 }
+          Write-Host "run.ps1 parses cleanly"
+
+  package:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Assemble the ZIP folder
+        run: node ableton-offline-processing/spikes/s3-live-probe/ci/assemble.mjs "${{ runner.temp }}/probe"
+      - name: Contents and checksums
+        run: |
+          cd "${{ runner.temp }}/probe/aopx-s3-probe"
+          find . -type f | sort
+          du -sb .
+          cat SHA256SUMS.txt
+      - id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: aopx-s3-probe
+          path: ${{ runner.temp }}/probe/aopx-s3-probe/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Artifact summary
+        run: |
+          {
+            echo "### AOPX S3 live probe ZIP"
+            echo "- Artifact: \`aopx-s3-probe\` (id ${{ steps.upload.outputs.artifact-id }})"
+            echo "- Download: ${{ steps.upload.outputs.artifact-url }}"
+            echo "- SHA-256 of the downloaded ZIP: \`${{ steps.upload.outputs.artifact-digest }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "artifact-id=${{ steps.upload.outputs.artifact-id }}"
+          echo "artifact-url=${{ steps.upload.outputs.artifact-url }}"
+          echo "artifact-digest=${{ steps.upload.outputs.artifact-digest }}"
