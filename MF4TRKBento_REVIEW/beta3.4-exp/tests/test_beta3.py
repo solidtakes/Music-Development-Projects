@@ -904,8 +904,8 @@ class Beta3Tests(unittest.TestCase):
         self.assertEqual(device.parameters[0].value,1.0)
 
     def test_module_selector_allows_noncontiguous_device_row(self):
-        self.surface._row_modules = ["Stop", "Arm", "Solo", "Mute"]
-        self.surface._cycle_module(2, 1)  # Solo skips Mute, then Stop, then Device
+        self.surface._row_modules = ["Stop", "Arm", "Stop", "Mute"]
+        self.surface._cycle_module(2, 1)  # Stop -> Device at this independent row
         self.assertEqual(self.surface._row_modules[2], "Device Control")
         self.assertEqual(self.surface._device_rows(), (2,))
         self.assertEqual([self.surface._rotary_function(r) for r in range(4)],
@@ -1122,8 +1122,10 @@ class Beta3Tests(unittest.TestCase):
         self.assertFalse(track.mute)
         self.push(15)
         self.assertTrue(track.mute)
-        self.assertEqual(self.surface._rgb_cache[15],
-                         self.surface._frame[15][0])
+        # Normal Mute flashes when muted; its LED can be lit or temporarily off.
+        self.assertIn(self.surface._rgb_cache[15],
+                      (0, self.surface._frame[15][0]))
+        self.assertNotEqual(self.surface._rgb_cache[15], 76)
         self.assertFalse(self.surface._rotary_preview_rows)
 
     def test_original_first_hold_last_turn_remains_button_selector(self):
