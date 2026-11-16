@@ -6,8 +6,7 @@
  * Delivery helpers come from spikes/s3-modal/delivery.mjs, copied next to this file when the ZIP
  * is packaged.
  */
-import { unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { unlink } from 'node:fs/promises';
 import {
   classifyModalReturn,
   injectProbeState,
@@ -110,9 +109,22 @@ async function buildUrl(c, { dir, probeHtml, guiHtml }) {
   }
 }
 
-/** Hide the Windows/macOS user name in paths that end up in a public issue. */
+/**
+ * Hide the user name in every Windows/macOS/Linux profile path in `p` (the log is pasted into a public
+ * issue). Every occurrence; plain paths (C:\\Users\\Jane Doe\\..., /Users/jane/...), file URLs
+ * (file:///C:/Users/Jane%20Doe/...) and JSON-escaped paths (C:\\\\Users\\\\Jane Doe). The name ends at
+ * the next path separator, double quote or line break (an apostrophe, as in O'Brien, is part of it). Non-strings are returned unchanged.
+ */
 export function redactPath(p) {
-  return typeof p === 'string' ? p.replace(/([\\/](?:Users|home)[\\/])[^\\/]+/i, '$1<user>') : p;
+  return typeof p === 'string' ? p.replace(/([\\/]+(?:Users|home)[\\/]+)[^\\/"\r\n]+/gi, '$1<user>') : p;
+}
+
+/** redactPath applied to every string inside a JSON-like value (objects, arrays), returning a copy. */
+export function redactDeep(v) {
+  if (typeof v === 'string') return redactPath(v);
+  if (Array.isArray(v)) return v.map(redactDeep);
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, redactDeep(x)]));
+  return v;
 }
 
 /**
@@ -160,16 +172,19 @@ export function describeContext(context) {
   const read = (k) => { try { return env ? env[k] : undefined; } catch { return undefined; } };
   const temp = read('tempDirectory');
   const storage = read('storageDirectory');
-  return {
+  const description = {
     context: keysOf(context),
     ui: keysOf(context && context.ui),
     commands: keysOf(context && context.commands),
     environment: keysOf(env),
     environmentMembers: describeMembers(env),
-    tempDirectory: typeof temp === 'string' && temp ? temp : null,
+    tempDirectory: typeof temp === 'string' && temp ? redactPath(temp) : null, // logged: user name redacted
     tempDirectoryType: env ? (temp === null ? 'null' : typeof temp) : 'no environment',
     storageDirectoryType: env ? (storage === null ? 'null' : typeof storage) : 'no environment',
   };
+  // The real path is needed to write the file cases, but is never serialized (non-enumerable).
+  Object.defineProperty(description, 'rawTempDirectory', { value: typeof temp === 'string' && temp ? temp : null, enumerable: false });
+  return description;
 }
 
 /** Did the case return what its instruction asked for? (true / false / null = no expectation) */
@@ -212,11 +227,15 @@ export function summaryLines(results) {
  * `osTempDirectory` is os.tmpdir() for the approved T1 case; `parseModalResult` is the product parser.
  */
 export async function runProbe(/** @type {any} */ options) {
-  const { mode = 'core', showModalDialog, readEnvironment = () => null, osTempDirectory = null, parseModalResult = null, log = console.log, probeHtml, guiHtml, environment = {} } = options;
+  const { mode = 'core', showModalDialog, readEnvironment = () => null, osTempDirectory = null, parseModalResult = null, probeHtml, guiHtml, environment = {} } = options;
+  // Output boundary: every emitted line has user names in profile paths redacted (H1), including
+  // paths inside facts (hrefHead), error messages and the JSON report.
+  const rawLog = options.log ?? console.log;
+  const log = (/** @type {string} */ line) => rawLog(redactPath(line));
   const cases = CASES.filter((c) => c.sets.includes(mode));
   const atCommand = readEnvironment();
-  const sdkTemp = atCommand && atCommand.tempDirectory ? atCommand.tempDirectory : null;
-  log(`[AOPX S3] Context description at command time: ${JSON.stringify(atCommand)}`);
+  const sdkTemp = atCommand && atCommand.rawTempDirectory ? atCommand.rawTempDirectory : null;
+  log(`[AOPX S3] Context description at command time: ${JSON.stringify(redactDeep(atCommand))}`);
   log(`[AOPX S3] ${mode}: ${cases.length} case(s), probe build ${PROBE_CORE_VERSION}. One dialog at a time; follow the orange instruction in each probe dialog.`);
   const results = [];
   for (const c of cases) {
@@ -233,8 +252,9 @@ export async function runProbe(/** @type {any} */ options) {
     try {
       built = await buildUrl(c, { dir, probeHtml, guiHtml });
     } catch (e) {
-      results.push({ id: c.id, method: c.method, buildError: String(e && e.message ? e.message : e), asExpected: null });
-      log(`[AOPX S3] ${c.id}: could not build the URL: ${String(e && e.message ? e.message : e)}`);
+      const buildError = redactPath(String(e && e.message ? e.message : e));
+      results.push({ id: c.id, method: c.method, buildError, asExpected: null });
+      log(`[AOPX S3] ${c.id}: could not build the URL: ${buildError}`);
       continue;
     }
     log(`[AOPX S3] ${c.id}: ${c.ask} (url ${built.url.length} chars)`);
@@ -245,7 +265,7 @@ export async function runProbe(/** @type {any} */ options) {
       raw = await showModalDialog(built.url, width, height);
     } catch (e) {
       const err = /** @type {{ name?: unknown, message?: unknown } | undefined} */ (e);
-      threw = { name: err && typeof err.name === 'string' ? err.name : null, message: String(err && err.message !== undefined ? err.message : e) };
+      threw = { name: err && typeof err.name === 'string' ? err.name : null, message: redactPath(String(err && err.message !== undefined ? err.message : e)) };
     }
     const ms = Date.now() - t0;
     let cleanedUp = null;
@@ -257,7 +277,7 @@ export async function runProbe(/** @type {any} */ options) {
     const classification = threw ? { kind: 'threw', treatAs: 'cancel' } : classifyModalReturn(raw);
     const { parsed, ...returned } = /** @type {any} */ (classification);
     const source = parsed ?? (raw && typeof raw === 'object' ? raw : null); // R3 sends an object
-    const facts = source && source.facts ? source.facts : null;
+    const facts = source && source.facts ? redactDeep(source.facts) : null; // hrefHead can be a file:// path under the profile
     const button = source && typeof source.button === 'string' ? source.button : null;
     const stateIntact = built.state && facts ? facts.payloadFnv1a === built.state.expectFnv1a : null;
     let product = null;
@@ -279,7 +299,7 @@ export async function runProbe(/** @type {any} */ options) {
     results.push(r);
     log(`[AOPX S3] ${c.id} -> ${returned.kind} (${returned.treatAs})${button ? ` via ${button}` : ''} in ${ms} ms${stateIntact === null ? '' : `, stateIntact=${stateIntact}`}${product ? `, product parser: ${product.accepted ? product.action : 'rejected'}` : ''}${r.asExpected === false ? '  << NOT AS ASKED' : ''}`);
   }
-  const report = { probe: 'aopx-s3-live', coreVersion: PROBE_CORE_VERSION, mode, finishedAt: new Date().toISOString(), environment: { ...environment, contextAtCommand: atCommand }, results };
+  const report = redactDeep({ probe: 'aopx-s3-live', coreVersion: PROBE_CORE_VERSION, mode, finishedAt: new Date().toISOString(), environment: { ...environment, contextAtCommand: atCommand }, results });
   for (const line of summaryLines(results)) log(line);
   log('AOPX_S3_RESULTS_BEGIN');
   log(JSON.stringify(report));

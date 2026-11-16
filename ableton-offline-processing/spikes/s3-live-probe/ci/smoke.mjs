@@ -9,7 +9,7 @@
  */
 import assert from 'node:assert/strict';
 import Module, { createRequire } from 'node:module';
-import { mkdtemp, readdir, readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -38,7 +38,11 @@ const currentCase = () => {
  * The simulated owner follows the build-2 rules: press the ONLY visible probe button, or close the
  * window if there is none; in the AOPX editor press Cancel or Apply as the case's instruction says.
  */
+let throwForCase = null; // failure-path test: the modal throws an error that mentions profile paths
 async function fakeShowModalDialog(url, width, height) {
+  if (throwForCase && currentCase() === throwForCase) {
+    throw new Error('WebView2 failed for C:\\Users\\Jane Doe\\AppData\\Local\\Temp\\x.html via file:///C:/Users/Jane%20Doe/AppData/x.html');
+  }
   const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 1.25 });
   const page = await context.newPage();
   let resolve;
@@ -132,7 +136,23 @@ const REPORT_IDS = ['P1-stock-data-1k', 'B1-data-base64-1k', 'Z1-size-860x660', 
 
 // 1. Registration matches the verified example: initialize(activation, "1.0.0"), two commands,
 //    context-menu actions on MidiClip and AudioClip.
-const temp = await mkdtemp(join(tmpdir(), 'aopx s3 smoke-'));
+// Fixtures (H1): on EVERY OS, the SDK temp directory and os.tmpdir() sit under a profile folder
+// "Users/Jane Doe", so paths, file:// URLs (hrefHead) and error messages all carry a user name that must
+// never be emitted. On Windows the runner's own profile segment (C:\Users\<name>) is checked as well.
+const base = await mkdtemp(join(tmpdir(), 'aopx s3 smoke-'));
+const RAW_NAME = 'Jane Doe';
+const osTemp = join(base, 'Users', RAW_NAME, 'AppData', 'Local', 'Temp');
+const temp = join(osTemp, 'aopx sdk temp');
+await mkdir(temp, { recursive: true });
+for (const k of ['TMPDIR', 'TEMP', 'TMP']) process.env[k] = osTemp;
+assert.equal(tmpdir(), osTemp, 'os.tmpdir() points into the fixture profile');
+const runnerProfile = /[\\/]Users[\\/]([^\\/]+)/i.exec(base)?.[1];
+const FORBIDDEN = [RAW_NAME, 'Jane', encodeURIComponent(RAW_NAME), ...(runnerProfile ? [runnerProfile] : [])];
+function assertNoRawName(run, label) {
+  const text = `${run.lines.join('\n')}\n${JSON.stringify(run.report)}`;
+  for (const w of FORBIDDEN) assert.ok(!text.includes(w), `${label}: raw user name ${JSON.stringify(w)} was emitted`);
+}
+
 const withTemp = await runCommand('aopx.s3probe.core', temp);
 assert.equal(globalThis.__AOPX_FAKE_CONTEXT__.__initializedWith.apiVersion, '1.0.0');
 assert.deepEqual([...withTemp.registered.commands.keys()].sort(), ['aopx.s3probe.core', 'aopx.s3probe.full']);
@@ -149,6 +169,16 @@ assert.equal(atCommand.storageDirectoryType, 'string');
 assert.deepEqual(atCommand.environmentMembers.tempDirectory, { where: 'proto1', kind: 'accessor', hasGet: true, hasSet: false, type: 'string', value: core.redactPath(temp), length: temp.length });
 assert.equal(atCommand.environmentMembers.language.value, 'en');
 assert.equal(core.redactPath('C:\\Users\\Some One\\AppData\\Local\\Temp\\x.html'), 'C:\\Users\\<user>\\AppData\\Local\\Temp\\x.html');
+assert.equal(atCommand.tempDirectory, core.redactPath(temp), 'describeContext logs the redacted temp path');
+assert.ok(atCommand.tempDirectory.includes('<user>'));
+// redactPath: every occurrence, file URLs, JSON-escaped paths, 8.3 names, apostrophes, /home.
+assert.equal(core.redactPath('C:\\Users\\A B\\x and C:\\Users\\A B\\y'), 'C:\\Users\\<user>\\x and C:\\Users\\<user>\\y');
+assert.equal(core.redactPath('file:///C:/Users/Jane%20Doe/AppData/a.html'), 'file:///C:/Users/<user>/AppData/a.html');
+assert.equal(core.redactPath(JSON.stringify({ p: 'C:\\Users\\Jane Doe\\AppData' })), JSON.stringify({ p: 'C:\\Users\\<user>\\AppData' }));
+assert.equal(core.redactPath('C:\\Users\\JANEDO~1\\x'), 'C:\\Users\\<user>\\x');
+assert.equal(core.redactPath("C:\\Users\\Pat O'Brien\\x"), 'C:\\Users\\<user>\\x');
+assert.equal(core.redactPath('/home/jane/x /Users/jane/y'), '/home/<user>/x /Users/<user>/y');
+assert.deepEqual(core.redactDeep({ a: ['C:\\Users\\J\\x', 1, null], b: { c: '/Users/j/z' } }), { a: ['C:\\Users\\<user>\\x', 1, null], b: { c: '/Users/<user>/z' } });
 
 // 3. Core run: 12 cases, every one returns what its instruction asked for.
 const r = Object.fromEntries(withTemp.report.results.map((x) => [x.id, x]));
@@ -166,6 +196,8 @@ for (const id of ['T1-os-tmpdir-file-1k', 'A1-file-inline-1k', 'A2-file-inline-1
   assert.equal(r[id].urlScheme, 'file:', id);
   assert.equal(r[id].cleanedUp, true, `${id} generated file deleted`);
 }
+assert.match(r['T1-os-tmpdir-file-1k'].facts.hrefHead, /^file:\/\/\/.*Users\/<user>/, 'T1 hrefHead (a file:// URL under the profile) is redacted');
+assertNoRawName(withTemp, 'core run');
 for (const id of ['X1-close-button', 'X2-escape-key']) assert.deepEqual([r[id].rawEmpty, r[id].returned.treatAs], [true, 'cancel'], id);
 for (const id of ['G2-gui-stock-cancel', 'G1-gui-file']) assert.deepEqual(r[id].product, { accepted: true, action: 'cancel', operations: null, operationTypes: null }, id);
 assert.deepEqual(r['G2-gui-stock-apply'].product, { accepted: true, action: 'process', operations: 2, operationTypes: ['reverse', 'gain'] }, 'Apply parsed by the product parser');
@@ -188,6 +220,24 @@ for (const id of ['A1-file-inline-1k', 'A2-file-inline-1m', 'G1-gui-file']) asse
 assert.equal(n['T1-os-tmpdir-file-1k'].asExpected, true);
 assert.equal(n['P1-stock-data-1k'].stateIntact, true);
 assert.ok(noTemp.summary.filter((l) => / SKIP /.test(l)).length === 3);
+assertNoRawName(noTemp, 'core run without SDK temp');
+seenGui.splice(0);
+pageChecks.splice(0);
+
+// 4b. Failure paths are redacted too: an SDK temp directory that does not exist (the ENOENT message
+//     carries the path) and a modal that throws an error naming profile paths.
+throwForCase = 'P1-stock-data-1k';
+const failing = await runCommand('aopx.s3probe.core', join(osTemp, 'missing dir'));
+throwForCase = null;
+const fl = Object.fromEntries(failing.report.results.map((x) => [x.id, x]));
+for (const id of ['A1-file-inline-1k', 'A2-file-inline-1m', 'G1-gui-file']) {
+  assert.match(fl[id].buildError, /ENOENT/, id);
+  assert.match(fl[id].buildError, /Users[\\/]+<user>/, `${id} buildError redacted`);
+}
+assert.equal(fl['P1-stock-data-1k'].threw.message, 'WebView2 failed for C:\\Users\\<user>\\AppData\\Local\\Temp\\x.html via file:///C:/Users/<user>/AppData/x.html');
+assert.ok(failing.lines.some((l) => l.includes('could not build the URL: ENOENT') && l.includes('<user>')));
+assert.equal(fl['T1-os-tmpdir-file-1k'].asExpected, true);
+assertNoRawName(failing, 'failure paths');
 seenGui.splice(0);
 pageChecks.splice(0);
 
@@ -205,6 +255,8 @@ assert.equal(f['Z2-size-1200x800'].facts.innerSize, '1200x800');
 assert.equal(f['Z1-size-860x660'].facts.devicePixelRatio, 1.25);
 for (const id of ['D1-file-hash', 'D2-file-query']) assert.equal(f[id].facts.stateVia, 'url-query-or-hash', id);
 for (const p of pageChecks.splice(0)) assert.deepEqual(p.visible, core.CASES.find((x) => x.id === p.caseId).allow, `${p.caseId} visible buttons`);
+for (const id of ['D1-file-hash', 'D2-file-query']) assert.match(f[id].facts.hrefHead, /Users\/<user>/, `${id} hrefHead redacted`);
+assertNoRawName(full, 'full matrix');
 
 // 6. The packaged core agrees with the product host contract.
 const html = await readFile(join(buildDir, 'src', 'interface.html'), 'utf8');
@@ -213,4 +265,4 @@ assert.equal(await readFile(join(buildDir, 'src', 'product', 'host', 'src', 'mod
 assert.deepEqual(parseModalResult(JSON.stringify({ envelopeVersion: 1, action: 'cancel' })), { envelopeVersion: 1, action: 'cancel' });
 
 await browser.close();
-console.log(`SMOKE PASS: build 2 core ${CORE_IDS.length}/${CORE_IDS.length} as asked (lazy SDK temp read at command time), SDK-temp cases skipped when absent, full ${full.report.results.length}/${core.CASES.length} as asked`);
+console.log(`SMOKE PASS: build 2 core ${CORE_IDS.length}/${CORE_IDS.length} as asked (lazy SDK temp read at command time), SDK-temp cases skipped when absent, full ${full.report.results.length}/${core.CASES.length} as asked, no raw user name in any log line or report (incl. failure paths)`);

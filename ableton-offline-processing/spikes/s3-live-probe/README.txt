@@ -42,7 +42,18 @@ Install and run (Windows, PowerShell)
      whether Esc closed X2).
   8. Ctrl+C in PowerShell stops the extension. Delete the folder afterwards if you like.
 
+Before you paste the log (privacy)
+  The probe replaces the user name in profile paths (C:\Users\<name>\..., file:///C:/Users/<name>/...,
+  /Users/<name>/...) with <user>, everywhere in the log and the JSON report. Paths outside a Users or
+  home folder (for example a redirected profile such as D:\Profiles\<name>) cannot be recognised:
+  skim the log for your name, e-mail or computer name before posting it publicly, and delete it.
+
 Notes
+  - B2-data-stock-512k builds a stock data: URL of about 1,771,344 characters, close to Chromium's
+    2,097,152-character limit. Whether Live's dialog accepts it is exactly what is being tested: a blank
+    B2 dialog is a useful result (close it with X), not a probe failure.
+  - If Live or PowerShell is closed while a file-based dialog (T1, A1, A2, G1) is open, its small
+    disposable HTML file (aopx-s3-<case>-<random>.html) can stay in the temp folder. It is safe to delete.
   - A1, A2 and G1 run only if the SDK's environment.tempDirectory is a string when the command runs;
     otherwise they are SKIPPED and the "Context description" lines show exactly what the SDK exposes.
   - Paths in the log have the Windows user name replaced by <user>.

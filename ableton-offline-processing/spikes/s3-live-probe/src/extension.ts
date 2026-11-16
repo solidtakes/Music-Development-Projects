@@ -14,14 +14,14 @@ import { tmpdir } from "node:os";
 import probeHtml from "./probe.html";
 import guiHtml from "./interface.html";
 import { parseModalResult } from "./product/host/src/modal.ts";
-import { describeContext, runProbe } from "./probe-core.mjs";
+import { describeContext, redactDeep, redactPath, runProbe } from "./probe-core.mjs";
 
 export function activate(activation: ActivationContext) {
   const context = initialize(activation, "1.0.0");
   // Observation, not assumption. Build 1 read this only here and found environment.tempDirectory
   // undefined; build 2 reads it again when the command runs (see runProbe readEnvironment).
   const atActivation = describeContext(context);
-  console.log(`[AOPX S3] activated (probe build 2). Context description at activation: ${JSON.stringify(atActivation)}`);
+  console.log(`[AOPX S3] activated (probe build 2). Context description at activation: ${redactPath(JSON.stringify(redactDeep(atActivation)))}`);
 
   let running = false;
   const run = (mode: "core" | "full") => async (_handle: Handle) => {
@@ -42,10 +42,10 @@ export function activate(activation: ActivationContext) {
         log: (line: string) => console.log(line),
         probeHtml,
         guiHtml,
-        environment: { node: process.version, platform: `${process.platform} ${process.arch}`, sdkApi: "1.0.0", contextAtActivation: atActivation },
+        environment: { node: process.version, platform: `${process.platform} ${process.arch}`, sdkApi: "1.0.0", contextAtActivation: redactDeep(atActivation) },
       });
     } catch (e) {
-      console.log(`[AOPX S3] probe run failed: ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}`);
+      console.log(redactPath(`[AOPX S3] probe run failed: ${e instanceof Error ? `${e.name}: ${e.message}` : String(e)}`));
     } finally {
       running = false;
     }
