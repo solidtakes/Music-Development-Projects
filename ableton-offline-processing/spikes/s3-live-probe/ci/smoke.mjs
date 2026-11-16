@@ -144,7 +144,9 @@ const atCommand = parseJsonAfter(withTemp.lines, 'Context description at command
 assert.equal(atActivation.tempDirectoryType, 'undefined', 'lazy env: undefined at activation (as on the host)');
 assert.equal(atCommand.tempDirectoryType, 'string', 'lazy env: a string at command time');
 assert.equal(atCommand.storageDirectoryType, 'string');
-assert.deepEqual(atCommand.environmentMembers.tempDirectory, { where: 'proto1', kind: 'accessor', hasGet: true, hasSet: false, type: 'string', value: temp, length: temp.length });
+// The probe redacts the user name in logged paths (build 2 item 1), so compare against the redacted path:
+// on Windows the runner temp is C:\Users\<name>\..., which the unredacted value would never match.
+assert.deepEqual(atCommand.environmentMembers.tempDirectory, { where: 'proto1', kind: 'accessor', hasGet: true, hasSet: false, type: 'string', value: core.redactPath(temp), length: temp.length });
 assert.equal(atCommand.environmentMembers.language.value, 'en');
 assert.equal(core.redactPath('C:\\Users\\Some One\\AppData\\Local\\Temp\\x.html'), 'C:\\Users\\<user>\\AppData\\Local\\Temp\\x.html');
 
