@@ -235,10 +235,14 @@ window.AOPX_PLAN_CORE = (function(){
 <script>
 /*
  * The Extension Host may inject window.AOPX_INITIAL_STATE before this script.
- * Expected shape: { source: SourceInfo, waveform: WaveformPeak[], plan?: OperationPlan,
- *                   diagnostics?: RenderReport, preview?: boolean }
+ * Shape: HostInitialState from engine/src/contract.ts:
+ *   { envelopeVersion: 1, source: SourceInfo, waveform: WaveformPeak[], plan: OperationPlan,
+ *     diagnostics: RenderReport | null, preview: false }
+ * The returned close_and_send string is the JSON of a ModalResult:
+ *   { envelopeVersion: 1, action: "process", plan } or { envelopeVersion: 1, action: "cancel" }
  */
 (function(){
+  const ENVELOPE_VERSION = 1;
   const fallback = {
     preview:true,
     source:{name:"Demo Audio.wav",bytes:16480000,fingerprint:"preview-source",format:{channels:2,sampleRate:48000,bitDepth:24,frames:2880000,durationSeconds:60,encoding:"pcm"}},
@@ -246,6 +250,8 @@ window.AOPX_PLAN_CORE = (function(){
     plan:{version:1,operations:[{id:"op-reverse-1",type:"reverse",enabled:true},{id:"op-gain-1",type:"gain",db:-3,enabled:true}]}
   };
   const initial = window.AOPX_INITIAL_STATE || fallback;
+  // A host speaking a newer envelope may send fields this UI does not understand: show, do not apply.
+  const unsupportedEnvelope = initial.envelopeVersion !== undefined && initial.envelopeVersion !== ENVELOPE_VERSION;
   const state = {
     source:initial.source || fallback.source,
     operations:(initial.plan?.operations || fallback.plan.operations).map(op=>({...op})),
@@ -459,20 +465,22 @@ window.AOPX_PLAN_CORE = (function(){
     $("status").textContent="Preview only · host message bridge is not available.";
     return false;
   }
-  $("cancel").addEventListener("click",()=>closeWith({action:"cancel"}));
+  $("cancel").addEventListener("click",()=>closeWith({envelopeVersion:ENVELOPE_VERSION,action:"cancel"}));
   $("apply").addEventListener("click",()=>{
-    if(state.busy||drag)return;
+    if(state.busy||drag||unsupportedEnvelope)return;
     if(!state.operations.length){$("status").textContent="Add at least one operation before applying.";return}
     state.busy=true;$("apply").disabled=true;
     const plan=core.buildPlan(state.operations);
-    const ok=closeWith({action:"process",plan});
+    const ok=closeWith({envelopeVersion:ENVELOPE_VERSION,action:"process",plan});
     if(!ok){state.busy=false;$("apply").disabled=false}
   });
   function renderDiagnostics(report){
     if(!report)return;
     const steps=report.steps||[];
-    const total=steps.reduce((n,s)=>n+(s.renderMs||0),0);
-    $("render-time").textContent=Number.isFinite(total)?total.toFixed(1)+" ms":"—";
+    // LAST RENDER is the measured wall time of the request. Per-step renderMs is carried forward on
+    // cache hits, so summing it would report the original render time for an all-hit render.
+    const wall=report.wallMs;
+    $("render-time").textContent=typeof wall==="number"&&Number.isFinite(wall)?wall.toFixed(1)+" ms":"—";
     $("cache-state").textContent=steps.filter(s=>s.status==="hit").length+" hit / "+steps.filter(s=>s.status==="miss").length+" miss";
     $("output-size").textContent=fmtBytes(report.outputBytes);
     $("footprint").textContent=fmtBytes(report.cacheBytes)+" / "+fmtBytes(report.projectBytes);
@@ -490,6 +498,7 @@ window.AOPX_PLAN_CORE = (function(){
     $("step-diagnostics").hidden=steps.length===0;
   }
   renderSource();render();renderDiagnostics(initial.diagnostics);
+  if(unsupportedEnvelope){$("apply").disabled=true;$("status").textContent="Unsupported host state version "+String(initial.envelopeVersion)+" · Apply is disabled; Cancel still returns."}
 })();
 </script>
 </body>

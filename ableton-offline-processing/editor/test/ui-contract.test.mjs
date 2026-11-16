@@ -21,6 +21,14 @@ test('UI emits the shared Alpha 0.1 OperationPlan envelope', () => {
   assert.match(html, /type:"reverse",enabled:true/);
 });
 
+test('UI returns versioned ModalResult envelopes and shows measured wall time (T1/T2)', () => {
+  assert.match(html, /const ENVELOPE_VERSION = 1;/);
+  assert.match(html, /closeWith\(\{envelopeVersion:ENVELOPE_VERSION,action:"process",plan\}\)/);
+  assert.match(html, /closeWith\(\{envelopeVersion:ENVELOPE_VERSION,action:"cancel"\}\)/);
+  assert.match(html, /const wall=report\.wallMs;/);
+  assert.doesNotMatch(html, /reduce\(\(n,s\)=>n\+\(s\.renderMs/, 'LAST RENDER must not sum carried-forward renderMs');
+});
+
 test('UI exposes non-destructive operation editing controls', () => {
   assert.match(html, /Bypass operation/);
   assert.match(html, /Remove operation/);
