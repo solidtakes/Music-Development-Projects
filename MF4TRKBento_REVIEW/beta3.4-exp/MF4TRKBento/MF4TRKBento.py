@@ -457,6 +457,23 @@ class MF4TRKBento(ControlSurface):
         step = self._relative(raw)
         if self._closed or not step:
             return
+        # Reverse selector: hold LAST row push and twist FIRST row encoder.
+        # Consume the held push before normal parameter dispatch. E1-held
+        # track/scene navigation and original first-held selector are unchanged.
+        row = self._row_for_cc(cc)
+        first, last = self.ROWS[row][0], self.ROWS[row][-1]
+        if cc == first and self._held[last] and not self._held[first]:
+            self._consume_held()
+            self._rotary_preview_rows[row] = self._rotary_function(row)
+            total = self._rotary_scroll_steps[row] + step
+            if abs(total) >= self.SELECTOR_DETENTS:
+                direction = 1 if total > 0 else -1
+                self._rotary_scroll_steps[row] = total - self.SELECTOR_DETENTS * direction
+                self._cycle_rotary(row, direction)
+            else:
+                self._rotary_scroll_steps[row] = total
+                self._render_frame(update_rings=False)
+            return
         # E1 is the global navigation modifier. Track banking remains usable
         # even when no Clip Launch row is assigned; scene banking only applies
         # when at least one Clip Launch row exists. These take priority over
@@ -493,10 +510,8 @@ class MF4TRKBento(ControlSurface):
                 self._turn_volume(row, cc % 4, step)
         elif function == "Pan":
             self._turn_pan(row, cc % 4, step)
-        elif function == "Send A":
-            self._turn_send(row, cc % 4, step, 0)
-        elif function == "Send B":
-            self._turn_send(row, cc % 4, step, 1)
+        elif function and function.startswith("Send "):
+            self._turn_send(row, cc % 4, step, ord(function[-1]) - 65)
         elif function == "Device Control":
             self._turn_device(row, cc % 4, step)
 
@@ -523,6 +538,12 @@ class MF4TRKBento(ControlSurface):
             self._multi_chord.discard(cc)
         if not down and cc % 4 == 0:
             self._module_scroll_steps[cc // 4] = 0
+        if not down and cc % 4 == 3:
+            preview_row = cc // 4
+            self._rotary_scroll_steps[preview_row] = 0
+            if preview_row in self._rotary_preview_rows:
+                del self._rotary_preview_rows[preview_row]
+                self._render_frame(update_rings=False)
         if not down and self._consumed[cc]:
             self._consumed[cc] = False
             return
@@ -550,6 +571,9 @@ class MF4TRKBento(ControlSurface):
         first, last = self.ROWS[row][0], self.ROWS[row][-1]
         if down and self._rotary_function(row) == "Volume":
             self._cancel_press_induced_volume_step(cc)
+        if down and cc == last and not self._held[first]:
+            self._rotary_preview_rows[row] = self._rotary_function(row)
+            self._render_frame(update_rings=False)
         module = self._row_modules[row]
         col = cc % 4
         if down and module in ("Arm", "Solo") and col < self._clip_count():
@@ -1018,7 +1042,9 @@ class MF4TRKBento(ControlSurface):
             is_off = int(self._beat_position() * rate) % 2 == 1
         else:
             is_off = bool(rate and int(now * rate) % 2 == 1)
-        self._rgb(cc, 0 if is_off else color)
+        preview = self._rotary_preview_rows.get(cc // 4)
+        self._rgb(cc, self._preview_color(preview) if preview is not None
+                  else (0 if is_off else color))
         if ring_data is None:
             ring = 0
         elif isinstance(ring_data, (int, float)):
@@ -1350,7 +1376,9 @@ class MF4TRKBento(ControlSurface):
             else:
                 # Leave previously accepted Clip Launch flashing cadence intact.
                 is_off = rate and int(now * rate) % 2 == 1
-            self._rgb(cc, 0 if is_off else color)
+            preview = self._rotary_preview_rows.get(cc // 4)
+            self._rgb(cc, self._preview_color(preview) if preview is not None
+                      else (0 if is_off else color))
             is_volume = self._rotary_function(cc // 4) == "Volume"
             # Re-sample ONLY the active Volume row on render-only ticks; all
             # other parameter rings keep the existing two-tick scan cadence.
@@ -1551,6 +1579,7 @@ class MF4TRKBento(ControlSurface):
         self._multi_chord.clear()
         self._mute_volume_last_turn.clear()
         self._volume_feedback_until.clear()
+        self._rotary_preview_rows.clear()
         for cc in range(16):
             try:
                 self._send(self.ROTARY_CH, cc, 0)
