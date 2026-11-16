@@ -2,7 +2,7 @@
 
 **Working product name:** Offline Processing Suite for Ableton Live  
 **Milestone:** Alpha 0.1 — editable two-step processing history proof  
-**Status:** Product architecture and SDK archive review committed; runtime integration and audio-engine implementation not yet verified.  
+**Status (16 Nov 2026):** The standalone engine proof (PR #41, open and draft) passes its full check on standalone Node 24.22.1 on Windows and Linux CI, and on standalone Node 22.23.4 and 24.22.1 on Linux. The GUI baseline (PR #42) and the shared contract (PR #36) are merged into canonical. The Live Extension host adapter and the Live round trip are not yet built or verified, and the engine has not run inside Live's Extension host on any platform.\
 **Canonical branch:** `ableton-offline-processing/alpha-0.1`  
 **Repository:** `solidtakes/Music-Development-Projects`
 
@@ -15,6 +15,19 @@ The user has selected **Live Suite** as the initial development target. Keep the
 The key product differentiator is editable processing history with incremental rendering: change or remove an early operation, preserve later operations, re-render only affected downstream nodes, and reuse valid cached intermediates. The internal model must support branches/alternate versions from day one even while the first UI shows a linear list.
 
 Full architecture: [PRODUCT_ARCHITECTURE.md](PRODUCT_ARCHITECTURE.md).
+
+## Current engine status (AOPX-02)
+
+Verified 15–16 Nov 2026; the coordination record is [Issue #40](https://github.com/solidtakes/Music-Development-Projects/issues/40).
+
+- **Canonical** `ableton-offline-processing/alpha-0.1` is at `a4f1404`. That is the merge of [PR #36](https://github.com/solidtakes/Music-Development-Projects/pull/36), which landed as the **contract-only precursor** (`engine/src/contract.ts`, commit `7c169c8`) and is frozen.
+- **Engine:** [PR #41](https://github.com/solidtakes/Music-Development-Projects/pull/41) on `claude/aopx-02-engine-proof` holds the WAV engine implementation. Claude owns it. It is **open and draft and not merged**. Its head was `a3868d0` (canonical merged in, no engine files changed) when the runtime checks below ran.
+- **Node 22.23.4 / npm 10.9.9:** engine check passes 50/50 tests and the demo passes 15/15 checks. Editor tests pass 24/24 and browser tests 10/10.
+- **Node 24.22.1 / npm 11.19.1:** the same results (50/50, 15/15, 24/24, 10/10). This was a **standalone Node binary on Linux, not Ableton Live's Extension host**.
+- **Windows and Linux CI (T4, 16 Nov 2026):** the workflow `.github/workflows/aopx-engine-windows.yml` runs standalone Node 24.22.1 / npm 11.19.1 on `windows-latest` and `ubuntu-latest`. At engine head `58e1aa5` ([run 43776706507](https://github.com/solidtakes/Music-Development-Projects/actions/runs/43776706507)), both platforms passed `npm ci`, `npm run check` (59/59 tests, demo 15/15), `npm run demo` (15/15) and the filesystem portability tests (9/9). The earlier Windows failure, `EPERM` when renaming onto an existing read-only file, is fixed. **Remaining caveat:** files held open by another process on Windows (antivirus, indexer, Live) can still make a remove or rename fail with `EBUSY`/`EPERM`; this is surfaced, not retried, and untested. All of these runs were **standalone Node, not Live's Extension host**.
+- **Not yet built or verified:** the Extension host adapter (AOPX-01) and the Live round trip (Alpha acceptance tests 11–13). The engine is a standalone proof until those exist.
+- Engine installs are reproducible via the committed `engine/package-lock.json` and `npm ci`. `npm run check` runs typecheck, the full test suite and the acceptance demo. From a clean `npm ci`, it passed (50/50 tests, 15/15 demo checks) on both Node 22.23.4 and Node 24.22.1.
+- Open follow-ups are tracked on Issue #40: T1 `RenderReport.wallMs`, T2 the modal-result envelope, T5 write durability, T7 low-severity engine fixes, T8 host adapter, T9 Live round trip.
 
 ## Alpha 0.1 scope
 
@@ -57,11 +70,11 @@ Key findings:
 - [#30 AOPX-01 — SDK feasibility and Live clip round-trip](https://github.com/solidtakes/Music-Development-Projects/issues/30)  
   Branch: `codex/aopx-01-sdk-feasibility`
 - [#31 AOPX-02 — Incremental WAV processing/history engine](https://github.com/solidtakes/Music-Development-Projects/issues/31)  
-  Branch: `codex/aopx-02-engine-proof`
+  Contract: `codex/aopx-02-engine-proof` (PR #36, merged, frozen). Engine implementation: `claude/aopx-02-engine-proof` (PR #41, draft).
 - [#32 AOPX-03 — floating GUI and storage/performance monitor](https://github.com/solidtakes/Music-Development-Projects/issues/32)  
   Branch: `codex/aopx-03-floating-gui` (created from the current canonical branch). Start the visual shell in parallel with mock data; integrate the real engine only after AOPX-02 publishes a stable API and passing core tests.
 
-AOPX-01 and AOPX-02 branches predate the latest canonical documentation; AOPX-03 was created from the canonical branch but may also lag subsequent documentation commits. Each Codex workstream must inspect the current ahead/behind status, preserve local/uncommitted work and synchronize safely before coding. The three GitHub issues contain their workstream handoffs. No implementation commits are currently ahead of the canonical branch, and no GitHub assignee/Codex agent is attached to the issues.
+*Historical note (superseded; see [Current engine status](#current-engine-status-aopx-02) above):* when this queue was written, the AOPX-01 and AOPX-02 branches predated the latest canonical documentation and no implementation commits were ahead of canonical. Each workstream must still inspect the current ahead/behind status, preserve local/uncommitted work and synchronize safely before coding. The GitHub issues contain the workstream handoffs.
 
 ## Live version and SDK gate
 
@@ -70,7 +83,7 @@ The user reports having Live 13 and Live 12.5 current-release installations and 
 ## Required next sequence
 
 1. AOPX-01 researches SDK/Live compatibility and builds the minimal Live adapter proof; it does not block engine work.
-2. AOPX-02 immediately builds the Node/TypeScript Reverse/Gain engine and proves editable history/cache independently of Live.
+2. AOPX-02 builds the Node/TypeScript Reverse/Gain engine and proves editable history/cache independently of Live. *(Standalone proof in PR #41; see above.)*
 3. AOPX-03 builds the floating-window visual shell in parallel using clearly marked mock data, then integrates the real engine after AOPX-02's API contract and core tests are stable.
 4. Integrate the Live adapter, GUI and engine; the user tests the complete Alpha 0.1 flow before feature expansion.
 

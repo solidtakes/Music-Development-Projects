@@ -1,0 +1,52 @@
+name: AOPX engine (Windows)
+
+# T4 (Issue #40): run the standalone AOPX-02 engine on Windows with Live's bundled Node version.
+# Linux is included only as a control, so a failure can be attributed to the platform.
+on:
+  push:
+    branches:
+      - claude/aopx-02-engine-proof
+      - ableton-offline-processing/alpha-0.1
+    paths:
+      - 'ableton-offline-processing/engine/**'
+      - '.github/workflows/aopx-engine-windows.yml'
+  pull_request:
+    branches: [ableton-offline-processing/alpha-0.1]
+    paths:
+      - 'ableton-offline-processing/engine/**'
+      - '.github/workflows/aopx-engine-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  engine:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ableton-offline-processing/engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Runtime versions
+        run: |
+          node --version
+          npm --version
+          node -p "process.platform + ' ' + process.arch + ' ' + require('os').release()"
+      - run: npm ci
+      - name: npm run check (typecheck, all tests incl. fs-portability, demo)
+        run: npm run check
+      - name: npm run demo (standalone)
+        if: success() || failure()
+        run: npm run demo
+      - name: Filesystem portability tests only
+        if: always()
+        run: node --test --test-reporter=spec test/fs-portability.test.ts
