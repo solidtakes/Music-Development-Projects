@@ -667,8 +667,10 @@ class Beta3Tests(unittest.TestCase):
             for col in range(4):
                 self.assertIs(self.surface._device_parameter(row,col),
                               device.parameters[1+row*4+col])
+        # Device rotaries no longer claim RGB; button modules remain Arm/Solo/Mute.
         self.assertEqual([self.surface._frame[row*4][0] for row in range(1,4)],
-                         [self.surface.DEVICE_COLOR] * 3)
+                         [self.surface.ARM_COLOR, self.surface.SOLO_COLOR,
+                          self.surface.MUTE_MONITOR_AUTO_OFF])
 
     def test_device_parameter_quantized_step_and_disabled_guard(self):
         self._insert_devices(1)
