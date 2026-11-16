@@ -12,6 +12,7 @@ on:
       - 'ableton-offline-processing/spikes/s3-modal/**'
       - 'ableton-offline-processing/editor/interface.html'
       - 'ableton-offline-processing/host/src/**'
+      - 'ableton-offline-processing/engine/src/contract.ts'
       - '.github/workflows/aopx-s3-probe-package.yml'
   workflow_dispatch:
 

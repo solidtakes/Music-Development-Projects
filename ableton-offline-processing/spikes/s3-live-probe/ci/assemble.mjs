@@ -32,6 +32,9 @@ const FILES = [
   ['src/delivery.mjs', join(repoAop, 'spikes', 's3-modal', 'delivery.mjs')],
   ['src/probe.html', join(repoAop, 'spikes', 's3-modal', 'probe.html')],
   ['src/interface.html', join(repoAop, 'editor', 'interface.html')],
+  // The product result parser, so G2-apply is checked by the real contract code inside Live.
+  ['src/product/host/src/modal.ts', join(repoAop, 'host', 'src', 'modal.ts')],
+  ['src/product/engine/src/contract.ts', join(repoAop, 'engine', 'src', 'contract.ts')],
 ];
 
 async function listFiles(dir) {
