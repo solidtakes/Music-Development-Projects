@@ -14,7 +14,8 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { S3_CASES, runS3Matrix } from '../s3-runner.mjs';
-import { injectProbeState, makeProbeState, toNaiveDataUrl } from '../delivery.mjs';
+import { injectProbeState, makeProbeState, toBase64DataUrl, toNaiveDataUrl } from '../delivery.mjs';
+import { parseModalResult } from '../../../host/src/modal.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const requireBrowser = process.env.AOPX_REQUIRE_BROWSER === '1';
@@ -73,6 +74,7 @@ function fakeShowModalDialog(browser, { deviceScaleFactor = 1, seen }) {
       await page.click(action);
     }
     const value = await done;
+    if (action === 'gui-cancel') seen.at(-1).raw = value; // checked with the product parser below
     current = context;
     await current.close();
     return value;
@@ -137,6 +139,8 @@ test('S3 matrix against a Chromium fake of showModalDialog', { skip }, async (t)
       assert.equal(byId[id].returned.action, 'cancel', id);
     }
     assert.deepEqual(seen.filter((s) => s.guiSource).map((s) => s.guiSource), ['S3 probe.wav', 'S3 probe.wav']);
+    // The real GUI's Cancel is a valid product ModalResult (host/src/modal.ts), end to end.
+    for (const s of seen.filter((x) => x.guiSource)) assert.deepEqual(parseModalResult(s.raw), { envelopeVersion: 1, action: 'cancel' });
   });
 
   await t.test('generated documents stay inside tempDirectory', () => {
@@ -151,4 +155,28 @@ test('a naive data:text/html,<raw> URL truncates the probe at the first "#" (rev
   const page = await browser.newPage();
   await page.goto(toNaiveDataUrl(html));
   assert.equal(await page.evaluate(() => typeof window.AOPX_PROBE_FACTS), 'undefined', 'probe script never ran');
+});
+
+test('data URL size boundary: just under 2 MiB loads intact, just over is refused (Chromium)', { skip }, async (t) => {
+  const browser = await chromium.launch();
+  t.after(() => browser.close());
+  const probeHtml = await readFile(join(here, '..', 'probe.html'), 'utf8');
+  const LIMIT = 2 * 1024 * 1024; // 2,097,152 characters
+  const urlFor = (n) => toBase64DataUrl(injectProbeState(probeHtml, makeProbeState({ payloadBytes: n })));
+  // Size the payload so the whole URL lands 64 Ki characters either side of the limit.
+  const base = urlFor(0).length;
+  const perByte = (urlFor(100_000).length - base) / 100_000;
+  const sized = (target) => urlFor(Math.max(0, Math.floor((target - base) / perByte)));
+  const under = sized(LIMIT - 64 * 1024);
+  const over = sized(LIMIT + 64 * 1024);
+  assert.ok(under.length < LIMIT && over.length > LIMIT, `sizes ${under.length} / ${over.length}`);
+
+  const ok = await browser.newPage();
+  await ok.goto(under);
+  assert.equal(await ok.evaluate(() => window.AOPX_PROBE_FACTS && window.AOPX_PROBE_FACTS.stateIntact), true, `${under.length}-char data URL loads intact`);
+
+  const refused = await browser.newPage();
+  let error = null;
+  try { await refused.goto(over); } catch (e) { error = String(e.message).split('\n')[0].slice(0, 80); }
+  assert.match(String(error), /ERR_ABORTED|ERR_INVALID_URL|Invalid url/, `${over.length}-char data URL is refused`);
 });

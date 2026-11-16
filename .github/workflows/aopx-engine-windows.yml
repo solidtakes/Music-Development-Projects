@@ -71,12 +71,20 @@ jobs:
 
   # Review finding R3 (Issue #40): the Playwright browser suites skip in the job above because the
   # runners have no Playwright. This job installs a pinned Playwright + Chromium outside the repo
-  # (nothing is added to any package.json or lockfile) and runs the suites with
+  # (nothing is added to any product package.json or lockfile) and runs the suites with
   # AOPX_REQUIRE_BROWSER=1, so a missing browser FAILS instead of silently skipping.
+  # Windows runs too: its Chromium is the closest CI stand-in for Live's WebView2.
   # Chromium is not Live's WebView2: these prove the GUI and the S3 harness, not the Live host.
   browser:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
     env:
       AOPX_REQUIRE_BROWSER: '1'
       PLAYWRIGHT_VERSION: '1.63.0'
@@ -87,19 +95,29 @@ jobs:
           node-version: '24.22.1'
       - name: Install pinned Playwright outside the repository
         run: |
-          mkdir -p "$RUNNER_TEMP/pw"
-          npm install --prefix "$RUNNER_TEMP/pw" --no-save --no-package-lock --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"
-          echo "NODE_PATH=$RUNNER_TEMP/pw/node_modules" >> "$GITHUB_ENV"
-      - name: Install Chromium for Playwright
-        run: '"$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium'
+          PW_DIR="${{ runner.temp }}/pw"
+          mkdir -p "$PW_DIR"
+          npm install --prefix "$PW_DIR" --no-save --no-package-lock --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"
+          echo "NODE_PATH=$PW_DIR/node_modules" >> "$GITHUB_ENV"
+      - name: Install Chromium for Playwright (Linux, with system dependencies)
+        if: runner.os == 'Linux'
+        run: '"${{ runner.temp }}/pw/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Install Chromium for Playwright (Windows)
+        if: runner.os == 'Windows'
+        run: '"${{ runner.temp }}/pw/node_modules/.bin/playwright" install chromium'
       - name: Versions
         run: |
           node --version
+          node -p "process.platform + ' ' + process.arch + ' ' + require('os').release()"
           node -p "require('playwright/package.json').version"
       - name: Editor browser suites (reorder + host contract)
         working-directory: ableton-offline-processing/editor
         run: npm run test:browser
-      - name: Spike S3 harness (unit + Chromium matrix)
+      - name: Spike S3 (npm ci, typecheck-only dev dependencies)
         if: success() || failure()
         working-directory: ableton-offline-processing/spikes/s3-modal
-        run: npm test
+        run: npm ci
+      - name: Spike S3 typecheck + all tests (unit, host cross-checks, S4 checker, Chromium matrix)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/spikes/s3-modal
+        run: npm run check

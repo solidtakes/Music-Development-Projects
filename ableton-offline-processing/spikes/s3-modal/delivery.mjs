@@ -115,5 +115,8 @@ export function classifyModalReturn(value) {
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     return { kind: 'json-non-object', treatAs: 'cancel' };
   }
-  return { kind: 'json-object', length: value.length, action: parsed.action ?? null, treatAs: parsed.action === 'process' ? 'process' : 'cancel', parsed };
+  // 'process' needs the same envelope version the product parser (host/src/modal.ts) accepts; any
+  // other version is a cancel. This is a logging aid: in T8, parseModalResult stays the authority.
+  const isProcess = parsed.action === 'process' && parsed.envelopeVersion === 1;
+  return { kind: 'json-object', length: value.length, action: parsed.action ?? null, treatAs: isProcess ? 'process' : 'cancel', parsed };
 }

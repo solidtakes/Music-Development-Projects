@@ -71,7 +71,9 @@ extension's logs appear, and the extension's `storageDirectory` and `tempDirecto
 
 **Harness:** [`s3-modal/`](s3-modal/). See [`S3_EXTENSION_GLUE.md`](s3-modal/S3_EXTENSION_GLUE.md)
 for wiring it into a throwaway extension. Already verified in CI-style Chromium (Playwright, not
-Live): 18/18 tests, `npm test` in `spikes/s3-modal`.
+Live): `npm ci && npm run check` in `spikes/s3-modal` type-checks the harness against the product
+contract and runs unit, host cross-check, S4 checker and Chromium tests. CI runs it on Windows and
+Linux (see [Harness verification](#harness-verification)).
 
 **Questions S3 must answer on Windows:**
 
@@ -141,9 +143,14 @@ writes into the extension temp directory. The file type follows Live's Record Fi
 1. Record File Type = WAV. Disposable WAV alone on its track.
 2. Render the clip's `startTime`..`endTime` range. Log the returned path, file size, RIFF/WAVE
    header (first 12 bytes), channels, sample rate, bit depth and frame count.
-3. Decode it with the AOPX engine's WAV reader (`engine/src/wav.ts`) in a standalone Node script
-   **outside Live** (copy the file out of temp first). Compare the frame count with
-   `duration × sampleRate`, converting beats to seconds at the Set tempo.
+3. Copy the render **out of** temp, then check it **outside Live** with the read-only checker
+   [`s4-wav-check.mts`](s4-wav-check.mts). It needs Node ≥ 22.18 and no `npm install`. Pass the clip's
+   duration in seconds (beats → seconds at the Set tempo) as the second argument:
+   ```powershell
+   node ableton-offline-processing\spikes\s4-wav-check.mts "C:\AOPX-spikes\S4\render-copy.wav" 4.0
+   ```
+   It prints the first 12 bytes, the engine's view of the format, whether every frame decodes and
+   `durationDeltaSeconds`. It exits 0 for a readable WAV and 1 otherwise, for example on AIFF in step 4.
 4. Repeat with Record File Type = AIFF and confirm the spike detects it and refuses to continue.
 5. Try one case with a fade and one with a second overlapping clip, and note whether they leak
    into the render.
@@ -180,3 +187,39 @@ Post on Issue #40: the version table, PASS/FAIL per step, the S3 results JSON, s
 API that differs from this checklist. The T8 adapter design
 ([`T8_ADAPTER_ARCHITECTURE.md`](../T8_ADAPTER_ARCHITECTURE.md)) is updated from those results.
 Do not start T8 implementation until S1–S5 are reported and the owner approves.
+
+---
+
+## Harness verification
+
+`spikes/s3-modal` (Node ≥ 22.18; Playwright is not a package dependency):
+
+```sh
+cd ableton-offline-processing/spikes/s3-modal
+npm ci            # typecheck-only dev dependencies: typescript, @types/node (lockfile)
+npm run check     # tsc (checkJs) + node --check + all tests
+```
+
+The browser suites need Playwright 1.63.0 and its Chromium. Locally, put an existing install on
+`NODE_PATH` and set `AOPX_REQUIRE_BROWSER=1` so they fail rather than skip. CI does the same on
+`windows-latest` and `ubuntu-latest` (job `browser` in `.github/workflows/aopx-engine-windows.yml`).
+
+What the checks cover:
+
+- **Typecheck:** `delivery.mjs`, `s3-runner.mjs` and `../s4-wav-check.mts`, with the G1/G2 GUI state
+  checked against the product `HostInitialState` type.
+- **Host cross-checks** (`test/host-crosscheck.test.mjs`):
+  - the runner's GUI injection and JSON escaping are byte-identical to `host/src/modal.ts`;
+  - every value the classifier treats as cancel is also a cancel or a rejection for the product
+    `parseModalResult`;
+  - the probe's own envelope is deliberately not a product `ModalResult`.
+- **Chromium:**
+  - the 19-case S3 matrix against a fake `showModalDialog`, where the real GUI's Cancel (G1/G2)
+    parses as a product `ModalResult`;
+  - an unencoded data URL is cut off at the first `#`;
+  - the data URL size boundary: just under 2,097,152 characters loads intact, and just over is refused.
+- **S4 checker** (`test/s4-wav-check.test.mjs`): a valid WAV in a path with spaces gives a zero
+  duration delta and is never modified; an AIFF-like file exits 1 with a `WavError`; no argument
+  prints usage.
+
+All of this proves the harness in Chromium, **not** Live's WebView2 modal.

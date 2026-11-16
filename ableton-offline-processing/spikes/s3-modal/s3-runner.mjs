@@ -15,6 +15,7 @@ import { randomUUID } from 'node:crypto';
 import {
   classifyModalReturn,
   injectProbeState,
+  scriptSafeJson,
   makeProbeState,
   toBase64DataUrl,
   toPercentDataUrl,
@@ -50,7 +51,13 @@ export const S3_CASES = [
   { id: 'G2-gui-data-base64', method: 'gui-data-base64', ask: 'If the AOPX editor appears, press Cancel; if blank, close with X.' },
 ];
 
-function guiState() {
+/**
+ * The HostInitialState the G1/G2 cases inject into the real GUI. Type-checked (`npm run typecheck`)
+ * against the product contract in engine/src/contract.ts.
+ * @returns {import('../../engine/src/contract.ts').HostInitialState}
+ */
+export function guiState() {
+  /** @type {import('../../engine/src/contract.ts').AudioMetadata} */
   const format = { channels: 2, sampleRate: 48000, bitDepth: 24, frames: 48000, durationSeconds: 1, encoding: 'pcm' };
   return {
     envelopeVersion: 1,
@@ -62,13 +69,18 @@ function guiState() {
   };
 }
 
-/** Same injection rule as host/src/modal.ts injectInitialState (kept local so the spike has no TS step). */
-function injectGuiState(html, state) {
+/**
+ * Same injection as host/src/modal.ts injectInitialState, kept local so the runner can be copied into
+ * a spike extension as plain JS. test/host-crosscheck.test.mjs asserts the output is byte-identical
+ * to the host function's, so the two cannot drift.
+ */
+export function injectGuiState(html, state) {
   const marker = '<script id="aopx-plan-core">';
   const at = html.indexOf(marker);
-  if (at < 0) throw new Error('interface.html marker not found');
-  const json = JSON.stringify(state).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
-  return `${html.slice(0, at)}<script>window.AOPX_INITIAL_STATE=${json};</script>\n${html.slice(at)}`;
+  if (at < 0 || html.indexOf(marker, at + 1) >= 0) {
+    throw new Error('GUI document must contain exactly one <script id="aopx-plan-core">.');
+  }
+  return `${html.slice(0, at)}<script>window.AOPX_INITIAL_STATE=${scriptSafeJson(state)};</script>\n${html.slice(at)}`;
 }
 
 /** Build the URL for one case. Files go to `tempDirectory` with unique names (never overwritten). */
@@ -127,7 +139,8 @@ export async function runS3Matrix({ showModalDialog, tempDirectory, outDir, only
     try {
       returned = await showModalDialog(built.url, width, height);
     } catch (e) {
-      threw = { name: e?.name ?? null, message: String(e?.message ?? e) };
+      const err = /** @type {{ name?: unknown, message?: unknown } | undefined} */ (e);
+      threw = { name: err?.name ?? null, message: String(err?.message ?? e) };
     }
     const ms = Math.round(performance.now() - t0);
     const classification = threw ? { kind: 'threw', treatAs: 'cancel' } : classifyModalReturn(returned);
