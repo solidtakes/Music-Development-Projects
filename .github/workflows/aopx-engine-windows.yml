@@ -1,0 +1,123 @@
+name: AOPX engine (Windows)
+
+# T4 (Issue #40): run the standalone AOPX-02 engine on Windows with Live's bundled Node version.
+# Linux is included only as a control, so a failure can be attributed to the platform.
+on:
+  push:
+    branches:
+      - claude/aopx-02-engine-proof
+      - ableton-offline-processing/alpha-0.1
+    paths:
+      - 'ableton-offline-processing/engine/**'
+      - 'ableton-offline-processing/host/**'
+      - 'ableton-offline-processing/editor/**'
+      - 'ableton-offline-processing/spikes/**'
+      - '.github/workflows/aopx-engine-windows.yml'
+  pull_request:
+    branches: [ableton-offline-processing/alpha-0.1]
+    paths:
+      - 'ableton-offline-processing/engine/**'
+      - 'ableton-offline-processing/host/**'
+      - 'ableton-offline-processing/editor/**'
+      - 'ableton-offline-processing/spikes/**'
+      - '.github/workflows/aopx-engine-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  engine:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ableton-offline-processing/engine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Runtime versions
+        run: |
+          node --version
+          npm --version
+          node -p "process.platform + ' ' + process.arch + ' ' + require('os').release()"
+      - run: npm ci
+      - name: npm run check (typecheck, all tests incl. fs-portability, demo)
+        run: npm run check
+      - name: npm run demo (standalone)
+        if: success() || failure()
+        run: npm run demo
+      - name: Filesystem portability tests only
+        if: always()
+        run: node --test --test-reporter=spec test/fs-portability.test.ts
+      - name: Host modal contract (npm ci)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/host
+        run: npm ci
+      - name: Host modal contract (typecheck + tests)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/host
+        run: npm run check
+      - name: Editor tests (browser suites skip without Playwright)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/editor
+        run: npm test
+
+  # Review finding R3 (Issue #40): the Playwright browser suites skip in the job above because the
+  # runners have no Playwright. This job installs a pinned Playwright + Chromium outside the repo
+  # (nothing is added to any product package.json or lockfile) and runs the suites with
+  # AOPX_REQUIRE_BROWSER=1, so a missing browser FAILS instead of silently skipping.
+  # Windows runs too: its Chromium is the closest CI stand-in for Live's WebView2.
+  # Chromium is not Live's WebView2: these prove the GUI and the S3 harness, not the Live host.
+  browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      AOPX_REQUIRE_BROWSER: '1'
+      PLAYWRIGHT_VERSION: '1.63.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Install pinned Playwright outside the repository
+        run: |
+          PW_DIR="${{ runner.temp }}/pw"
+          mkdir -p "$PW_DIR"
+          npm install --prefix "$PW_DIR" --no-save --no-package-lock --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"
+          echo "NODE_PATH=$PW_DIR/node_modules" >> "$GITHUB_ENV"
+      - name: Install Chromium for Playwright (Linux, with system dependencies)
+        if: runner.os == 'Linux'
+        run: '"${{ runner.temp }}/pw/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Install Chromium for Playwright (Windows)
+        if: runner.os == 'Windows'
+        run: '"${{ runner.temp }}/pw/node_modules/.bin/playwright" install chromium'
+      - name: Versions
+        run: |
+          node --version
+          node -p "process.platform + ' ' + process.arch + ' ' + require('os').release()"
+          node -p "require('playwright/package.json').version"
+      - name: Editor browser suites (reorder + host contract)
+        working-directory: ableton-offline-processing/editor
+        run: npm run test:browser
+      - name: Spike S3 (npm ci, typecheck-only dev dependencies)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/spikes/s3-modal
+        run: npm ci
+      - name: Spike S3 typecheck + all tests (unit, host cross-checks, S4 checker, Chromium matrix)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/spikes/s3-modal
+        run: npm run check

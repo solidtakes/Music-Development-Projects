@@ -1,0 +1,19 @@
+{
+  "name": "@aopx/host",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "description": "SDK-independent Extension Host side of the AOPX modal contract: builds, serializes and injects HostInitialState and validates the returned ModalResult.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test --test-reporter=spec \"test/**/*.test.ts\"",
+    "check": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
