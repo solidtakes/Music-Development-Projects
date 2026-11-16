@@ -125,6 +125,8 @@ The current contract byte counts are logical file lengths from filesystem metada
 From this folder, run:
 
 ```sh
+npm ci                          # installs the pinned dev dependency playwright@1.63.0 (lockfile)
+npx playwright install chromium # once per machine, if Chromium for Playwright 1.63 is not installed yet
 npm test
 ```
 
@@ -155,7 +157,7 @@ $env:AOPX_SCREENSHOT_DIR="C:\some\dir"; npm run test:browser
 set "AOPX_SCREENSHOT_DIR=C:\some\dir" && npm run test:browser
 ```
 
-Playwright is resolved from the environment (global install or `NODE_PATH`); this package adds no dependencies.
+Playwright is a pinned dev dependency (`playwright@1.63.0` in `package-lock.json`), so `npm ci` makes the browser suites run instead of skipping. A global install or `NODE_PATH` still works as a fallback. CI (`.github/workflows/aopx-engine-windows.yml`, job `browser`) installs Chromium and runs `npm run test:browser` on Windows and Linux.
 
 None of this replaces testing in the Live SDK runtime. Browser preview never renders audio.
 

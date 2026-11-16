@@ -11,6 +11,7 @@ on:
       - 'ableton-offline-processing/engine/**'
       - 'ableton-offline-processing/host/**'
       - 'ableton-offline-processing/editor/**'
+      - 'ableton-offline-processing/spikes/**'
       - '.github/workflows/aopx-engine-windows.yml'
   pull_request:
     branches: [ableton-offline-processing/alpha-0.1]
@@ -18,6 +19,7 @@ on:
       - 'ableton-offline-processing/engine/**'
       - 'ableton-offline-processing/host/**'
       - 'ableton-offline-processing/editor/**'
+      - 'ableton-offline-processing/spikes/**'
       - '.github/workflows/aopx-engine-windows.yml'
   workflow_dispatch:
 
@@ -66,3 +68,44 @@ jobs:
         if: success() || failure()
         working-directory: ableton-offline-processing/editor
         run: npm test
+
+  # Real-Chromium suites (Playwright 1.63.0, pinned in each package's lockfile). Chromium is the engine
+  # under WebView2, so this checks the GUI and the S3 probe; it does not prove Live's modal behaviour.
+  browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Editor (npm ci)
+        working-directory: ableton-offline-processing/editor
+        run: npm ci
+      - name: Install Playwright Chromium (Linux, with system dependencies)
+        if: runner.os == 'Linux'
+        working-directory: ableton-offline-processing/editor
+        run: npx playwright install --with-deps chromium
+      - name: Install Playwright Chromium (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ableton-offline-processing/editor
+        run: npx playwright install chromium
+      - name: Editor browser suites (required, fail if Playwright is missing)
+        working-directory: ableton-offline-processing/editor
+        run: npm run test:browser
+      - name: S3 spike (npm ci)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/spikes/s3-modal
+        run: npm ci
+      - name: S3 spike (typecheck + tests)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/spikes/s3-modal
+        run: npm run check
+      - name: S3 spike browser suite (required)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/spikes/s3-modal
+        run: npm run test:browser

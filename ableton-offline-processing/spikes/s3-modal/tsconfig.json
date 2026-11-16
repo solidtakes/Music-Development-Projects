@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": [
+      "es2023",
+      "dom"
+    ],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": [
+      "node"
+    ],
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "example/**/*.ts",
+    "../s4-wav-check.mts"
+  ]
+}

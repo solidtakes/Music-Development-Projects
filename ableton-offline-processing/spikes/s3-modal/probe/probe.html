@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AOPX S3 modal probe</title>
+<style>
+/* The '#' characters in these colours are deliberate: an unencoded data: URL is cut off at the first one. */
+:root{--bg:#262626;--panel:#303030;--line:#454545;--text:#e6e6e6;--dim:#9a9a9a;--accent:#f39a42;--ok:#7bc96f;--bad:#e5675b}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:12px/1.4 system-ui,"Segoe UI",sans-serif}
+main{display:flex;flex-direction:column;gap:8px;padding:10px;height:100%}
+h1{font-size:13px;margin:0;letter-spacing:.04em}
+.row{display:flex;gap:6px;flex-wrap:wrap}
+button{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:6px 10px;font:inherit;cursor:pointer}
+button.primary{border-color:var(--accent)}
+table{border-collapse:collapse;width:100%;background:var(--panel)}
+td{border-bottom:1px solid var(--line);padding:3px 6px;vertical-align:top;font-variant-numeric:tabular-nums}
+td:first-child{color:var(--dim);white-space:nowrap;width:1%}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+#frame{position:fixed;inset:0;border:2px solid var(--accent);pointer-events:none}
+#log{color:var(--dim);white-space:pre-wrap;min-height:2em}
+</style>
+</head>
+<body>
+<div id="frame" aria-hidden="true"></div>
+<main>
+  <h1>AOPX S3 MODAL PROBE <span id="variant"></span></h1>
+  <div class="row">
+    <button class="primary" id="return" type="button">RETURN DIAGNOSTICS</button>
+    <button id="return-large" type="button">RETURN 1 MB STRING</button>
+    <button id="cancel" type="button">SEND CANCEL ENVELOPE</button>
+  </div>
+  <div id="log">Then also test: close this window with the window's X button, and with Esc.</div>
+  <table><tbody id="diag"></tbody></table>
+</main>
+<script id="probe-main">
+(function(){
+  "use strict";
+  function fnv1a(s){var h=0x811c9dc5;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}return("0000000"+h.toString(16)).slice(-8)}
+  var probe = window.AOPX_PROBE || null;
+  var mac = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.live;
+  var win = window.chrome && window.chrome.webview;
+  function diagnostics(){
+    return {
+      probe: "aopx-s3",
+      probeVersion: 1,
+      variant: probe ? probe.variant : null,
+      injected: !!probe,
+      injectedIntact: probe ? (probe.padding.length === probe.paddingLength && fnv1a(probe.padding) === probe.paddingHash) : null,
+      injectedPaddingLength: probe ? probe.paddingLength : null,
+      sentinelPresent: !!document.getElementById("end-sentinel"),
+      protocol: location.protocol,
+      urlLength: String(location.href).length,
+      bridge: { webkitLive: !!mac, chromeWebview: !!win, chromeWebviewPostMessage: !!(win && typeof win.postMessage === "function") },
+      devicePixelRatio: window.devicePixelRatio,
+      inner: [window.innerWidth, window.innerHeight],
+      outer: [window.outerWidth, window.outerHeight],
+      documentClient: [document.documentElement.clientWidth, document.documentElement.clientHeight],
+      screen: [screen.width, screen.height],
+      screenAvail: [screen.availWidth, screen.availHeight],
+      prefersDark: !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches),
+      isSecureContext: !!window.isSecureContext,
+      cryptoSubtle: !!(window.crypto && window.crypto.subtle),
+      localStorage: (function(){try{localStorage.setItem("aopx","1");localStorage.removeItem("aopx");return true}catch(e){return false}})(),
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      timezone: (function(){try{return Intl.DateTimeFormat().resolvedOptions().timeZone}catch(e){return null}})(),
+      loadedAt: new Date().toISOString()
+    };
+  }
+  function show(){
+    var d = diagnostics(), rows = document.getElementById("diag");
+    document.getElementById("variant").textContent = d.variant ? "· " + d.variant : "· (no injected state)";
+    rows.innerHTML = "";
+    Object.keys(d).forEach(function(k){
+      var tr=document.createElement("tr"), a=document.createElement("td"), b=document.createElement("td");
+      a.textContent=k; var v=d[k]; b.textContent=typeof v==="object"&&v!==null?JSON.stringify(v):String(v);
+      if(k==="injectedIntact"||k==="sentinelPresent"||k==="chromeWebview"){b.className=v?"ok":"bad"}
+      tr.append(a,b); rows.append(tr);
+    });
+    return d;
+  }
+  function send(payload){
+    var message = { method: "close_and_send", params: [JSON.stringify(payload)] };
+    var log = document.getElementById("log");
+    try {
+      if (mac) { mac.postMessage(message); log.textContent = "Sent via webkit.messageHandlers.live"; return; }
+      if (win) { win.postMessage(message); log.textContent = "Sent via chrome.webview.postMessage"; return; }
+      log.textContent = "No host bridge found: nothing was sent.";
+    } catch (e) { log.textContent = "Bridge threw: " + (e && e.name) + ": " + (e && e.message); }
+  }
+  window.addEventListener("resize", show);
+  document.getElementById("return").addEventListener("click", function(){ send({ action: "probe", diagnostics: diagnostics() }); });
+  document.getElementById("return-large").addEventListener("click", function(){ var big = new Array(1024 * 1024 + 1).join("x"); send({ action: "probe-large", bytes: big.length, hash: fnv1a(big), big: big }); });
+  document.getElementById("cancel").addEventListener("click", function(){ send({ envelopeVersion: 1, action: "cancel" }); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") document.getElementById("log").textContent = "Esc pressed inside the page (the page itself does nothing)."; });
+  window.addEventListener("DOMContentLoaded", show);
+  if (document.readyState !== "loading") show();
+  window.__aopxProbe = { diagnostics: diagnostics, send: send };
+})();
+</script>
+<!-- If an unencoded data: URL is truncated at the first '#', this element never exists. -->
+<div id="end-sentinel" hidden></div>
+</body>
+</html>

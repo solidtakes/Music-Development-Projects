@@ -1,0 +1,21 @@
+{
+  "name": "@aopx/spike-s3-modal",
+  "version": "0.0.0-spike",
+  "private": true,
+  "description": "AOPX-01 spike S3 harness: modal delivery variants (data URL vs temp file), return-value logging and a probe page. SDK-independent; the Live part is run manually per ../WINDOWS_SPIKE_CHECKLIST.md.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test --test-reporter=spec \"test/**/*.test.ts\"",
+    "test:browser": "node scripts/run-browser-tests.mjs",
+    "check": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "playwright": "1.63.0",
+    "typescript": "^5.9.0"
+  }
+}
