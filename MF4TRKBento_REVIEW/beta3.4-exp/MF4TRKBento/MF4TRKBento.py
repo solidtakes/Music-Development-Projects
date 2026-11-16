@@ -644,12 +644,20 @@ class MF4TRKBento(ControlSurface):
                 continue
             # Snap to independent row assignments if the legacy auto-layout
             # would otherwise remove or insert a noncontiguous Device row.
-            if (self._rotary_overrides is None and
+            was_auto = self._rotary_overrides is None
+            if (was_auto and
                     (row < self._default_device_prefix_count() - 1 or
                      (next_module == "Device Control" and
                       row != self._default_device_prefix_count()))):
                 self._freeze_custom_rotaries()
             self._row_modules[row] = next_module
+            if (was_auto and current == self.MODULES.index("Device Control")
+                    and next_module != "Device Control"
+                    and self._rotary_overrides is not None):
+                # Removing a higher legacy Device module restores that row's
+                # original mixer rotary while preserving lower Device rows.
+                self._rotary_overrides[row] = self.MIXER_ROTARY_FUNCTIONS[row]
+                self._device_bank = 0
             if next_module == "Device Control" and self._rotary_overrides is not None:
                 # Device push only makes sense with Device rotaries; do not
                 # shift any other row or disturb unrelated push assignments.
