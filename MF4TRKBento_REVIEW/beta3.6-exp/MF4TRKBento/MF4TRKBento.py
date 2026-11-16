@@ -539,6 +539,10 @@ class MF4TRKBento(ControlSurface):
         row = self._row_for_cc(cc)
         first, second, third, last = self.ROWS[row]
         if row == self._device_utility_row() and self._held[last]:
+            # The knob's own push may be used for a TAP command; ignore
+            # incidental CC rotation while that same knob is depressed.
+            if cc in (second, third) and self._held[cc]:
+                return
             if cc == second:
                 self._consume_held()
                 self._slow_device_window(step)
@@ -1299,7 +1303,9 @@ class MF4TRKBento(ControlSurface):
         except (AttributeError, RuntimeError, TypeError, ValueError):
             return_count = 0
         if self._last_return_count is not None and return_count != self._last_return_count:
-            self._send_offset = 0
+            # Preserve valid offsets on adding Returns, clamp if removed.
+            self._send_offset = min(self._send_offset,
+                                    max(0, self._available_send_count() - 1))
         self._last_return_count = return_count
         if device_changed:
             self._device_base = 0
