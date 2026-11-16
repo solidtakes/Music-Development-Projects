@@ -655,8 +655,7 @@ class MF4TRKBento(ControlSurface):
         # _press_order includes target_cc last; inspect earlier held sources,
         # most recent first, ignoring chords already consumed.
         for modifier_cc in reversed(self._press_order[:-1]):
-            if (not self._held[modifier_cc] or self._consumed[modifier_cc]
-                    or modifier_cc % 4 != col):
+            if (not self._held[modifier_cc] or modifier_cc % 4 != col):
                 continue
             source_row = modifier_cc // 4
             distance = target_row - source_row
@@ -666,6 +665,13 @@ class MF4TRKBento(ControlSurface):
                 self._row_modules[source_row], {}).get(distance)
             if action is None:
                 continue
+            # A modifier that was already consumed by this or another
+            # gesture cannot initiate a second action until released.
+            # Consume its newly tapped partner as well, rather than
+            # allowing a normal push to fire while the modifier is held.
+            if self._consumed[modifier_cc]:
+                self._consume_held()
+                return True
             # A press may cause an unintended volume detent immediately
             # beforehand; preserve Beta 3.6's rollback guard on target too.
             if self._rotary_function(target_row) == "Volume":
