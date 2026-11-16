@@ -118,7 +118,7 @@ test('drag-and-drop reorder in a real browser', { skip }, async t => {
       assert.deepEqual(await rowIds(page), ['op-gain-1', 'op-gain-2', 'op-reverse-1']);
 
       const payload = await applyPlan(page);
-      assert.deepEqual(payload, { action: 'process', plan: { version: 1, operations: [
+      assert.deepEqual(payload, { envelopeVersion: 1, action: 'process', plan: { version: 1, operations: [
         { id: 'op-gain-1', type: 'gain', db: -3, enabled: false },
         { id: 'op-gain-2', type: 'gain', db: 6.25, enabled: true },
         { id: 'op-reverse-1', type: 'reverse', enabled: true },

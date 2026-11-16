@@ -54,26 +54,43 @@ The order rules live in a small DOM-free script (`<script id="aopx-plan-core">`,
 
 ## Host integration contract
 
-The Extension Host injects initial state before the main inline script executes:
+The contract types live in `engine/src/contract.ts` and are versioned by `MODAL_ENVELOPE_VERSION` (currently 1), separately from `CONTRACT_VERSION`, which versions the operation plan and is part of every cache key.
+
+The Extension Host injects a `HostInitialState` as `window.AOPX_INITIAL_STATE` before the UI scripts run:
 
 ```ts
-interface AopxEditorInitialState {
+interface HostInitialState {
+  envelopeVersion: 1;
   source: SourceInfo;
-  waveform?: WaveformPeak[]; // min/max peaks, typically 150–300 buckets
-  plan?: OperationPlan;
-  diagnostics?: RenderReport; // optional previous/preview report
-  preview?: boolean;          // omit/false in Live
+  waveform: WaveformPeak[];          // min/max peaks, e.g. from the engine's computePeaks()
+  plan: OperationPlan;
+  diagnostics: RenderReport | null;  // last completed render for this source, or null
+  preview: false;                    // host state is never preview data
 }
 ```
 
+The string returned through `close_and_send` is the JSON of a `ModalResult`:
+
+```ts
+type ModalResult =
+  | { envelopeVersion: 1; action: "cancel" }
+  | { envelopeVersion: 1; action: "process"; plan: OperationPlan };
+```
+
+If the injected state carries an `envelopeVersion` other than 1, the UI disables Apply and says so; Cancel still returns. State without `envelopeVersion` (the older shape, and the browser preview) is still accepted.
+
+The SDK-independent host side is in `../host/src/modal.ts`:
+- `buildHostInitialState(...)` builds the state;
+- `injectInitialState(html, state)` inserts `<script>window.AOPX_INITIAL_STATE=...;</script>` before `<script id="aopx-plan-core">`, serialized so that no source name can end the script early;
+- `parseModalResult(string)` validates the returned string (envelope version, action, plan version, operation types and fields, Gain range, unique ids) and throws `ModalResultError` otherwise.
+
 For the SDK modal:
-1. Read/prepare the HTML string.
-2. Inject a safely serialized `window.AOPX_INITIAL_STATE = ...;` script before the UI's main script.
-3. Open with `context.ui.showModalDialog(dataUrl, 860, 660)`.
-4. Parse the returned string. `{ action: "cancel" }` cancels; `{ action: "process", plan: OperationPlan }` starts the engine.
-5. Pass the plan to the existing `Project.setPlan(branch, sourceFingerprint, plan)`, then call `Project.render(branch, { signal, onProgress })` within the SDK's cancellable `withinProgressDialog`.
-6. Import only a completed output using the SDK's host import API and create a new clip on a separate track; never overwrite the source.
-7. Show a result dialog populated with the real `RenderReport`.
+1. Read the HTML and call `injectInitialState`.
+2. Open it with `context.ui.showModalDialog(url, 860, 660)`. Whether the URL is a data URL or a generated file in `tempDirectory` is decided by spike S3 on Windows.
+3. Pass the returned string to `parseModalResult`. `cancel` stops; `process` gives the plan.
+4. Pass the plan to `Project.setPlan(branch, sourceFingerprint, plan)`, then call `Project.render(branch, { signal, onProgress })` within the SDK's cancellable `withinProgressDialog`.
+5. Import only a completed output using the SDK's host import API and create a new clip on a separate track; never overwrite the source.
+6. Show a result dialog populated with the real `RenderReport`.
 
 The Webview supports both SDK host bridge variants:
 - macOS: `window.webkit.messageHandlers.live.postMessage(message)`
@@ -96,9 +113,10 @@ The UI emits the exact shared operation-plan envelope:
 Supported operation types in Alpha 0.1: `reverse`, `gain`.
 Gain range: -60 to +24 dB. Multiple operations of the same type are allowed.
 
-Render diagnostics consume the existing shared `RenderReport` shape:
+Render diagnostics consume the shared `RenderReport` shape:
 - `steps[].operationId`, `status`, `renderMs`, `lookupMs`, `bytes`
 - `sourceBytes`, `outputBytes`, `cacheBytes`, `projectBytes`
+- `wallMs`: **LAST RENDER** shows this measured wall time of the render request, or "—" when it is `null`. It is not the sum of `renderMs`: a cache hit carries its entry's original `renderMs` forward, so that sum would report the original render time for an all-hit render. Per-step `renderMs` and `lookupMs` stay in the step table.
 
 The current contract byte counts are logical file lengths from filesystem metadata, not allocated disk blocks.
 
@@ -114,6 +132,7 @@ Requires Node ≥ 22.18. The suite contains:
 - `test/ui-contract.test.mjs`: static checks of the operation-plan and SDK bridge contract markers.
 - `test/reorder-core.test.mjs`: unit tests of the shipped reorder/plan core (evaluated from `interface.html`): move earlier/later, first/last boundaries, drag to first/last slot, stable IDs and parameters, bypass preservation, input immutability, and emitted plan order.
 - `test/browser-reorder.test.mjs`: real Chromium interaction tests through Playwright at 860×660 (SDK modal size), 640×660 (single-column layout) and 860×480. They demonstrate a three-operation drag reorder (`reverse, gain −3 dB (bypassed), gain +6.25 dB` → `gain +6.25, reverse, gain −3 (bypassed)` → …) and check the payload Apply sends through a mocked `close_and_send` bridge. They also cover row-body drags, handle clicks, drops over activator/remove buttons, no-op drops within the same slot, Esc and pointercancel cancellation, keyboard reordering and focus, and horizontal overflow.
+- `test/browser-host-contract.test.mjs`: real Chromium tests of the host contract. The state is built and injected with `../host/src/modal.ts`, every payload sent through the Windows (`chrome.webview`) bridge is validated with `parseModalResult`, and the suite checks: injected state renders as non-preview; LAST RENDER shows `wallMs` (17.4 ms) for an all-hit report rather than the 118.4 ms sum of carried-forward `renderMs`; `wallMs: null` shows "—"; Apply, bypass and Cancel return valid `ModalResult`s; a hostile source name cannot inject script; an unsupported envelope version disables Apply.
 
 | Command | Browser suite |
 | --- | --- |

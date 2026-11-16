@@ -191,6 +191,10 @@ export class Project {
     p.branchSources = m.branchSources;
     p.renders = m.renders;
     p.outputs = m.outputs;
+    // Reports saved before RenderReport.wallMs existed have no measured wall time: record it as unknown.
+    for (const out of Object.values(p.outputs)) {
+      if (typeof out.report.wallMs !== 'number') out.report.wallMs = null;
+    }
     await mkdir(p.tempRoot, { recursive: true });
     await p.cache.init();
     for (const s of Object.values(p.sources)) {
@@ -467,6 +471,7 @@ export class Project {
       outputFormat: { ...format },
       cacheBytes: await this.cache.totalBytes(),
       projectBytes: await directoryBytes(this.storageRoot),
+      wallMs: performance.now() - t0,
     };
     if (isStale()) return finish('superseded');
     Object.assign(this.renders, pendingRecords);

@@ -227,3 +227,7 @@ Run the engine inside the Live-bundled Node 24.22.1 (Extension host) on Windows.
 4. Call `render`.
 5. Call `exportOutput`, then `importIntoProject` and `createAudioClip`.
 6. Show the returned `RenderReport` in the diagnostics UI.
+
+The modal envelope (`HostInitialState`, `ModalResult`, `MODAL_ENVELOPE_VERSION`) is defined in `src/contract.ts`. It is parsed and built by the SDK-independent `../host/` package, not by this engine.
+
+**Render timing.** `RenderReport.wallMs` is the measured wall-clock time of the render request, from the start of `render()` until the report is produced. `RenderStep.renderMs` is the time it took to create that cache entry and is carried forward unchanged on a hit, so the sum of step `renderMs` is not the time a render took. Reports saved before `wallMs` existed reopen with `wallMs: null` (unknown) rather than an invented value.

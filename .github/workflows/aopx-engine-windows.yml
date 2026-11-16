@@ -9,11 +9,15 @@ on:
       - ableton-offline-processing/alpha-0.1
     paths:
       - 'ableton-offline-processing/engine/**'
+      - 'ableton-offline-processing/host/**'
+      - 'ableton-offline-processing/editor/**'
       - '.github/workflows/aopx-engine-windows.yml'
   pull_request:
     branches: [ableton-offline-processing/alpha-0.1]
     paths:
       - 'ableton-offline-processing/engine/**'
+      - 'ableton-offline-processing/host/**'
+      - 'ableton-offline-processing/editor/**'
       - '.github/workflows/aopx-engine-windows.yml'
   workflow_dispatch:
 
@@ -50,3 +54,15 @@ jobs:
       - name: Filesystem portability tests only
         if: always()
         run: node --test --test-reporter=spec test/fs-portability.test.ts
+      - name: Host modal contract (npm ci)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/host
+        run: npm ci
+      - name: Host modal contract (typecheck + tests)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/host
+        run: npm run check
+      - name: Editor tests (browser suites skip without Playwright)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/editor
+        run: npm test
