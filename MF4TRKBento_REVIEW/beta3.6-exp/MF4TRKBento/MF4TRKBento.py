@@ -1306,14 +1306,13 @@ class MF4TRKBento(ControlSurface):
             self._device_window_scroll_steps = 0
             self._device_select_scroll_steps = 0
             self._last_device = device
-        device_params, power = (), None
+        device_params = ()
         if device is not None:
             try:
                 raw_device_params = tuple(device.parameters)
             except (AttributeError, RuntimeError, TypeError):
                 raw_device_params = ()
             device_params = self._device_parameters(device, raw_device_params)
-            power = self._device_power(device, raw_device_params)
             if self._device_base > self._max_device_start(len(device_params)):
                 self._device_base = 0
         for row, module in enumerate(self._row_modules):
@@ -1674,7 +1673,8 @@ class MF4TRKBento(ControlSurface):
         self._mute_volume_last_turn.clear()
         self._volume_feedback_until.clear()
         self._rotary_preview_rows.clear()
-        self._send_scroll_steps = 0
+        self._device_window_scroll_steps = 0
+        self._device_select_scroll_steps = 0
         for cc in range(16):
             try:
                 self._send(self.ROTARY_CH, cc, 0)
