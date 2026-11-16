@@ -1,0 +1,15 @@
+{
+  "name": "@aopx/spike-s3-modal",
+  "version": "0.0.0-spike",
+  "private": true,
+  "type": "module",
+  "description": "AOPX-01 spike S3 harness: modal delivery/return probe. Spike code, not the T8 adapter.",
+  "scripts": {
+    "test": "node --test",
+    "test:browser": "node --test --test-reporter=spec test/browser-s3.test.mjs",
+    "check": "node --check delivery.mjs && node --check s3-runner.mjs && node --test"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

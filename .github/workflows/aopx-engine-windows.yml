@@ -11,6 +11,7 @@ on:
       - 'ableton-offline-processing/engine/**'
       - 'ableton-offline-processing/host/**'
       - 'ableton-offline-processing/editor/**'
+      - 'ableton-offline-processing/spikes/**'
       - '.github/workflows/aopx-engine-windows.yml'
   pull_request:
     branches: [ableton-offline-processing/alpha-0.1]
@@ -18,6 +19,7 @@ on:
       - 'ableton-offline-processing/engine/**'
       - 'ableton-offline-processing/host/**'
       - 'ableton-offline-processing/editor/**'
+      - 'ableton-offline-processing/spikes/**'
       - '.github/workflows/aopx-engine-windows.yml'
   workflow_dispatch:
 
@@ -65,4 +67,39 @@ jobs:
       - name: Editor tests (browser suites skip without Playwright)
         if: success() || failure()
         working-directory: ableton-offline-processing/editor
+        run: npm test
+
+  # Review finding R3 (Issue #40): the Playwright browser suites skip in the job above because the
+  # runners have no Playwright. This job installs a pinned Playwright + Chromium outside the repo
+  # (nothing is added to any package.json or lockfile) and runs the suites with
+  # AOPX_REQUIRE_BROWSER=1, so a missing browser FAILS instead of silently skipping.
+  # Chromium is not Live's WebView2: these prove the GUI and the S3 harness, not the Live host.
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AOPX_REQUIRE_BROWSER: '1'
+      PLAYWRIGHT_VERSION: '1.63.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Install pinned Playwright outside the repository
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          npm install --prefix "$RUNNER_TEMP/pw" --no-save --no-package-lock --no-audit --no-fund "playwright@$PLAYWRIGHT_VERSION"
+          echo "NODE_PATH=$RUNNER_TEMP/pw/node_modules" >> "$GITHUB_ENV"
+      - name: Install Chromium for Playwright
+        run: '"$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Versions
+        run: |
+          node --version
+          node -p "require('playwright/package.json').version"
+      - name: Editor browser suites (reorder + host contract)
+        working-directory: ableton-offline-processing/editor
+        run: npm run test:browser
+      - name: Spike S3 harness (unit + Chromium matrix)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/spikes/s3-modal
         run: npm test

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AOPX S3 modal probe</title>
+<!--
+  Spike S3 probe page (AOPX-01). Diagnostic only: it is NOT the product GUI.
+  Opened by the S3 spike extension through showModalDialog, it reports how the page was
+  delivered (data URL, temp file, query/hash), whether injected state arrived intact, which
+  close_and_send bridge exists, and the window/DPI geometry the modal really gets.
+  Every button sends a ModalResult-shaped JSON string so the host can log what arrives.
+  No network access, no storage, no external resources: a data URL or file URL must work alone.
+-->
+<style>
+:root{color-scheme:dark;--bg:#1e1e1e;--panel:#2a2a2a;--ink:#e6e6e6;--dim:#9a9a9a;--ok:#7bd88f;--bad:#ff6b6b;--accent:#f5a623}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 system-ui,Segoe UI,Arial,sans-serif}
+header{padding:10px 14px;background:var(--panel);border-bottom:1px solid #000;font-weight:600}
+main{padding:10px 14px;display:grid;gap:10px}
+table{border-collapse:collapse;width:100%}
+td{padding:3px 6px;border-bottom:1px solid #333;vertical-align:top;word-break:break-all}
+td:first-child{color:var(--dim);width:38%;word-break:normal}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.buttons{display:flex;flex-wrap:wrap;gap:6px}
+button{background:#3a3a3a;color:var(--ink);border:1px solid #555;border-radius:3px;padding:6px 10px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)}
+pre{margin:0;background:#111;padding:8px;max-height:140px;overflow:auto;font:12px/1.35 Consolas,monospace}
+</style>
+</head>
+<body>
+<header>AOPX S3 modal probe <span id="probe-version">v1</span></header>
+<main>
+  <table id="facts"><tbody></tbody></table>
+  <div class="buttons">
+    <button id="send-report">Send report (process)</button>
+    <button id="send-cancel">Send cancel</button>
+    <button id="send-large">Send 1 MB result</button>
+    <button id="send-object">Send non-string params</button>
+    <button id="send-twice">Send twice</button>
+    <button id="close-window">window.close()</button>
+  </div>
+  <pre id="log"></pre>
+</main>
+<script id="aopx-probe-main">
+"use strict";
+(function () {
+  const PROBE_VERSION = 1;
+  const log = (m) => { document.getElementById("log").textContent += m + "\n"; };
+
+  // FNV-1a over UTF-16 code units: cheap, dependency-free, and reproduced in delivery.mjs so the
+  // host can check the injected state arrived byte-for-byte.
+  function fnv1a(text) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return h.toString(16).padStart(8, "0");
+  }
+
+  function readUrlState() {
+    // Alternative delivery for S3: state in the query (?aopx=...) or hash (#aopx=...), base64url JSON.
+    const pick = (s) => { const m = /(?:^|[?#&])aopx=([A-Za-z0-9_-]+)/.exec(s); return m ? m[1] : null; };
+    const enc = pick(location.search) || pick(location.hash);
+    if (!enc) return null;
+    try {
+      const b64 = enc.replace(/-/g, "+").replace(/_/g, "/");
+      const bin = atob(b64 + "=".repeat((4 - (b64.length % 4)) % 4));
+      return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+    } catch (e) { return { error: String(e) }; }
+  }
+
+  const injected = window.AOPX_PROBE_STATE;
+  const fromUrl = readUrlState();
+  const state = injected || fromUrl || null;
+  const via = injected ? "inline-script" : fromUrl ? "url-query-or-hash" : "none";
+  const payload = state && typeof state.payload === "string" ? state.payload : "";
+  const mac = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.live;
+  const win = window.chrome && window.chrome.webview;
+  const nav = performance.getEntriesByType ? performance.getEntriesByType("navigation")[0] : null;
+
+  const facts = {
+    probeVersion: PROBE_VERSION,
+    protocol: location.protocol,
+    hrefLength: location.href.length,
+    hrefHead: location.href.slice(0, 80),
+    hasHash: location.hash.length > 0,
+    origin: String(window.origin),
+    stateVia: via,
+    stateNonce: state && state.nonce ? state.nonce : null,
+    payloadLength: payload.length,
+    payloadFnv1a: payload ? fnv1a(payload) : null,
+    expectedFnv1a: state && state.expectFnv1a ? state.expectFnv1a : null,
+    stateIntact: state && state.expectFnv1a ? fnv1a(payload) === state.expectFnv1a : null,
+    bridge: win ? "chrome.webview" : mac ? "webkit.messageHandlers.live" : "none",
+    hasChromeWebview: !!win,
+    hasWebkitLive: !!mac,
+    devicePixelRatio: window.devicePixelRatio,
+    innerSize: window.innerWidth + "x" + window.innerHeight,
+    outerSize: window.outerWidth + "x" + window.outerHeight,
+    screenSize: screen.width + "x" + screen.height,
+    screenAvail: screen.availWidth + "x" + screen.availHeight,
+    cssPxAtDpr: Math.round(window.innerWidth * window.devicePixelRatio) + "x" + Math.round(window.innerHeight * window.devicePixelRatio),
+    userAgent: navigator.userAgent,
+    language: navigator.language,
+    localStorageUsable: (() => { try { localStorage.setItem("aopx-probe", "1"); localStorage.removeItem("aopx-probe"); return true; } catch { return false; } })(),
+    navigationType: nav ? nav.type : null,
+    loadedAtMs: Math.round(performance.now()),
+  };
+  window.AOPX_PROBE_FACTS = facts;
+
+  const tbody = document.querySelector("#facts tbody");
+  for (const [k, v] of Object.entries(facts)) {
+    const tr = document.createElement("tr");
+    const cls = (k === "stateIntact" || k === "hasChromeWebview") ? (v === true ? "ok" : "bad") : "";
+    tr.innerHTML = "<td></td><td></td>";
+    tr.children[0].textContent = k;
+    tr.children[1].textContent = String(v);
+    if (cls) tr.children[1].className = cls;
+    tbody.appendChild(tr);
+  }
+
+  let sends = 0;
+  function send(params) {
+    const message = { method: "close_and_send", params };
+    sends++;
+    log("send #" + sends + " params[0] type=" + typeof params[0] + " length=" + (typeof params[0] === "string" ? params[0].length : "n/a"));
+    if (win) { win.postMessage(message); return true; }
+    if (mac) { mac.postMessage(message); return true; }
+    log("no bridge: nothing was sent");
+    return false;
+  }
+  const envelope = (extra) => JSON.stringify(Object.assign({ envelopeVersion: 1, probe: PROBE_VERSION }, extra));
+
+  document.getElementById("send-report").onclick = () =>
+    send([envelope({ action: "process", plan: { version: 1, operations: [] }, facts: Object.assign({}, facts, { sendAtMs: Math.round(performance.now()) }) })]);
+  document.getElementById("send-cancel").onclick = () => send([envelope({ action: "cancel" })]);
+  document.getElementById("send-large").onclick = () => send([envelope({ action: "cancel", filler: "x".repeat(1024 * 1024) })]);
+  document.getElementById("send-object").onclick = () => send([{ envelopeVersion: 1, action: "cancel", note: "params[0] is an object, not a string" }]);
+  document.getElementById("send-twice").onclick = () => { send([envelope({ action: "cancel", n: 1 })]); send([envelope({ action: "cancel", n: 2 })]); };
+  document.getElementById("close-window").onclick = () => { log("window.close() called"); window.close(); };
+  window.addEventListener("beforeunload", () => log("beforeunload"));
+  log("probe ready via " + via + ", bridge " + facts.bridge);
+})();
+</script>
+</body>
+</html>
