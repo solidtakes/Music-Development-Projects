@@ -1,29 +1,50 @@
 # AOPX-01 Windows SDK spikes S1–S5: preparation and manual test checklist
 
 **Owner of this track:** Codex (AOPX-01). Claude Code is covering the preparation during Codex's
-three-day absence (owner request, 2026-11-16, Issue #40). **Preparation only.** Nothing here has
-been run in Ableton Live or its Extension host, and no SDK package is in this repository.
+three-day absence (owner request, 2026-11-16, Issue #40). No SDK package is in this repository.
 
-**Base:** canonical `ableton-offline-processing/alpha-0.1` at
-`9ebcf56d41e027835c0f1a97af6d1aa6482d28d3` (PR #50 merge).
+**Base:** canonical `ableton-offline-processing/alpha-0.1` (this harness merged in PR #51,
+`a57d5aa`).
+
+## Host evidence so far (Windows, Live 13 Beta, 2026-11-16)
+
+The owner ran the **official SDK examples** on Windows with Live 13 Beta and SDK
+`extensions-sdk-1.0.0-beta.1` ([S1–S5 host-validation report](https://github.com/solidtakes/Music-Development-Projects/issues/40#issuecomment-6908336792)). These are **basic passes of
+the official examples**. The AOPX harness in this folder (the S3 runner and the S4 checker) has
+**not** been run in Live yet.
+
+| Spike | Basic result (official examples) | Still open for AOPX |
+|---|---|---|
+| S1 build and connect | PASS: `npm install`, `npm run build`, `npm start -- --live "<path to Live>"`; the CLI reports `✓ Connected to Live` | — |
+| S2 handles and selection | PASS (basic): a Session `ClipSlot` handle resolved via `getObjectFromHandle`; Arrangement `selected_lanes[0]` resolved as an `AudioTrack`; `time_selection_start`/`time_selection_end` used for clip creation | AudioClip context-menu → clip → parent track; timing units; full handle lifetime |
+| S3 modal and cancel | PASS (basic): the `modal-dialog` example. On Cancel, Esc and X the result's `name` is not a string (the unguarded example renamed the clip to `null (MIDI)`) | **Gate: AOPX GUI delivery** (temp `file://` vs data URL, injected state, size, DPI): run the S3 runner below |
+| S4 pre-FX render | PASS (basic): `strip-silence` calls `context.resources.renderPreFxAudio(track, selection.time_selection_start, selection.time_selection_end)` and decodes the WAV. Pre-FX only | **Gate: AOPX engine decodes a real Live render** (`s4-wav-check.mts`); WAV vs AIFF; mid-render cancel; temp-file lifecycle |
+| S5 import, create, Undo | PASS (basic): the `audio-clips` example imported a WAV into Session and Arrangement. Ctrl+Z / Ctrl+Y on one clip. Hard-coded `loopSettings` made a short unwarped Session clip inaudible; leaving them out fixed it | warped path; multi-step transaction undo and rollback; cleanup |
+
+Also observed: several example processes running at once may hide context-menu actions (suspected,
+not proven). Run **one** extension process at a time.
 
 **Sources used:** [`SDK_ARCHIVE_REVIEW_BETA_1.md`](../SDK_ARCHIVE_REVIEW_BETA_1.md),
 [`SDK_ACCESS_NOTES.md`](../SDK_ACCESS_NOTES.md), the GUI's bridge code in
 `editor/interface.html`, and the PR #41 and PR #50 reviews on Issue #40. The public SDK
-documentation site could not be reached from the cloud session (network allowlist), so **no API
-signature below has been re-verified against the official docs.** Every call is marked with where
-it came from. Check each one against the examples in your local `extensions-sdk-1.0.0-beta.1.zip`.
+documentation site could not be reached from the cloud session (network allowlist), so API
+names below are either **host-observed** (named in the [S1–S5 report](https://github.com/solidtakes/Music-Development-Projects/issues/40#issuecomment-6908336792)) or still marked
+**VERIFY** against the examples in your local `extensions-sdk-1.0.0-beta.1.zip`.
 
 ## Ground rules for every spike
 
-- Use the **Live 12 Beta build paired with SDK 1.0.0-beta.1** (from the SDK release page on
-  Centercode). Do **not** use production Live 12.5 or Live 13, and do not update them.
+- Use the **side-by-side Live 13 Beta** (host-tested with SDK 1.0.0-beta.1 on Windows, at
+  `C:\ProgramData\Ableton\Live 13 Beta\Program\Ableton Live 13 Beta.exe`). Do **not** use the
+  production Live 12.5 or stable Live 13 installations, and do not update them.
 - Use a **new, disposable Set** saved in a throwaway folder (for example
   `C:\AOPX-spikes\S3\S3-disposable.als`) and a **disposable WAV** (for example a 10 s sine you
   generate). No production Sets, no personal audio.
 - Scaffold each spike extension in a folder **outside** this repository. Never commit SDK
   tarballs, `node_modules`, the beta, or audio.
-- Node: **24.16.0 or later** (the SDK package `engines` field). Record `node --version`.
+- Node: the SDK packages declare **24.16.0 or later**. The official examples were user-tested
+  with **Node 26.13.0 / npm 11.20.0**. The **AOPX engine, host and spike code are verified only on
+  Node 22.23.4 and 24.22.1 (CI); Node 26 is not yet verified for AOPX code.** Record
+  `node --version`, and `process.version` from inside the extension.
 - Set Live's **Record File Type to WAV** before S4.
 - Automation never launches, installs or updates Live. You run every step yourself and stop at
   the first unexpected result.
@@ -51,13 +72,22 @@ finding R1/R2). S1 is its prerequisite, so do the minimal part of S1, then S3, t
 
 **Goal:** prove that this SDK build loads in this Live beta on this Windows machine.
 
+**Status:** basic PASS on Live 13 Beta (see *Host evidence so far*).
+
 1. Confirm Node ≥ 24.16.0.
 2. Unpack the SDK archive into a scratch folder (not this repository).
 3. Scaffold a new extension from the **official create-extension package in the archive**, using
    the exact command in the SDK Quick Start. If it can't resolve the packages from the registry,
    install from the local `.tgz` files as the Quick Start or Execution guide describes.
-4. Build it and load it into the Live beta with the **exact command from the Execution guide**.
-   (The archive review says the guide's example path is a macOS app path; find the Windows form.)
+4. Build it and connect it to the Live beta. The host-proven Windows commands, run in the
+   extension folder, are:
+   ```powershell
+   npm install
+   npm run build
+   npm start -- --live "C:\ProgramData\Ableton\Live 13 Beta\Program\Ableton Live 13 Beta.exe"
+   ```
+   The CLI reports `✓ Connected to Live`. An npm install-scripts warning was non-blocking. Use your
+   own path to the Live 13 Beta executable.
 5. Trigger the example's command in Live.
 
 **Pass:** the example's command appears and runs; its output is visible. **Record:** the exact
@@ -74,6 +104,11 @@ for wiring it into a throwaway extension. Already verified in CI-style Chromium 
 Live): `npm ci && npm run check` in `spikes/s3-modal` type-checks the harness against the product
 contract and runs unit, host cross-check, S4 checker and Chromium tests. CI runs it on Windows and
 Linux (see [Harness verification](#harness-verification)).
+
+**Host status:** the official `modal-dialog` example works on Windows, and Cancel, Esc and X are
+consistent with T8's rule that any non-result is a cancel. **The AOPX questions below (Q1–Q9) are
+still unanswered**: the runner has not been run in Live, and the AOPX GUI has not been opened in
+Live's modal. This remains a **gate** before any GUI-wired T8 build.
 
 **Questions S3 must answer on Windows:**
 
@@ -117,7 +152,12 @@ any prompt to change the Set.
 
 ## S2: AudioClip context menu, parent track, timing/warp/loop fields
 
-**APIs (from the archive review, VERIFY against the `context-menu` and `audio-clips` examples):**
+**Host-observed (basic, official examples):** a Session `ClipSlot` handle resolved via
+`getObjectFromHandle`; the Arrangement selection exposes `selected_lanes` (`selected_lanes[0]`
+resolved as an `AudioTrack`) and `time_selection_start` / `time_selection_end`. **Not yet tested:**
+the AudioClip context-menu path below, and the units of the time-selection values.
+
+**APIs still from the archive review (VERIFY against the `context-menu` and `audio-clips` examples):**
 context-menu actions scoped to `AudioClip` receive a clip Handle. `AudioClip` read-only fields are
 `filePath, duration, startTime, endTime, startMarker, endMarker, loopStart, loopEnd, warpMarkers`,
 and writable ones are `name, muted, warping, warpMode, looping`.
@@ -137,8 +177,12 @@ whether overlap detection is possible. **Writes:** none in S2.
 
 ## S4: pre-FX render to a WAV the engine decodes
 
-**API (archive review, VERIFY against `strip-silence`):** `context.resources.renderPreFxAudio(track, startBeat, endBeat)`
-writes into the extension temp directory. The file type follows Live's Record File Type.
+**API (host-observed in `strip-silence`, basic PASS):**
+`context.resources.renderPreFxAudio(track, selection.time_selection_start, selection.time_selection_end)`
+returns a WAV that the example read and decoded. It renders **pre-FX** only: no device chain. The
+file type follows Live's Record File Type (the official README notes WAV/AIFF variability). Still
+open: the units of the time values, whether the AOPX engine decodes the render (step 3), mid-render
+cancellation and the temp-file lifecycle.
 
 1. Record File Type = WAV. Disposable WAV alone on its track.
 2. Render the clip's `startTime`..`endTime` range. Log the returned path, file size, RIFF/WAVE
