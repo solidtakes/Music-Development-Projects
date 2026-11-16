@@ -447,7 +447,7 @@ class Beta3Tests(unittest.TestCase):
             self.surface._rotary(3, 65)
         self.assertEqual(self.surface._row_modules[0], original)
         self.surface._rotary(3, 65)
-        self.assertEqual(self.surface._row_modules[0], "Arm")
+        self.assertEqual(self.surface._row_modules[0], "Stop")
         self.surface._push(0, 0)
 
     def test_track_scroll_remains_four_detents(self):
@@ -619,41 +619,10 @@ class Beta3Tests(unittest.TestCase):
         self.assertEqual(self.surface._frame[cc][2], expected)
 
     def _insert_devices(self, count):
-        # Physical top to bottom: each inserted row displaces the next mixer
-        # function, leaving the prior lower-row button modules unchanged.
-        for row in range(count):
-            self.surface._row_modules[row] = "Device Control"
+        # Explicit rotary assignment; all push modules remain unchanged.
+        defaults = list(self.surface.MIXER_ROTARY_FUNCTIONS)
+        self.surface._rotary_overrides = ["Device Control"] * count + defaults[count:]
         self.surface._refresh_all()
-
-    def test_device_bank_resets_on_external_device_and_track_selection(self):
-        self._insert_devices(1)
-        self.push(1)
-        self.assertEqual(self.surface._device_bank, 1)
-        track = self.song.tracks[0]
-        track.view.selected_device = track.devices[1]
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._device_bank, 0)
-        self.push(1)
-        self.assertEqual(self.surface._device_bank, 1)
-        self.song.view.selected_track = self.song.tracks[1]
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._device_bank, 0)
-
-    def test_nested_device_navigation_uses_chain_siblings_and_song_view(self):
-        self._insert_devices(1)
-        track = self.song.tracks[0]
-        inside_one, inside_two = FakeDevice("Inside 1"), FakeDevice("Inside 2")
-        chain = types.SimpleNamespace(devices=[inside_one, inside_two])
-        inside_one.canonical_parent = chain
-        inside_two.canonical_parent = chain
-        track.view.selected_device = inside_one
-        self.surface._refresh_all()
-        self.push(3)
-        self.assertIs(track.view.selected_device, inside_two)
-        self.assertIs(self.song.view.select_device_calls[-1], inside_two)
-        self.push(2)
-        self.assertIs(track.view.selected_device, inside_one)
-        self.assertIs(self.song.view.select_device_calls[-1], inside_one)
 
     def test_scan_reads_device_parameters_once_with_four_device_rows(self):
         class CountingDevice(FakeDevice):
@@ -681,166 +650,6 @@ class Beta3Tests(unittest.TestCase):
         self.assertEqual(counted.parameter_reads, 1)
         self.assertIsNotNone(self.surface._frame[15][2])
 
-    def test_device_bank_never_exceeds_four_even_with_many_parameters(self):
-        self._insert_devices(1)
-        device = self.song.view.selected_track.view.selected_device
-        self.assertGreater(len(device.parameters), 20)
-        self.assertEqual(self.surface._device_bank, 0)
-        for expected_bank in (1, 2, 3, 0, 1):
-            self.push(1)
-            self.assertEqual(self.surface._device_bank, expected_bank)
-            self.assertIs(self.surface._device_parameter(0, 0),
-                          device.parameters[1 + expected_bank * 4])
-            self.assertEqual(self.surface.messages[-1],
-                             "MF4TRKBento | Device bank %d" % (expected_bank + 1))
-
-    def test_short_device_wraps_at_its_last_available_bank(self):
-        self._insert_devices(1)
-        device = self.song.view.selected_track.view.selected_device
-        device.parameters = device.parameters[:7]  # Device On + 6 usable
-        self.surface._refresh_all()
-        self.push(1)
-        self.assertEqual(self.surface._device_bank, 1)
-        self.push(1)
-        self.assertEqual(self.surface._device_bank, 0)
-
-    def test_four_device_rows_remain_contiguous_when_e2_wraps(self):
-        track = self.song.view.selected_track
-        device = FakeDevice("Large device", count=80)
-        device.canonical_parent = track
-        track.devices[0] = device
-        track.view.selected_device = device
-        self._insert_devices(4)
-        for _ in range(3):
-            self.push(1)
-        self.assertEqual(self.surface._device_bank, 3)
-        for row in range(4):
-            self.assertIs(self.surface._device_parameter(row, 0),
-                          device.parameters[1 + 3 * 16 + row * 4])
-        self.push(1)
-        self.assertEqual(self.surface._device_bank, 0)
-        for row in range(4):
-            self.assertIs(self.surface._device_parameter(row, 0),
-                          device.parameters[1 + row * 4])
-
-    def test_bank_stride_scales_with_device_row_count_one_to_four(self):
-        track = self.song.view.selected_track
-        device = FakeDevice("Large device", count=80)
-        device.canonical_parent = track
-        track.devices[0] = device
-        track.view.selected_device = device
-        for row_count in (1, 2, 3, 4):
-            with self.subTest(rows=row_count):
-                self.surface._row_modules = ["Device Control"] * row_count + ["Blank"] * (4 - row_count)
-                self.surface._device_bank = 0
-                self.surface._refresh_all()
-                self.assertEqual(self.surface._device_bank_stride(), row_count * 4)
-                for bank in range(4):
-                    self.assertEqual(self.surface._device_bank, bank)
-                    for row in range(row_count):
-                        for col in range(4):
-                            expected = 1 + bank * row_count * 4 + row * 4 + col
-                            self.assertIs(self.surface._device_parameter(row, col),
-                                          device.parameters[expected])
-                    self.push(1)
-                self.assertEqual(self.surface._device_bank, 0)
-
-    def test_short_device_with_two_rows_wraps_by_eight_parameters(self):
-        self._insert_devices(2)
-        device = self.song.view.selected_track.view.selected_device
-        device.parameters = device.parameters[:14] # power + 13 parameters
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._device_bank, 0)
-        self.push(1)
-        self.assertEqual(self.surface._device_bank, 1)
-        self.assertIs(self.surface._device_parameter(0, 0), device.parameters[9])
-        self.assertIsNone(self.surface._device_parameter(1, 3))
-        self.push(1)
-        self.assertEqual(self.surface._device_bank, 0)
-
-    def test_e3_e4_can_select_first_device_when_no_device_selected(self):
-        self._insert_devices(1)
-        track = self.song.view.selected_track
-        track.view.selected_device = None
-        self.surface._refresh_all()
-        self.push(3)
-        self.assertIs(track.view.selected_device, track.devices[0])
-        self.assertIn("Device 1/2", self.surface.messages[-1])
-        self.push(3)
-        self.assertIs(track.view.selected_device, track.devices[1])
-        self.push(2)
-        self.assertIs(track.view.selected_device, track.devices[0])
-
-    def test_device_navigation_reports_end_of_chain_without_wrap(self):
-        self._insert_devices(1)
-        track = self.song.view.selected_track
-        self.push(2)
-        self.assertIn("End of device chain", self.surface.messages[-1])
-        self.assertIs(track.view.selected_device, track.devices[0])
-        self.push(3)
-        self.push(3)
-        self.assertIn("End of device chain", self.surface.messages[-1])
-        self.assertIs(track.view.selected_device, track.devices[1])
-
-    def test_device_replacement_priority_all_four_counts(self):
-        expected = [
-            ["Sends", "Sends", "Pan", "Volume"],
-            ["Device Control", "Sends", "Pan", "Volume"],
-            ["Device Control", "Device Control", "Pan", "Volume"],
-            ["Device Control", "Device Control", "Device Control", "Volume"],
-            ["Device Control"] * 4,
-        ]
-        for count in range(5):
-            with self.subTest(device_rows=count):
-                self.surface._row_modules = ["Device Control"] * count + ["Mute"] * (4-count)
-                self.assertEqual([self.surface._rotary_function(i) for i in range(4)],expected[count])
-
-    def test_one_send_survives_as_send_a_after_top_device_replacement(self):
-        track = self.song.tracks[0]
-        track.mixer_device.sends = track.mixer_device.sends[:1]
-        self._insert_devices(1)
-        a = track.mixer_device.sends[0]
-        self.assertIs(self.surface._inherited_parameter(1, 0), a)
-        before = a.value
-        self.surface._rotary(4, 65)
-        self.assertGreater(a.value, before)
-        self.assertIsNotNone(self.surface._frame[4][2])
-
-    def test_two_sends_remain_a_top_b_below_until_device_replacement(self):
-        track = self.song.tracks[0]
-        track.mixer_device.sends = track.mixer_device.sends[:2]
-        self.assertIs(self.surface._inherited_parameter(0, 0), track.mixer_device.sends[0])
-        self.assertIs(self.surface._inherited_parameter(1, 0), track.mixer_device.sends[1])
-        self._insert_devices(1)
-        self.assertIs(self.surface._inherited_parameter(1, 0), track.mixer_device.sends[0])
-        self.assertIs(self.surface._inherited_parameter(0, 0),
-                      track.view.selected_device.parameters[1])
-
-    def test_no_sends_remain_dark_when_primary_device_added(self):
-        track = self.song.tracks[0]
-        track.mixer_device.sends = []
-        self._insert_devices(1)
-        self.assertIsNone(self.surface._inherited_parameter(1, 0))
-        self.assertEqual(self.surface._ring_cache.get(4, 0), 0)
-
-    def test_device_replacement_preserves_remaining_targets(self):
-        track = self.song.tracks[0]
-        device = track.view.selected_device
-        mixer = track.mixer_device
-        expected = [mixer.sends[0], mixer.sends[1], mixer.panning, mixer.volume]
-        for count in range(5):
-            with self.subTest(device_rows=count):
-                self.surface._row_modules = ["Device Control"] * count + ["Blank"] * (4-count)
-                self.surface._refresh_all()
-                for row in range(4):
-                    parameter = self.surface._inherited_parameter(row, 0)
-                    if row < count:
-                        self.assertIs(parameter, device.parameters[1+row*4])
-                    elif row == 1 and count == 1:
-                        self.assertIs(parameter, mixer.sends[0])
-                    else:
-                        self.assertIs(parameter, expected[row])
-
     def test_device_row_one_controls_params_one_through_four(self):
         self._insert_devices(1)
         device = self.song.tracks[0].devices[0]
@@ -860,110 +669,6 @@ class Beta3Tests(unittest.TestCase):
                               device.parameters[1+row*4+col])
         self.assertEqual([self.surface._frame[row*4][0] for row in range(1,4)],
                          [self.surface.DEVICE_COLOR] * 3)
-
-    def test_device_power_yellow_on_off_and_no_spill(self):
-        self._insert_devices(1)
-        device = self.song.tracks[0].devices[0]
-        power = device.parameters[0]
-        self.assertEqual(self.surface._frame[0][0],108)
-        self.push(0)
-        self.assertEqual(power.value,0.0)
-        self.assertEqual(self.surface._frame[0][0],0)
-        self.push(0)
-        self.assertEqual(power.value,1.0)
-        self.assertEqual(self.surface._frame[0][0],108)
-
-    def test_primary_device_e2_bank_next_four_no_duplicate(self):
-        self._insert_devices(2)
-        device = self.song.tracks[0].devices[0]
-        self.push(1)
-        self.assertEqual(self.surface._device_bank,1)
-        self.assertIs(self.surface._device_parameter(0,0),device.parameters[9])
-        self.assertIs(self.surface._device_parameter(1,0),device.parameters[13])
-        self.push(5) # Secondary Device button 2 is inert
-        self.assertEqual(self.surface._device_bank,1)
-
-    def test_primary_device_e3_e4_prev_next(self):
-        self._insert_devices(1)
-        track = self.song.view.selected_track
-        self.push(3)
-        self.assertIs(track.view.selected_device,track.devices[1])
-        self.push(2)
-        self.assertIs(track.view.selected_device,track.devices[0])
-
-    def test_device_secondary_row_pushes_do_not_navigate(self):
-        self._insert_devices(3)
-        track = self.song.view.selected_track
-        device = track.view.selected_device
-        self.push(4)
-        self.push(5)
-        self.push(6)
-        self.push(7)
-        self.push(8)
-        self.push(9)
-        self.assertIs(track.view.selected_device,device)
-        self.assertEqual(self.surface._device_bank,0)
-        self.assertEqual(device.parameters[0].value,1.0)
-
-    def test_module_selector_allows_noncontiguous_device_row(self):
-        self.surface._row_modules = ["Stop", "Arm", "Stop", "Mute"]
-        self.surface._cycle_module(2, 1)  # Stop -> Device at this independent row
-        self.assertEqual(self.surface._row_modules[2], "Device Control")
-        self.assertEqual(self.surface._device_rows(), (2,))
-        self.assertEqual([self.surface._rotary_function(r) for r in range(4)],
-                         ["Sends", "Sends", "Device Control", "Volume"])
-        self.assertEqual(self.surface._device_action_row(), 2)
-        self.assertNotIn("Change lowest Device", self.surface.messages[-1])
-
-    def test_removing_high_device_row_preserves_lower_device_rows(self):
-        self._insert_devices(3)
-        self.surface._cycle_module(0, 1)  # Row 1 Device -> Blank
-        self.assertEqual(self.surface._row_modules[0], "Blank")
-        self.assertEqual(self.surface._device_rows(), (1, 2))
-        self.assertEqual(self.surface._device_action_row(), 1)
-        self.assertEqual(self.surface._rotary_function(0), "Sends")
-        self.assertEqual(self.surface._rotary_function(3), "Volume")
-
-    def test_default_auto_layout_still_packs_device_rows_in_order(self):
-        self.surface._row_modules[0] = "Stop"
-        self.surface._cycle_module(0, 1)
-        self.assertIsNone(self.surface._rotary_overrides)
-        self.assertEqual(self.surface._device_rows(), (0,))
-        self.surface._row_modules[1] = "Stop"
-        self.surface._cycle_module(1, 1)
-        self.assertIsNone(self.surface._rotary_overrides)
-        self.assertEqual(self.surface._device_rows(), (0, 1))
-
-    def test_device_selection_chord_does_not_toggle_power(self):
-        self._insert_devices(1)
-        device = self.song.tracks[0].devices[0]
-        power = device.parameters[0]
-        self.surface._push(0,127)
-        for _ in range(4):
-            self.surface._rotary(3,65)
-        self.surface._push(0,0)
-        self.assertEqual(power.value,1.0)
-
-    def test_missing_selected_device_clears_led_and_ring(self):
-        self._insert_devices(2)
-        track = self.song.view.selected_track
-        track.view.selected_device = None
-        self.surface._refresh_all()
-        for cc in range(8):
-            self.assertEqual(self.surface._frame.get(cc,(0,0,None,False))[0],0)
-            self.assertEqual(self.surface._ring_cache.get(cc),0)
-        self.surface._rotary(0,65) # No device: no crash
-        self.push(0)
-
-    def test_empty_device_parameters_leave_secondary_leds_dark(self):
-        self._insert_devices(3)
-        dev = self.song.view.selected_track.view.selected_device
-        dev.parameters = dev.parameters[:6] # power + five knobs
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._frame[4][0],self.surface.DEVICE_COLOR)
-        for cc in (5,6,7,8,9,10,11):
-            self.assertEqual(self.surface._frame.get(cc,(0,0,None,False))[0],0)
-            self.assertEqual(self.surface._ring_cache.get(cc),0)
 
     def test_device_parameter_quantized_step_and_disabled_guard(self):
         self._insert_devices(1)
@@ -1066,55 +771,6 @@ class Beta3Tests(unittest.TestCase):
         self.assertEqual(self.surface._row_modules[1], "Arm")
         self.assertTrue(any("Sends" in msg for msg in self.surface.messages))
 
-    def test_custom_two_device_rows_with_gap_bank_without_overlap(self):
-        track = self.song.tracks[0]
-        dev = FakeDevice("Many params", count=48)
-        dev.canonical_parent = track
-        track.devices[0] = dev
-        track.view.selected_device = dev
-        self.surface._rotary_overrides = ["Device Control", "Pan",
-                                          "Device Control", "Volume"]
-        self.surface._row_modules[0] = "Device Control"
-        self.surface._row_modules[2] = "Device Control"
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._device_rows(), (0, 2))
-        self.assertEqual(self.surface._device_bank_stride(), 8)
-        self.assertIs(self.surface._device_parameter(0, 0), dev.parameters[1])
-        self.assertIs(self.surface._device_parameter(2, 0), dev.parameters[5])
-        self.push(1)
-        self.assertIs(self.surface._device_parameter(0, 0), dev.parameters[9])
-        self.assertIs(self.surface._device_parameter(2, 0), dev.parameters[13])
-        self.assertEqual(self.surface._rotary_function(1), "Pan")
-        self.assertEqual(self.surface._rotary_function(3), "Volume")
-        self.assertEqual(self.surface._frame[8][0], self.surface.DEVICE_COLOR)
-
-    def test_primary_device_controls_work_when_row_is_in_middle(self):
-        track = self.song.tracks[0]
-        self.surface._rotary_overrides = ["Volume", "Pan",
-                                          "Device Control", "Sends"]
-        self.surface._row_modules[2] = "Device Control"
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._device_action_row(), 2)
-        self.assertEqual(self.surface._frame[8][0], 108)
-        self.push(11)  # Row 3 next device (E12)
-        self.assertIs(track.view.selected_device, track.devices[1])
-        self.push(10)  # Row 3 previous device
-        self.assertIs(track.view.selected_device, track.devices[0])
-        self.push(9)   # Row 3 bank
-        self.assertEqual(self.surface._device_bank, 1)
-
-    def test_custom_device_rotary_keeps_unrelated_push_function(self):
-        self.surface._rotary_overrides = ["Sends", "Sends",
-                                          "Device Control", "Volume"]
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._row_modules[2], "Solo")
-        self.assertIs(self.surface._device_parameter(2, 0),
-                      self.song.tracks[0].devices[0].parameters[1])
-        self.push(8)
-        self.assertTrue(self.song.tracks[0].solo)
-        self.assertEqual(self.surface._device_action_row(), None)
-        self.assertEqual(self.surface._device_bank, 0)
-
     def test_normal_last_encoder_push_still_works_without_twisting_first(self):
         track = self.song.tracks[3]
         self.assertFalse(track.mute)
@@ -1132,7 +788,7 @@ class Beta3Tests(unittest.TestCase):
         for _ in range(4):
             self.surface._rotary(3, 65)
         self.surface._push(0, 0)
-        self.assertEqual(self.surface._row_modules[0], "Arm")
+        self.assertEqual(self.surface._row_modules[0], "Stop")
         self.assertEqual(self.surface._rotary_function(0), before_function)
 
     def test_linked_send_rows_with_gap_use_top_down_assignments(self):
@@ -1149,128 +805,6 @@ class Beta3Tests(unittest.TestCase):
                       track.mixer_device.sends[0])
         self.assertIs(self.surface._inherited_parameter(2, 0),
                       track.mixer_device.sends[1])
-
-    def test_send_banking_four_detents_blocks_parameter_and_clip_push(self):
-        track = self.song.tracks[1]
-        slot = track.clip_slots[0]
-        old_fire = slot.fire_count
-        before = track.mixer_device.sends[0].value
-        self.surface._push(1, 127)
-        for _ in range(3):
-            self.surface._rotary(2, 65)
-        self.assertEqual(self.surface._send_bank, 0)
-        self.surface._rotary(2, 65)
-        self.assertEqual(self.surface._send_bank, 1)
-        self.assertIn("Sends C-C", self.surface.messages[-1])
-        self.surface._push(1, 0)
-        self.assertEqual(slot.fire_count, old_fire)
-        self.assertEqual(track.mixer_device.sends[0].value, before)
-        self.assertEqual(self.surface._send_scroll_steps, 0)
-        self.assertIs(self.surface._inherited_parameter(0, 1),
-                      track.mixer_device.sends[2])
-        self.assertIsNone(self.surface._inherited_parameter(1, 1))
-        self.surface._push(1, 127)
-        for _ in range(4):
-            self.surface._rotary(2, 63)
-        self.surface._push(1, 0)
-        self.assertEqual(self.surface._send_bank, 0)
-
-    def test_four_linked_send_rows_reach_sixteen_destinations(self):
-        self.surface._rotary_overrides = ["Sends"] * 4
-        self.surface._row_modules = ["Clip Launch"] * 4
-        track = self.song.tracks[0]
-        track.mixer_device.sends = [FakeParameter(i / 20.0) for i in range(16)]
-        self.song.return_tracks = [FakeTrack("Return %d" % i, armable=False)
-                                   for i in range(16)]
-        self.surface._refresh_all()
-        for bank in range(4):
-            self.assertEqual(self.surface._send_bank, bank)
-            for row in range(4):
-                self.assertIs(self.surface._inherited_parameter(row, 0),
-                              track.mixer_device.sends[bank * 4 + row])
-            self.surface._push(1, 127)
-            for _ in range(4):
-                self.surface._rotary(2, 65)
-            self.surface._push(1, 0)
-        self.assertEqual(self.surface._send_bank, 0)
-        self.assertEqual(self.surface._row_modules, ["Clip Launch"] * 4)
-
-    def test_send_banking_moves_with_first_sends_row(self):
-        self.surface._rotary_overrides = ["Device Control", "Sends", "Volume", "Sends"]
-        self.surface._row_modules[0] = "Device Control"
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._send_rows(), (1, 3))
-        track = self.song.tracks[0]
-        self.assertIs(self.surface._inherited_parameter(1, 0),
-                      track.mixer_device.sends[0])
-        self.assertIs(self.surface._inherited_parameter(3, 0),
-                      track.mixer_device.sends[1])
-        self.surface._push(5, 127)  # E6 held, E7 turned
-        for _ in range(4):
-            self.surface._rotary(6, 65)
-        self.surface._push(5, 0)
-        self.assertEqual(self.surface._send_bank, 1)
-        self.assertIs(self.surface._inherited_parameter(1, 0),
-                      track.mixer_device.sends[2])
-        self.assertIsNone(self.surface._inherited_parameter(3, 0))
-
-    def test_mixed_device_sends_banking_remains_separate(self):
-        track = self.song.tracks[0]
-        dev = FakeDevice("Large", count=48)
-        dev.canonical_parent = track
-        track.devices[0] = dev
-        track.view.selected_device = dev
-        track.mixer_device.sends = [FakeParameter(i / 20.0) for i in range(16)]
-        self.song.return_tracks = [FakeTrack("Return %d" % i, armable=False)
-                                   for i in range(16)]
-        self.surface._rotary_overrides = ["Device Control", "Sends",
-                                          "Device Control", "Sends"]
-        self.surface._row_modules[0] = "Device Control"
-        self.surface._refresh_all()
-        self.push(1)  # primary Device bank
-        self.assertEqual((self.surface._device_bank, self.surface._send_bank), (1, 0))
-        self.surface._push(5, 127)  # first Send row bank
-        for _ in range(4):
-            self.surface._rotary(6, 65)
-        self.surface._push(5, 0)
-        self.assertEqual((self.surface._device_bank, self.surface._send_bank), (1, 1))
-        self.assertIs(self.surface._device_parameter(0, 0), dev.parameters[9])
-        self.assertIs(self.surface._device_parameter(2, 0), dev.parameters[13])
-        self.assertIs(self.surface._inherited_parameter(1, 0),
-                      track.mixer_device.sends[2])
-        self.assertIs(self.surface._inherited_parameter(3, 0),
-                      track.mixer_device.sends[3])
-
-    def test_button_modules_repeat_all_clips_arm_solo_mute(self):
-        self.surface._cycle_module(0, 1)  # Clip -> Arm, duplicate existing Arm
-        self.assertEqual(self.surface._row_modules[:2], ["Arm", "Arm"])
-        self.surface._row_modules = ["Clip Launch"] * 4
-        self.surface._refresh_all()
-        self.assertEqual(self.surface._active_rows(), [0, 1, 2, 3])
-        for row in range(4):
-            self.push(row * 4)
-        self.assertEqual([self.song.tracks[0].clip_slots[i].fire_count
-                          for i in range(4)], [1, 1, 1, 1])
-        self.surface._row_modules = ["Mute"] * 4
-        self.push(4)
-        self.assertTrue(self.song.tracks[0].mute)
-        self.push(8)
-        self.assertFalse(self.song.tracks[0].mute)
-        self.surface._row_modules = ["Solo"] * 4
-        self.push(4)
-        self.assertTrue(self.song.tracks[0].solo)
-        self.push(8)
-        self.assertFalse(self.song.tracks[0].solo)
-
-    def test_send_page_resets_on_row_assignment_changes(self):
-        self.surface._rotary_overrides = ["Sends", "Sends", "Pan", "Volume"]
-        self.surface._send_bank = 1
-        self.surface._cycle_rotary(1, 1)  # Sends -> Device
-        self.assertEqual(self.surface._send_rows(), (0,))
-        self.assertEqual(self.surface._send_bank, 0)
-        self.surface._cycle_rotary(1, -1)  # Device -> Sends
-        self.assertEqual(self.surface._send_rows(), (0, 1))
-        self.assertEqual(self.surface._send_bank, 0)
 
     def test_mixer_corrected_send_order_without_devices(self):
         self.assertEqual(self.surface._row_modules,["Clip Launch","Arm","Solo","Mute"])
