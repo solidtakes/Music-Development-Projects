@@ -643,8 +643,12 @@ class Beta3Tests(unittest.TestCase):
         self.assertEqual(self.surface._device_bank, 0)
 
     def test_four_device_rows_remain_contiguous_when_e2_wraps(self):
+        track = self.song.view.selected_track
+        device = FakeDevice("Large device", count=40)
+        device.canonical_parent = track
+        track.devices[0] = device
+        track.view.selected_device = device
         self._insert_devices(4)
-        device = self.song.view.selected_track.view.selected_device
         for _ in range(3):
             self.push(1)
         self.assertEqual(self.surface._device_bank, 3)
