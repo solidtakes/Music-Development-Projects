@@ -238,29 +238,19 @@ class Beta3Tests(unittest.TestCase):
                          ["Clip Launch", "Arm", "Solo", "Mute"])
         self.assertEqual(self.surface._rotary_function(3), "Volume")
         self.assertEqual(self.surface._rotary_function(2), "Pan")
-        self.assertEqual(self.surface._rotary_function(1), "Send B")
-        self.assertEqual(self.surface._rotary_function(0), "Send A")
-
-    def test_send_a_above_send_b_and_independent(self):
-        track = self.song.tracks[0]
-        a, b = track.mixer_device.sends[:2]
-        old_a, old_b = a.value, b.value
-        self.surface._rotary(0, 65)
-        self.assertGreater(a.value, old_a)
-        self.assertEqual(b.value, old_b)
-        self.surface._rotary(4, 65)
-        self.assertGreater(b.value, old_b)
+        self.assertEqual(self.surface._rotary_function(1), "Send A")
+        self.assertEqual(self.surface._rotary_function(0), "Send B")
 
     def test_blank_disables_push_without_reassigning_fixed_rotary(self):
         # Under the newly approved independent push/rotary architecture, Blank
         # turns off the button module without collapsing the mixer row.
         self.surface._row_modules[1] = "Blank"
-        self.assertEqual(self.surface._rotary_function(1), "Send B")
+        self.assertEqual(self.surface._rotary_function(1), "Send A")
         self.assertEqual(self.surface._rotary_function(3), "Volume")
         self.assertEqual(self.surface._rotary_function(2), "Pan")
-        before = self.song.tracks[0].mixer_device.sends[1].value
+        before = self.song.tracks[0].mixer_device.sends[0].value
         self.surface._rotary(4, 65)
-        self.assertGreater(self.song.tracks[0].mixer_device.sends[1].value, before)
+        self.assertGreater(self.song.tracks[0].mixer_device.sends[0].value, before)
         self.push(4)
         self.assertFalse(self.song.tracks[0].arm)
 
@@ -278,7 +268,7 @@ class Beta3Tests(unittest.TestCase):
         self.song.return_tracks = [ret]
         self.surface._fx_mode = True
         self.surface._refresh_all()
-        expected = self.surface._parameter_ring(ret.mixer_device.sends[1])
+        expected = self.surface._parameter_ring(ret.mixer_device.sends[0])
         self.assertEqual(self.surface._frame[4], (0, 0, expected, False))
         self.assertEqual(self.surface._ring_cache[4], expected)
 
@@ -288,7 +278,7 @@ class Beta3Tests(unittest.TestCase):
                      ["Clip Launch", "Clip Launch", "Stop", "Stop"]):
             self.surface._row_modules = list(rows)
             self.assertEqual([self.surface._rotary_function(row) for row in range(4)],
-                             ["Send A", "Send B", "Pan", "Volume"])
+                             ["Send B", "Send A", "Pan", "Volume"])
 
     def test_stop_button_module_also_inherits_volume(self):
         track = self.song.tracks[0]
@@ -303,8 +293,8 @@ class Beta3Tests(unittest.TestCase):
         tracks = self.song.tracks
         self.surface._rotary(12, 65)  # bottom row / Volume / Track 1
         self.surface._rotary(8, 65)   # next row / Pan / Track 1
-        self.surface._rotary(4, 65)   # next row / Send B / Track 1
-        self.surface._rotary(0, 65)   # top row / Send A / Track 1
+        self.surface._rotary(4, 65)   # next row / Send A / Track 1
+        self.surface._rotary(0, 65)   # top row / Send B / Track 1
         self.assertGreater(tracks[0].mixer_device.volume.value, 0.5)
         self.assertGreater(tracks[0].mixer_device.panning.value, 0.0)
         self.assertGreater(tracks[0].mixer_device.sends[0].value, 0.1)
@@ -368,8 +358,8 @@ class Beta3Tests(unittest.TestCase):
         self.surface._alt_mode = True
         before_a = self.song.tracks[0].mixer_device.sends[0].value
         before_b = self.song.tracks[0].mixer_device.sends[1].value
-        self.surface._rotary(7, 65)  # Send B row, alternate fourth encoder
-        self.surface._rotary(3, 65)  # Send A row, alternate fourth encoder
+        self.surface._rotary(7, 65)  # Send A row, alternate fourth encoder
+        self.surface._rotary(3, 65)  # Send B row, alternate fourth encoder
         self.assertEqual(self.song.tracks[0].mixer_device.sends[0].value, before_a)
         self.assertEqual(self.song.tracks[0].mixer_device.sends[1].value, before_b)
 
@@ -380,30 +370,6 @@ class Beta3Tests(unittest.TestCase):
         self.assertIsNone(self.surface._inherited_parameter(2, 0))
         self.assertIsNone(self.surface._inherited_parameter(1, 0))
         self.assertIsNone(self.surface._inherited_parameter(0, 0))
-
-    def test_empty_midi_track_white_mixer_rings_dark_controls_unchanged(self):
-        track = self.song.tracks[0]
-        track.has_audio_output = False
-        self.surface._refresh_all()
-        for cc in (0, 4, 8, 12):
-            self.assertIsNone(self.surface._frame.get(cc, (0, 0, None, False))[2])
-            self.assertEqual(self.surface._ring_cache.get(cc, 0), 0)
-        before = track.mixer_device.volume.value
-        self.surface._rotary(12, 65)
-        self.assertGreater(track.mixer_device.volume.value, before)
-        self.assertEqual(self.surface._ring_cache.get(12, 0), 0)
-        self.push(12)
-        self.assertTrue(track.mute)
-        track.has_audio_output = True
-        self.surface._refresh_all()
-        self.assertGreater(self.surface._ring_cache.get(12, 0), 0)
-
-    def test_blank_midi_volume_row_stays_dark(self):
-        self.song.tracks[0].has_audio_output = False
-        self.surface._row_modules[3] = "Blank"
-        self.surface._refresh_all()
-        self.assertIsNone(self.surface._frame.get(12, (0, 0, None, False))[2])
-        self.assertEqual(self.surface._ring_cache.get(12, 0), 0)
 
     def test_returns_banking_reaches_more_than_four_returns(self):
         self.song.return_tracks = [FakeTrack("Return %d" % i, armable=False)
@@ -621,8 +587,8 @@ class Beta3Tests(unittest.TestCase):
 
     def test_device_replacement_priority_all_four_counts(self):
         expected = [
-            ["Send A", "Send B", "Pan", "Volume"],
-            ["Device Control", "Send B", "Pan", "Volume"],
+            ["Send B", "Send A", "Pan", "Volume"],
+            ["Device Control", "Send A", "Pan", "Volume"],
             ["Device Control", "Device Control", "Pan", "Volume"],
             ["Device Control", "Device Control", "Device Control", "Volume"],
             ["Device Control"] * 4,
@@ -631,50 +597,6 @@ class Beta3Tests(unittest.TestCase):
             with self.subTest(device_rows=count):
                 self.surface._row_modules = ["Device Control"] * count + ["Mute"] * (4-count)
                 self.assertEqual([self.surface._rotary_function(i) for i in range(4)],expected[count])
-
-    def test_one_send_survives_as_send_a_after_top_device_replacement(self):
-        track = self.song.tracks[0]
-        track.mixer_device.sends = track.mixer_device.sends[:1]
-        self._insert_devices(1)
-        a = track.mixer_device.sends[0]
-        self.assertIs(self.surface._inherited_parameter(1, 0), a)
-        before = a.value
-        self.surface._rotary(4, 65)
-        self.assertGreater(a.value, before)
-        self.assertIsNotNone(self.surface._frame[4][2])
-
-    def test_two_sends_remain_a_top_b_below_until_device_replacement(self):
-        track = self.song.tracks[0]
-        track.mixer_device.sends = track.mixer_device.sends[:2]
-        self.assertIs(self.surface._inherited_parameter(0, 0), track.mixer_device.sends[0])
-        self.assertIs(self.surface._inherited_parameter(1, 0), track.mixer_device.sends[1])
-        self._insert_devices(1)
-        self.assertIs(self.surface._inherited_parameter(1, 0), track.mixer_device.sends[1])
-        self.assertIs(self.surface._inherited_parameter(0, 0),
-                      track.view.selected_device.parameters[1])
-
-    def test_no_sends_remain_dark_when_primary_device_added(self):
-        track = self.song.tracks[0]
-        track.mixer_device.sends = []
-        self._insert_devices(1)
-        self.assertIsNone(self.surface._inherited_parameter(1, 0))
-        self.assertEqual(self.surface._ring_cache.get(4, 0), 0)
-
-    def test_device_replacement_preserves_remaining_targets(self):
-        track = self.song.tracks[0]
-        device = track.view.selected_device
-        mixer = track.mixer_device
-        expected = [mixer.sends[0], mixer.sends[1], mixer.panning, mixer.volume]
-        for count in range(5):
-            with self.subTest(device_rows=count):
-                self.surface._row_modules = ["Device Control"] * count + ["Blank"] * (4-count)
-                self.surface._refresh_all()
-                for row in range(4):
-                    parameter = self.surface._inherited_parameter(row, 0)
-                    if row < count:
-                        self.assertIs(parameter, device.parameters[1+row*4])
-                    else:
-                        self.assertIs(parameter, expected[row])
 
     def test_device_row_one_controls_params_one_through_four(self):
         self._insert_devices(1)
@@ -835,10 +757,10 @@ class Beta3Tests(unittest.TestCase):
         self.surface._rotary(3,65)
         self.assertGreater(param.value,before)
 
-    def test_mixer_corrected_send_order_without_devices(self):
+    def test_mixer_unchanged_from_beta3_default_when_no_device(self):
         self.assertEqual(self.surface._row_modules,["Clip Launch","Arm","Solo","Mute"])
         self.assertEqual([self.surface._rotary_function(row) for row in range(4)],
-                         ["Send A","Send B","Pan","Volume"])
+                         ["Send B","Send A","Pan","Volume"])
         self.assertEqual(self.surface._device_row_count(),0)
 
 

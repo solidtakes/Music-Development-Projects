@@ -1,4 +1,4 @@
-# MF4TRKBento Beta 3.2 EXP
+# MF4TRKBento Beta 3.1 EXP
 # Fixed mixer rotaries and top-down Device Control replacement.
 # Bank 2 MIDI routing retained from Beta 2 (CC0-15, channels 11/12).
 from _Framework.ControlSurface import ControlSurface
@@ -18,11 +18,11 @@ class MF4TRKBento(ControlSurface):
     SCROLL_DETENTS = 4
     ROWS = ((0, 1, 2, 3), (4, 5, 6, 7), (8, 9, 10, 11), (12, 13, 14, 15))
     # Physical rows from TOP to BOTTOM. Device Control replaces these slots
-    # in order: Send A, Send B, Pan, Volume. Button-only modules never change
+    # in order: Send B, Send A, Pan, Volume. Button-only modules never change
     # their row's rotary assignment; Blank disables the push only.
     MODULES = ("Blank", "Clip Launch", "Arm", "Solo", "Mute", "Stop", "Device Control")
     BUTTON_ONLY_MODULES = ("Clip Launch", "Arm", "Solo", "Mute", "Stop")
-    MIXER_ROTARY_FUNCTIONS = ("Send A", "Send B", "Pan", "Volume")
+    MIXER_ROTARY_FUNCTIONS = ("Send B", "Send A", "Pan", "Volume")
     DEVICE_COLOR = 68  # Blue; primary top-row power indicator uses yellow.
     DEVICE_POWER_COLOR = 108
     STOP_HOLD_SECONDS = 0.5
@@ -105,8 +105,8 @@ class MF4TRKBento(ControlSurface):
                     self._elements.append((element, callback))
         self._refresh_all()
         self._schedule_tick()
-        self.show_message("MF4TRKBento Beta 3.2 EXP | Device Rows")
-        self.log_message("MF4TRKBento Beta 3.2 EXP loaded - priority Device Control replacement; CC0-15 unchanged")
+        self.show_message("MF4TRKBento Beta 3.1 EXP | Device Rows")
+        self.log_message("MF4TRKBento Beta 3.1 EXP loaded - priority Device Control replacement; CC0-15 unchanged")
 
     def _make_rotary(self, cc):
         return lambda value: self._rotary(cc, value)
@@ -651,13 +651,7 @@ class MF4TRKBento(ControlSurface):
                 return None
             try:
                 sends = mixer.sends
-                # With two Sends rows, A stays above B. If the top A row
-                # has been replaced by Device Control and the track has only
-                # one send, the surviving lower row controls that Send A.
                 index = 0 if function == "Send A" else 1
-                if (function == "Send B" and self._device_row_count() >= 1
-                        and len(sends) == 1):
-                    index = 0
                 return sends[index] if index < len(sends) else None
             except (AttributeError, IndexError, RuntimeError, TypeError, ValueError):
                 return None
@@ -667,25 +661,6 @@ class MF4TRKBento(ControlSurface):
         state = self._parameter_state(parameter, 0) if parameter is not None else None
         return state[2] if state is not None else None
 
-    def _visible_inherited_ring(self, row, col, parameter, columns=None):
-        """Do not illuminate a Volume ring on a MIDI track without audio.
-
-        Volume remains adjustable, and the independent push module still
-        responds; Pan/Sends already reject tracks without audio output.
-        Device controls and alternate Master Volume are not affected.
-        """
-        if parameter is None:
-            return None
-        if self._rotary_function(row) == "Volume" and not (self._alt_mode and col == 3):
-            track = (columns[col] if columns is not None and col < len(columns)
-                     else self._track_for_column(col))
-            try:
-                if track is None or not bool(track.has_audio_output):
-                    return None
-            except (AttributeError, RuntimeError, TypeError, ValueError):
-                return None
-        return self._parameter_ring(parameter)
-
     def _refresh_inherited_cell(self, row, col):
         """Refresh only the rotary ring, preserving the module's push LED state."""
         if self._closed:
@@ -693,7 +668,7 @@ class MF4TRKBento(ControlSurface):
         cc = row * 4 + col
         color, rate, _old_ring, scene = self._frame.get(cc, (0, 0, None, False))
         parameter = self._inherited_parameter(row, col)
-        ring = self._visible_inherited_ring(row, col, parameter)
+        ring = self._parameter_ring(parameter)
         self._frame[cc] = (color, rate, ring, scene)
         self._render_cell(cc)
 
@@ -1087,7 +1062,7 @@ class MF4TRKBento(ControlSurface):
             for col, cc in enumerate(self.ROWS[row]):
                 parameter = self._inherited_parameter(
                     row, col, columns, mixers, device_params)
-                ring = self._visible_inherited_ring(row, col, parameter, columns)
+                ring = self._parameter_ring(parameter)
 
                 if module == "Device Control":
                     if device is None:
