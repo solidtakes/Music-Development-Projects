@@ -459,15 +459,15 @@ class Beta3Tests(unittest.TestCase):
         self.assertEqual(self.surface._track_offset, 1)
         self.surface._push(0, 0)
 
-    def test_old_vertical_cross_row_shortcuts_are_removed(self):
+    def test_37_vertical_solo_to_arm_restored_without_solo_or_mute(self):
         track = self.song.tracks[0]
         self.surface._push(8, 127)   # hold Solo encoder
         self.surface._push(12, 127)  # tap Mute encoder below
         self.surface._push(12, 0)
         self.surface._push(8, 0)
-        self.assertTrue(track.solo)
-        self.assertTrue(track.mute)
-        self.assertFalse(track.arm)
+        self.assertFalse(track.solo)
+        self.assertFalse(track.mute)
+        self.assertTrue(track.arm)
 
     def test_35ms_volume_press_contamination_is_reversed_immediately(self):
         track = self.song.tracks[0]
