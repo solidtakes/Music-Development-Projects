@@ -716,7 +716,7 @@ class Beta3Tests(unittest.TestCase):
         self.assertEqual(self.surface._device_bank, 3)
         for row in range(4):
             self.assertIs(self.surface._device_parameter(row, 0),
-                          device.parameters[1 + (3 + row) * 4])
+                          device.parameters[1 + 3 * 16 + row * 4])
         self.push(1)
         self.assertEqual(self.surface._device_bank, 0)
         for row in range(4):
