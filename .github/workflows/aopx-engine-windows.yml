@@ -4,7 +4,14 @@ name: AOPX engine (Windows)
 # Linux is included only as a control, so a failure can be attributed to the platform.
 on:
   push:
-    branches: [claude/aopx-02-engine-proof]
+    branches:
+      - claude/aopx-02-engine-proof
+      - ableton-offline-processing/alpha-0.1
+    paths:
+      - 'ableton-offline-processing/engine/**'
+      - '.github/workflows/aopx-engine-windows.yml'
+  pull_request:
+    branches: [ableton-offline-processing/alpha-0.1]
     paths:
       - 'ableton-offline-processing/engine/**'
       - '.github/workflows/aopx-engine-windows.yml'

@@ -174,8 +174,8 @@ Each rendered node stores one full-size WAV, so the cache grows by roughly the s
 - **One output format.** The output format always equals the source format. There is no format conversion or dither option.
 - **Single process only.** A project is not safe to open from two processes at once; there is no lock file.
 - **Hash verification costs time.** `hash` mode re-hashes the whole object on every hit, at about 1 ms per MiB here. `size` mode is faster but cannot detect bit flips of the same length.
-- **Standalone Node only.** Node 24.22.1 has been verified as a standalone binary on Linux, not inside Ableton Live's Extension host. The Extension host adapter and the Live round trip are not built or verified yet.
-- **Windows untested.** No run on Windows has been made. Sources and cache objects are written read-only (`0444`), and rename-over and removal of read-only files may behave differently there.
+- **Standalone Node only.** Node 24.22.1 has been verified as a standalone binary on Windows and Linux CI, not inside Ableton Live's Extension host. The Extension host adapter and the Live round trip are not built or verified yet.
+- **Windows file locks.** On Windows, if another process holds a cache object or stored source open (antivirus, a search indexer, or Live reading an exported file), removing or renaming it can fail with `EBUSY` or `EPERM`. The error is surfaced to the caller, not retried. This is untested. (Renaming onto an existing read-only file, which used to fail with `EPERM`, is fixed; see [Verification status](#verification-status).)
 
 ## Processor adapter seam (future plugins)
 
@@ -202,14 +202,25 @@ Status as of 15 Nov 2026. Canonical `ableton-offline-processing/alpha-0.1` is at
 
 After the lockfile was committed and the demo was added to `npm run check`, a clean `npm ci` followed by `npm run check` passed on both runtimes again: typecheck clean, 50/50 tests and 15/15 demo checks. This was an engine-only run; the editor was unchanged.
 
+### Windows and Linux CI (T4)
+
+Status as of 16 Nov 2026. The workflow `.github/workflows/aopx-engine-windows.yml` runs on `windows-latest` and `ubuntu-latest` with standalone Node 24.22.1 / npm 11.19.1. It does a clean `npm ci`, then `npm run check`, `npm run demo` and `test/fs-portability.test.ts` on its own. That file has 9 tests for read-only (`0444`) cache objects and sources, rename-into-place, eviction, re-publishing over an orphaned object, garbage collection, source re-import, repeated save/reopen and repeated export.
+
+| Commit | Windows (Server 2025, 10.0.26100) | Linux |
+|---|---|---|
+| `851902b`, `5f8ef49` (tests only, before the fix) | 57/59 tests. 2 × `EPERM` on `rename` onto an existing read-only file, in `ContentCache.publish` and `Project.importSource`. Standalone demo 15/15 | 59/59, 15/15 |
+| `58e1aa5` (fix: `writeImmutable` in `src/cache.ts`), [run 43776706507](https://github.com/solidtakes/Music-Development-Projects/actions/runs/43776706507) | **59/59 tests, demo 15/15, fs-portability 9/9** | **59/59, 15/15, 9/9** |
+
+The demo's cache keys are identical on Windows and Linux. The fix never renames onto an existing file: a destination whose sha256 matches is reused, and an invalid one is removed before the staged file is renamed into place.
+
 Not verified:
-- **Windows.** Untested.
-- **Inside Live.** The Node 24.22.1 run used a standalone binary, not Ableton Live's Extension host.
+- **Inside Live.** All runs used a standalone Node binary (Linux locally; Windows and Linux on CI), not Ableton Live's Extension host on any platform.
+- **Windows file locks.** Files held open by another process are untested (see [Known limitations](#known-limitations)).
 - **Live integration.** The Extension host adapter and the Live round trip (Alpha acceptance tests 11–13) do not exist yet. This engine is a standalone proof.
 
 ## Next integration step
 
-Run `npm ci` and `npm run check` on Windows and inside the Live-bundled Node 24.22.1. Then wire up the Extension adapter:
+Run the engine inside the Live-bundled Node 24.22.1 (Extension host) on Windows. Then wire up the Extension adapter:
 1. `renderPreFxAudio` produces a WAV in `tempDirectory`.
 2. Call `Project.importSource`.
 3. Commit the modal's returned `OperationPlan` with `setPlan`.

@@ -2,7 +2,7 @@
 
 **Working product name:** Offline Processing Suite for Ableton Live  
 **Milestone:** Alpha 0.1 — editable two-step processing history proof  
-**Status (15 Nov 2026):** The standalone engine proof (PR #41, open and draft) passes its full check on standalone Node 22.23.4 and 24.22.1 on Linux. The GUI baseline (PR #42) and the shared contract (PR #36) are merged into canonical. The Live Extension host adapter and the Live round trip are not yet built or verified, and Windows is untested.\
+**Status (16 Nov 2026):** The standalone engine proof (PR #41, open and draft) passes its full check on standalone Node 24.22.1 on Windows and Linux CI, and on standalone Node 22.23.4 and 24.22.1 on Linux. The GUI baseline (PR #42) and the shared contract (PR #36) are merged into canonical. The Live Extension host adapter and the Live round trip are not yet built or verified, and the engine has not run inside Live's Extension host on any platform.\
 **Canonical branch:** `ableton-offline-processing/alpha-0.1`  
 **Repository:** `solidtakes/Music-Development-Projects`
 
@@ -18,16 +18,16 @@ Full architecture: [PRODUCT_ARCHITECTURE.md](PRODUCT_ARCHITECTURE.md).
 
 ## Current engine status (AOPX-02)
 
-Verified 15 Nov 2026; the coordination record is [Issue #40](https://github.com/solidtakes/Music-Development-Projects/issues/40).
+Verified 15–16 Nov 2026; the coordination record is [Issue #40](https://github.com/solidtakes/Music-Development-Projects/issues/40).
 
 - **Canonical** `ableton-offline-processing/alpha-0.1` is at `a4f1404`. That is the merge of [PR #36](https://github.com/solidtakes/Music-Development-Projects/pull/36), which landed as the **contract-only precursor** (`engine/src/contract.ts`, commit `7c169c8`) and is frozen.
 - **Engine:** [PR #41](https://github.com/solidtakes/Music-Development-Projects/pull/41) on `claude/aopx-02-engine-proof` holds the WAV engine implementation. Claude owns it. It is **open and draft and not merged**. Its head was `a3868d0` (canonical merged in, no engine files changed) when the runtime checks below ran.
 - **Node 22.23.4 / npm 10.9.9:** engine check passes 50/50 tests and the demo passes 15/15 checks. Editor tests pass 24/24 and browser tests 10/10.
 - **Node 24.22.1 / npm 11.19.1:** the same results (50/50, 15/15, 24/24, 10/10). This was a **standalone Node binary on Linux, not Ableton Live's Extension host**.
-- **Windows:** untested.
+- **Windows and Linux CI (T4, 16 Nov 2026):** the workflow `.github/workflows/aopx-engine-windows.yml` runs standalone Node 24.22.1 / npm 11.19.1 on `windows-latest` and `ubuntu-latest`. At engine head `58e1aa5` ([run 43776706507](https://github.com/solidtakes/Music-Development-Projects/actions/runs/43776706507)), both platforms passed `npm ci`, `npm run check` (59/59 tests, demo 15/15), `npm run demo` (15/15) and the filesystem portability tests (9/9). The earlier Windows failure, `EPERM` when renaming onto an existing read-only file, is fixed. **Remaining caveat:** files held open by another process on Windows (antivirus, indexer, Live) can still make a remove or rename fail with `EBUSY`/`EPERM`; this is surfaced, not retried, and untested. All of these runs were **standalone Node, not Live's Extension host**.
 - **Not yet built or verified:** the Extension host adapter (AOPX-01) and the Live round trip (Alpha acceptance tests 11–13). The engine is a standalone proof until those exist.
 - Engine installs are reproducible via the committed `engine/package-lock.json` and `npm ci`. `npm run check` runs typecheck, the full test suite and the acceptance demo. From a clean `npm ci`, it passed (50/50 tests, 15/15 demo checks) on both Node 22.23.4 and Node 24.22.1.
-- Open follow-ups are tracked on Issue #40: T1 `RenderReport.wallMs`, T2 the modal-result envelope, T4 Windows, T5 write durability, T7 low-severity engine fixes, T8 host adapter, T9 Live round trip.
+- Open follow-ups are tracked on Issue #40: T1 `RenderReport.wallMs`, T2 the modal-result envelope, T5 write durability, T7 low-severity engine fixes, T8 host adapter, T9 Live round trip.
 
 ## Alpha 0.1 scope
 
