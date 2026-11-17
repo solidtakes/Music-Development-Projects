@@ -3,8 +3,11 @@
 **Status: DRAFT, not independently reviewed. This is NOT the full T8 production adapter.**
 The owner approved proceeding with an Arrangement-only read-only proof after S2/S3/S4 real Windows Live 13 Beta evidence.
 
-This package copies the exact canonical AOPX engine WAV decoder, DSP (Reverse/Gain),
-fingerprint helper, host modal parser, shared contract and editor HTML at the recorded baseline.
+This package vendors the canonical AOPX engine WAV decoder, DSP (Reverse/Gain),
+fingerprint helper, host modal parser, shared contract and editor HTML from the recorded baseline.
+**T8-0 exception:** the vendored DSP scheduler explicitly imports the timer from
+`node:timers/promises` instead of assuming the Live extension host exposes a global
+`setImmediate`. The core canonical engine source is not modified in this PR.
 The vendored copies let the experimental extension install inside the owner's standalone
 SDK examples folder without importing the whole repository at runtime.
 
@@ -64,3 +67,15 @@ persistent edit history, output tracks, Live undo/rollback.
 - S4: one real Live pre-FX render, 48 kHz mono float32, 32s, decoded by canonical AOPX engine.
 - Full T8 implementation gate stays CLOSED until S5 import/rollback and further explicit approval.
 - The S3 parent branch and PR #56 remain separate, draft and unmerged. No merges authorized.
+
+## Windows owner finding: multi-block DSP compatibility
+
+The first real-host Apply test logged `AOPX_T8_0_BLOCKED failed-dsp-ReferenceError` with
+approximately 2.82 s of 48 kHz mono WAV, after the editor opened. The original
+64-frame FakeHost test never executed a block-boundary event-loop yield.
+The probable cause is the implicit global `setImmediate` in the vendored DSP.
+This revision explicitly imports an asynchronous immediate from `node:timers/promises`
+and adds a long-buffer test that removes the global `setImmediate` while exercising
+Reverse and Gain across a block boundary. **The diagnosis remains provisional until a
+successful owner rerun in the actual Live host.** The safety boundary is unchanged:
+no clip/track creation, import, or Set writes. PR stays draft.
