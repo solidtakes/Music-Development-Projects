@@ -151,3 +151,33 @@ test("encoder/header sanity and renderer size guard", async () => {
   assert.deepEqual(r, { status: "blocked", reason: "render-too-large" });
   assert.deepEqual(f.calls, ["resolve", "render", "read"]);
 });
+
+
+test("long 48 kHz audio >65536 frames succeeds without the global setImmediate provided by Node", async () => {
+  // Live returned failed-dsp-ReferenceError for an approximately 2.82 s / 48 kHz WAV.
+  // The previous 64-frame FakeHost sample never crossed the DSP event-loop yield.
+  // Simulate a host context where the Node global is not injected.
+  const frames = (1 << 16) + 4097;
+  const audio = Float64Array.from({ length: frames }, (_, i) => Math.sin(i / 37));
+  const wav = encodeWav(makeMetadata(1, 48000, 32, "float", frames), audio).bytes;
+  const f = createFake({ rendered: wav });
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "setImmediate");
+  Object.defineProperty(globalThis, "setImmediate", {
+    value: undefined, configurable: true, writable: true,
+  });
+  try {
+    const r = await runReadOnlyFlow(f.host, null, html);
+    assert.equal(r.status, "dry-run-complete", JSON.stringify(r));
+    assert.deepEqual(f.calls, ["resolve", "render", "read", "modal"]);
+    if (r.status === "dry-run-complete") {
+      assert.equal(r.sourceFrames, frames);
+      assert.equal(r.outputFrames, frames);
+      assert.equal(r.enabledOperations, 2);
+    }
+    assert.ok(f.logs.some(line => line.startsWith("AOPX_T8_0_DRY_RUN_COMPLETE ")));
+    assert.ok(f.logs.every(line => !line.includes("failed-dsp-ReferenceError")));
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, "setImmediate", descriptor);
+    else Reflect.deleteProperty(globalThis, "setImmediate");
+  }
+});
