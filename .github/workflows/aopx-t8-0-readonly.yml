@@ -1,0 +1,79 @@
+name: AOPX T8-0 read-only proof
+
+# SDK-independent tests; no Live run, import, writes, or production processing.
+on:
+  pull_request:
+    branches: [claude/aopx-s3-live-probe, ableton-offline-processing/alpha-0.1]
+    paths:
+      - 'ableton-offline-processing/spikes/t8-0-readonly/**'
+      - '.github/workflows/aopx-t8-0-readonly.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fake-host:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        node: ['24.22.1', '26.13.0']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    name: FakeHost (${{ matrix.os }}, Node ${{ matrix.node }})
+    defaults:
+      run:
+        working-directory: ableton-offline-processing/spikes/t8-0-readonly
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Node version and FakeHost tests (no SDK install)
+        shell: bash
+        run: |
+          node --version
+          node --test test/flow.test.ts
+      - name: Check no mutating SDK API in Live glue
+        shell: bash
+        run: |
+          node --input-type=module -e 'import{readFileSync}from"node:fs";const s=readFileSync("src/extension.ts","utf8");for(const token of ["importIntoProject","createAudioTrack","createAudioClip","withinTransaction","writeFile"])if(s.includes(token))throw Error("Forbidden SDK write symbol: "+token);console.log("Read-only SDK glue: PASS");'
+      - name: Parse Windows PowerShell launch script
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) 'run.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Host; exit 1 }
+          Write-Host 'run.ps1 parses: PASS'
+
+  source-zip:
+    needs: fake-host
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Create reproducible test ZIP
+        run: python ableton-offline-processing/spikes/t8-0-readonly/ci/package.py "${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip"
+      - name: Verify ZIP
+        run: |
+          python -m zipfile -t "${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip"
+          sha256sum "${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip"
+      - name: Test the contents extracted from the actual deliverable ZIP
+        run: |
+          mkdir -p "${{ runner.temp }}/unpacked"
+          python -m zipfile -e "${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip" "${{ runner.temp }}/unpacked"
+          cd "${{ runner.temp }}/unpacked/aopx-t8-0-readonly"
+          test -f test/flow.test.ts
+          node --test test/flow.test.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aopx-t8-0-readonly-windows-test
+          path: ${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip
+          retention-days: 30
+          if-no-files-found: error
