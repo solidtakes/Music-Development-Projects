@@ -3,7 +3,8 @@ name: AOPX T8-0 read-only proof
 # SDK-independent tests; no Live run, import, writes, or production processing.
 on:
   pull_request:
-    branches: [claude/aopx-s3-live-probe, ableton-offline-processing/alpha-0.1]
+    # chatgpt/aopx-t8-0-readonly-probe: stacked fix PRs on PR #65 (T8-0 Fix 2) get CI automatically.
+    branches: [claude/aopx-s3-live-probe, ableton-offline-processing/alpha-0.1, chatgpt/aopx-t8-0-readonly-probe]
     paths:
       - 'ableton-offline-processing/spikes/t8-0-readonly/**'
       - '.github/workflows/aopx-t8-0-readonly.yml'
