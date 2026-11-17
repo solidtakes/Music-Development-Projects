@@ -14,7 +14,8 @@ paths = [
         "README.md", "run.ps1", "package.json", "manifest.json",
         "tsconfig.json", "build.ts"
     )
-] + sorted((root / "src").rglob("*"))
+] + sorted((root / "src").rglob("*")) + sorted((root / "test").rglob("*"))
+assert (root / "test" / "flow.test.ts").is_file(), "FakeHost tests missing from package"
 files = sorted(p for p in paths if p.is_file())
 assert files, "No package files found"
 hashes = []
