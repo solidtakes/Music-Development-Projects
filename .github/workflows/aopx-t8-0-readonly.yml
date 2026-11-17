@@ -55,12 +55,22 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
       - name: Create reproducible test ZIP
         run: python ableton-offline-processing/spikes/t8-0-readonly/ci/package.py "${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip"
       - name: Verify ZIP
         run: |
           python -m zipfile -t "${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip"
           sha256sum "${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip"
+      - name: Test the contents extracted from the actual deliverable ZIP
+        run: |
+          mkdir -p "${{ runner.temp }}/unpacked"
+          python -m zipfile -e "${{ runner.temp }}/aopx-t8-0-readonly-windows-test.zip" "${{ runner.temp }}/unpacked"
+          cd "${{ runner.temp }}/unpacked/aopx-t8-0-readonly"
+          test -f test/flow.test.ts
+          node --test test/flow.test.ts
       - uses: actions/upload-artifact@v4
         with:
           name: aopx-t8-0-readonly-windows-test
