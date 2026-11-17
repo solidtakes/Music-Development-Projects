@@ -4,6 +4,8 @@ Owner acceptance (2026-11-16): Beta 3.7 described as "great", authorized promoti
 
 **Exact implementation parent:** `52eec693aa1b832ecc40aa92772d17ec516299e1`, draft PR #58 (original Beta 3.7 EXP). `MF4TRKBento.py` is byte-identical to the working Beta 3.7 implementation except for **three occurrences of the user-facing startup/version label** `Beta 3.7 EXP` → `v1.0 STABLE`; no behavior, MIDI logic or mapping changed. README version headers updated; tests copied unchanged.
 
+**Pinned installable ZIP SHA-256:** `332ba9a54f24c96eecb0c7979652282cb6661b697a227607ad753f5823890d77`
+
 **Installable permanent package:** `MF4TRKBento_STABLE/v1.0/releases/MF4TRKBento_v1.0_STABLE.zip` contains only:
 - `MF4TRKBento/__init__.py`
 - `MF4TRKBento/MF4TRKBento.py`
