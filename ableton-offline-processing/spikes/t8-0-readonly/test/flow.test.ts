@@ -145,7 +145,7 @@ test("too many operations rejected before DSP; input unchanged", async () => {
   assert.deepEqual(f.calls, ["resolve", "render", "read", "modal"]);
 });
 test("encoder/header sanity and renderer size guard", async () => {
-  assert.equal(bytes.slice(0, 4).toString(), Uint8Array.prototype.toString.call(bytes.slice(0, 4)));
+  assert.equal(String.fromCharCode(...bytes.subarray(0, 4)), "RIFF");
   const f = createFake({ rendered: new Uint8Array(MAX_RENDER_BYTES + 1) });
   const r = await runReadOnlyFlow(f.host, null, html);
   assert.deepEqual(r, { status: "blocked", reason: "render-too-large" });
