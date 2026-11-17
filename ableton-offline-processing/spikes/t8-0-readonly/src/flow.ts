@@ -7,11 +7,35 @@ import { decodeWav, encodeWav } from "./product/engine/src/wav.ts";
 import { computePeaks, gain, reverse } from "./product/engine/src/dsp.ts";
 import { sha256Hex } from "./product/engine/src/hash.ts";
 import { buildHostInitialState, injectInitialState, parseModalResult } from "./product/host/src/modal.ts";
-import { CONTRACT_VERSION, type OperationPlan } from "./product/engine/src/contract.ts";
+import { CONTRACT_VERSION, type OperationPlan, type WaveformPeak } from "./product/engine/src/contract.ts";
 
 export const MAX_RENDER_BYTES = 32 * 1024 * 1024;
 export const MAX_MODAL_URL_CHARS = 1_500_000;
 export const MAX_OPERATIONS = 16;
+export const WAVEFORM_BINS = 96;
+
+/**
+ * Numbers-only summary of the waveform handed to the editor (Fix 2 diagnostics). It separates a
+ * genuinely silent render (every peak 0) from a display problem, without logging any audio data.
+ */
+export function summarizeWaveform(peaks: readonly WaveformPeak[]): {
+  bins: number; peakAbs: number; peakDbfs: number | null; nonzeroBins: number; silent: boolean;
+} {
+  let peakAbs = 0;
+  let nonzeroBins = 0;
+  for (const p of peaks) {
+    const a = Math.max(Math.abs(p.min), Math.abs(p.max));
+    if (a > 0) nonzeroBins += 1;
+    if (a > peakAbs) peakAbs = a;
+  }
+  return {
+    bins: peaks.length,
+    peakAbs: Number(peakAbs.toFixed(6)),
+    peakDbfs: peakAbs > 0 ? Number((20 * Math.log10(peakAbs)).toFixed(1)) : null,
+    nonzeroBins,
+    silent: peakAbs === 0,
+  };
+}
 
 export interface ResolvedClip<Track> {
   scope: "Arrangement" | "Other";
@@ -103,16 +127,17 @@ export async function runReadOnlyFlow<Track>(
       format: decoded.format,
     };
     stage = "modal";
+    const waveform = computePeaks(decoded, WAVEFORM_BINS);
     const state = buildHostInitialState({
       source,
-      waveform: computePeaks(decoded, 96),
+      waveform,
       plan: DEFAULT_PLAN,
       diagnostics: null,
     });
     // Safety banner is within the delivered page; users must not confuse Apply with a Set edit.
     const warnedHtml = editorHtml.replace(
       "<body>",
-      '<body><div id="aopx-t8-0-warning" style="background:#613f10;color:#fff;padding:10px;text-align:center;font-weight:bold">AOPX T8-0 READ-ONLY TEST — Apply runs DSP in memory; NO clip will be saved or imported.</div>',
+      '<body><div id="aopx-t8-0-warning" style="background:#613f10;color:#fff;padding:10px;text-align:center;font-weight:bold">AOPX T8-0 READ-ONLY TEST — RUN DRY TEST processes audio in memory only; NO clip will be saved or imported.</div>',
     );
     if (warnedHtml === editorHtml) return { status: "blocked", reason: "missing-body-marker" };
     const document = injectInitialState(warnedHtml, state);
@@ -122,6 +147,7 @@ export async function runReadOnlyFlow<Track>(
       host.log("AOPX_T8_0_BLOCKED modal-url-too-large");
       return { status: "blocked", reason: "modal-url-too-large" };
     }
+    host.log("AOPX_T8_0_WAVEFORM " + JSON.stringify(summarizeWaveform(waveform)));
     host.log("AOPX_T8_0_EDITOR_OPEN read-only");
     const raw = await host.showModal(url, 860, 660);
     if (typeof raw !== "string" || raw.trim() === "") {
@@ -167,6 +193,11 @@ export async function runReadOnlyFlow<Track>(
       outputFingerprintPrefix: sha256Hex(rendered.bytes).slice(0, 12),
     };
     host.log("AOPX_T8_0_DRY_RUN_COMPLETE " + JSON.stringify(report));
+    host.log(
+      "AOPX_T8_0_DRY_RUN_OK In-memory dry test succeeded: " + enabled + " of " + report.operations +
+      " operation(s) ran on " + report.sourceFrames + " frames -> " + report.outputFrames +
+      " frames. Nothing was saved, imported or changed in Live.",
+    );
     return report;
   } catch (error) {
     const reason = "failed-" + stage + "-" + safeErrorType(error);

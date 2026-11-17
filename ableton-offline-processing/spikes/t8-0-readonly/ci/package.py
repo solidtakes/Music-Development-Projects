@@ -15,7 +15,8 @@ paths = [
         "tsconfig.json", "build.ts"
     )
 ] + sorted((root / "src").rglob("*")) + sorted((root / "test").rglob("*"))
-assert (root / "test" / "flow.test.ts").is_file(), "FakeHost tests missing from package"
+for required in ("flow.test.ts", "waveform.test.ts", "waveform-gui.browser.mts"):
+    assert (root / "test" / required).is_file(), f"Test missing from package: {required}"
 files = sorted(p for p in paths if p.is_file())
 assert files, "No package files found"
 hashes = []
