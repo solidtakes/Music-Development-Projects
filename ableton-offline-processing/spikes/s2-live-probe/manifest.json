@@ -1,0 +1,7 @@
+{
+  "name": "AOPX S2 Read-only Inspector",
+  "author": "AOPX",
+  "entry": "dist/extension.js",
+  "version": "0.0.1",
+  "minimumApiVersion": "1.0.0"
+}
