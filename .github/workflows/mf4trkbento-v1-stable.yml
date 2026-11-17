@@ -41,6 +41,7 @@ jobs:
           assert archive.is_file(), "Missing permanent v1.0 ZIP"
           digest = hashlib.sha256(archive.read_bytes()).hexdigest()
           print("Stable ZIP SHA-256:", digest)
+          assert digest == "332ba9a54f24c96eecb0c7979652282cb6661b697a227607ad753f5823890d77", "v1.0 stable ZIP SHA-256 mismatch"
           with zipfile.ZipFile(archive) as z:
               assert z.testzip() is None, "ZIP CRC failed"
               assert z.namelist() == list(names), "Unexpected ZIP file list"
