@@ -1,0 +1,7 @@
+{
+  "name": "AOPX T8-0 Read-only Preview",
+  "author": "AOPX",
+  "entry": "dist/extension.js",
+  "version": "0.0.1",
+  "minimumApiVersion": "1.0.0"
+}
