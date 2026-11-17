@@ -1,0 +1,56 @@
+name: MF4TRKBento v1.0 STABLE (owner-accepted)
+on:
+  push:
+    branches:
+      - stable/mf4trkbento-v1-0-owner-accepted-20261116
+  pull_request:
+    paths:
+      - "MF4TRKBento_STABLE/v1.0/**"
+      - ".github/workflows/mf4trkbento-v1-stable.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stable-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax check and mock regressions
+        working-directory: MF4TRKBento_STABLE/v1.0
+        run: |
+          python -m py_compile MF4TRKBento/MF4TRKBento.py
+          python -B -m unittest discover -s tests -p 'test_beta3.py' -v
+      - name: Validate permanent stable ZIP and exact contents
+        working-directory: MF4TRKBento_STABLE/v1.0
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import zipfile
+          archive = Path("releases/MF4TRKBento_v1.0_STABLE.zip")
+          names = (
+              "MF4TRKBento/__init__.py",
+              "MF4TRKBento/MF4TRKBento.py",
+              "MF4TRKBento/README_INSTALL.txt",
+          )
+          assert archive.is_file(), "Missing permanent v1.0 ZIP"
+          digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+          print("Stable ZIP SHA-256:", digest)
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None, "ZIP CRC failed"
+              assert z.namelist() == list(names), "Unexpected ZIP file list"
+              assert not any("__pycache__" in n or n.endswith((".pyc", ".pyo")) for n in z.namelist())
+              for name in names:
+                  assert z.read(name) == Path(name).read_bytes(), "ZIP source mismatch: " + name
+          print("Stable installable archive: PASS; all three files byte-identical to repository")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MF4TRKBento-v1.0-STABLE-Installable
+          path: MF4TRKBento_STABLE/v1.0/releases/MF4TRKBento_v1.0_STABLE.zip
+          if-no-files-found: error
