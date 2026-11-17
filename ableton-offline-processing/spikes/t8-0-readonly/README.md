@@ -20,7 +20,8 @@ After a valid Apply, canonical Reverse/Gain run on decoded buffers **in memory o
 printing only metadata and 12-digit fingerprint prefixes. The result is NOT saved to disk or Live.
 
 The modal displays an orange warning and a "READ-ONLY TEST — NO AUDIO WILL BE SAVED"
-source label. Apply means **DRY RUN**, not importing processed audio.
+source label. The editor's action button reads **RUN DRY TEST** (it was "APPLY TO CLIP" in Fix 1):
+it returns the same strict modal `process` envelope, and means DRY RUN, never importing processed audio.
 
 **Not supported or validated:** Session/TakeLane, overlapping Arrangement clips, file-based modal
 delivery, fades/crossfades, automated track isolation, full warp-marker reconstruction,
@@ -43,8 +44,9 @@ persistent edit history, output tracks, Live undo/rollback.
    AOPX T8-0 Preview (READ-ONLY — does not save)
 7. On the first test press CANCEL. Expected: AOPX_T8_0_CANCELLED user-cancel
    (or modal-closed when closing using the window X).
-8. On the next test, optionally reorder Reverse/Gain and press APPLY.
-   Expected: AOPX_T8_0_DRY_RUN_COMPLETE with audio frame counts and fingerprint prefixes.
+8. On the next test, optionally reorder Reverse/Gain and press RUN DRY TEST.
+   Expected: AOPX_T8_0_DRY_RUN_COMPLETE with audio frame counts and fingerprint prefixes,
+   followed by the plain-language AOPX_T8_0_DRY_RUN_OK line.
    Verify the Set still has NO newly created track or clip.
 
 ## Strict limits
@@ -79,3 +81,23 @@ and adds a long-buffer test that removes the global `setImmediate` while exercis
 Reverse and Gain across a block boundary. **The diagnosis remains provisional until a
 successful owner rerun in the actual Live host.** The safety boundary is unchanged:
 no clip/track creation, import, or Set writes. PR stays draft.
+
+## Fix 2: waveform display, RUN DRY TEST label, completion feedback
+
+- **Waveform root cause (GUI, not audio).** The editor draws each waveform bar as a zero-area
+  line segment inside one SVG path, but the stylesheet only *filled* that path (`stroke: none`),
+  so no bar was ever painted, for loud, quiet or silent sources alike. The decoded PCM and the
+  96 `computePeaks` bins were correct. Fix 2 strokes the path in this probe's copy of the editor only.
+  The canonical `editor/interface.html` has the same defect and is deliberately unchanged here.
+- **Silence is distinguishable.** A bin whose peak is exactly 0 now draws nothing (only the centre
+  line), any nonzero bin at least one unit, and the caption shows the true level computed from the
+  injected peaks: `PEAK x dBFS`, or `SILENT SOURCE · ALL PEAKS 0`. No waveform values are invented,
+  and the DSP and `computePeaks` are unchanged.
+- **Console diagnostics** when the editor opens, numbers only:
+  `AOPX_T8_0_WAVEFORM {"bins":96,"peakAbs":…,"peakDbfs":…,"nonzeroBins":…,"silent":false}`.
+  `"silent":true` means the Live render itself was silent (for example a muted or empty range).
+- **Button** renamed to **RUN DRY TEST** in this probe only; the returned envelope is unchanged.
+- **Completion feedback** after a dry test: `AOPX_T8_0_DRY_RUN_OK In-memory dry test succeeded: …
+  Nothing was saved, imported or changed in Live.` (operation and frame counts only; no paths,
+  names, IDs or error text). The existing `AOPX_T8_0_DRY_RUN_COMPLETE` JSON line is unchanged.
+- **Rollback:** the Fix 1 package (PR #65 at `41dc4c1`) is unchanged and remains the baseline.

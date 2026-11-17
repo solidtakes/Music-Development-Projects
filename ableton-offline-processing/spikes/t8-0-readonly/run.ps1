@@ -23,7 +23,7 @@ Invoke-Checked "SDK-independent FakeHost tests" @("test")
 Invoke-Checked "Typecheck and bundle against real SDK" @("run","build")
 Write-Host ""
 Write-Host "Right-click an isolated Arrangement audio clip > AOPX T8-0 Preview (READ-ONLY - does not save)." -ForegroundColor Cyan
-Write-Host "If the editor opens, Cancel first; later Apply only runs in-memory DSP, never writes to Live." -ForegroundColor Yellow
+Write-Host "If the editor opens, Cancel first; later RUN DRY TEST only runs in-memory DSP, never writes to Live." -ForegroundColor Yellow
 Write-Host "Console output prefix: AOPX_T8_0. Press Ctrl+C to stop."
 & npm start -- --live $LivePath
 exit $LASTEXITCODE

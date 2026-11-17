@@ -6,7 +6,7 @@
   "main": "dist/extension.js",
   "scripts": {
     "build": "tsc --noEmit && tsx build.ts",
-    "test": "node --test test/flow.test.ts",
+    "test": "node --test test/flow.test.ts test/waveform.test.ts",
     "start": "tsx build.ts && ableton-extensions-cli run"
   },
   "dependencies": {
