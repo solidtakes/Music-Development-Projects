@@ -21,7 +21,7 @@ export function activate(activation: ActivationContext): void {
       }
       const clip = context.getObjectFromHandle(argument as Handle, AudioClip);
       const parent = clip.parent;
-      let track: AudioTrack | null = null;
+      let track: InstanceType<typeof AudioTrack> | null = null;
       let scope: ClipScope = "Unknown";
       if (parent instanceof AudioTrack) {
         track = parent; scope = "Arrangement";
