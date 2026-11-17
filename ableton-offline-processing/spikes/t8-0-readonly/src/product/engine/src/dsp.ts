@@ -5,6 +5,7 @@
  * Kernels are async and process in fixed-size frame blocks, checking an AbortSignal and yielding to
  * the event loop between blocks so long renders can be cancelled and stay responsive.
  */
+import { setImmediate as immediatePromise } from 'node:timers/promises';
 import type { WaveformPeak } from './contract.ts';
 import type { DecodedAudio } from './wav.ts';
 
@@ -17,7 +18,9 @@ export interface KernelContext {
   onProgress?: (fraction: number) => void;
 }
 
-const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
+// Live's embedded extension environment may not expose Node's setImmediate global.
+// Use the builtin module explicitly; retains an actual event-loop yield between blocks.
+const yieldToEventLoop = (): Promise<void> => immediatePromise();
 
 async function blocks(
   frames: number,
