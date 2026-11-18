@@ -1,0 +1,1045 @@
+{
+  "build": "13.0b24",
+  "build_source": "Installed executable ProductVersion and the Live 13.0b24 Preferences log directory",
+  "runtime_version_caveat": "Application version methods returned [13, 0, 0], not the beta suffix",
+  "probe_id": "MFSEQ_R1",
+  "record_count": 42,
+  "records": [
+    {
+      "data": {
+        "snapshot": 1,
+        "version": [
+          13,
+          0,
+          0
+        ],
+        "Live_has_StepSequencer_in_dir": false
+      },
+      "kind": "runtime",
+      "host_log_timestamp": "2026-11-18T03:37:15.276457",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "properties": {
+          "midi_clip_type": {
+            "listeners": {
+              "add_midi_clip_type_listener": true,
+              "midi_clip_type_has_listener": true,
+              "remove_midi_clip_type_listener": true
+            },
+            "value": {
+              "type": "property"
+            }
+          },
+          "step_sequencer": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_step_sequencer_listener": false,
+              "remove_step_sequencer_listener": false,
+              "step_sequencer_has_listener": false
+            },
+            "message": "type object 'Clip' has no attribute 'step_sequencer'"
+          }
+        },
+        "type": "class",
+        "members_matching_native_terms": [
+          "add_midi_clip_type_listener",
+          "is_take_lane_clip",
+          "midi_clip_type",
+          "midi_clip_type_has_listener",
+          "remove_midi_clip_type_listener"
+        ]
+      },
+      "kind": "Clip_class",
+      "host_log_timestamp": "2026-11-18T03:37:15.276741",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "path": "song.view",
+        "properties": {
+          "detail_clip": {
+            "listeners": {
+              "add_detail_clip_listener": true,
+              "detail_clip_has_listener": true,
+              "remove_detail_clip_listener": true
+            },
+            "value": {
+              "type": "Clip"
+            }
+          },
+          "highlighted_clip_slot": {
+            "listeners": {
+              "add_highlighted_clip_slot_listener": false,
+              "highlighted_clip_slot_has_listener": false,
+              "remove_highlighted_clip_slot_listener": false
+            },
+            "value": {
+              "type": "ClipSlot"
+            }
+          },
+          "selected_track": {
+            "listeners": {
+              "add_selected_track_listener": true,
+              "remove_selected_track_listener": true,
+              "selected_track_has_listener": true
+            },
+            "value": {
+              "type": "Track"
+            }
+          }
+        },
+        "type": "View",
+        "members_matching_native_terms": []
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:37:15.277288",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "scan": {
+          "clip_samples": 2,
+          "max_clips": 16,
+          "slots_inspected": 32
+        }
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:37:15.277337",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "path": "song.view.detail_clip",
+        "properties": {
+          "is_midi_clip": {
+            "listeners": {
+              "add_is_midi_clip_listener": false,
+              "is_midi_clip_has_listener": false,
+              "remove_is_midi_clip_listener": false
+            },
+            "value": true
+          },
+          "is_playing": {
+            "listeners": {
+              "add_is_playing_listener": false,
+              "is_playing_has_listener": false,
+              "remove_is_playing_listener": false
+            },
+            "value": false
+          },
+          "midi_clip_type": {
+            "listeners": {
+              "add_midi_clip_type_listener": true,
+              "midi_clip_type_has_listener": true,
+              "remove_midi_clip_type_listener": true
+            },
+            "value": 1
+          },
+          "playing_position": {
+            "listeners": {
+              "add_playing_position_listener": true,
+              "playing_position_has_listener": true,
+              "remove_playing_position_listener": true
+            },
+            "value": 0.0
+          },
+          "step_sequencer": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_step_sequencer_listener": false,
+              "remove_step_sequencer_listener": false,
+              "step_sequencer_has_listener": false
+            },
+            "message": "'Clip' object has no attribute 'step_sequencer'"
+          }
+        },
+        "type": "Clip",
+        "members_matching_native_terms": [
+          "add_midi_clip_type_listener",
+          "is_take_lane_clip",
+          "midi_clip_type",
+          "midi_clip_type_has_listener",
+          "remove_midi_clip_type_listener"
+        ]
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:37:15.277455",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "path": "song.view.detail_clip.view",
+        "properties": {
+          "highlighted_row_index": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_highlighted_row_index_listener": false,
+              "highlighted_row_index_has_listener": false,
+              "remove_highlighted_row_index_listener": false
+            },
+            "message": "'View' object has no attribute 'highlighted_row_index'"
+          },
+          "selected_lane": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_lane_listener": false,
+              "remove_selected_lane_listener": false,
+              "selected_lane_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_lane'"
+          },
+          "selected_note": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_note_listener": false,
+              "remove_selected_note_listener": false,
+              "selected_note_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_note'"
+          },
+          "selected_pitch": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_pitch_listener": false,
+              "remove_selected_pitch_listener": false,
+              "selected_pitch_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_pitch'"
+          }
+        },
+        "type": "View",
+        "members_matching_native_terms": []
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:37:15.277526",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "path": "song.tracks[0].clip_slots[0].clip",
+        "properties": {
+          "is_midi_clip": {
+            "listeners": {
+              "add_is_midi_clip_listener": false,
+              "is_midi_clip_has_listener": false,
+              "remove_is_midi_clip_listener": false
+            },
+            "value": true
+          },
+          "is_playing": {
+            "listeners": {
+              "add_is_playing_listener": false,
+              "is_playing_has_listener": false,
+              "remove_is_playing_listener": false
+            },
+            "value": false
+          },
+          "midi_clip_type": {
+            "listeners": {
+              "add_midi_clip_type_listener": true,
+              "midi_clip_type_has_listener": true,
+              "remove_midi_clip_type_listener": true
+            },
+            "value": 1
+          },
+          "playing_position": {
+            "listeners": {
+              "add_playing_position_listener": true,
+              "playing_position_has_listener": true,
+              "remove_playing_position_listener": true
+            },
+            "value": 0.0
+          },
+          "step_sequencer": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_step_sequencer_listener": false,
+              "remove_step_sequencer_listener": false,
+              "step_sequencer_has_listener": false
+            },
+            "message": "'Clip' object has no attribute 'step_sequencer'"
+          }
+        },
+        "type": "Clip",
+        "members_matching_native_terms": [
+          "add_midi_clip_type_listener",
+          "is_take_lane_clip",
+          "midi_clip_type",
+          "midi_clip_type_has_listener",
+          "remove_midi_clip_type_listener"
+        ]
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:37:15.277713",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "path": "song.tracks[0].clip_slots[0].clip.view",
+        "properties": {
+          "highlighted_row_index": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_highlighted_row_index_listener": false,
+              "highlighted_row_index_has_listener": false,
+              "remove_highlighted_row_index_listener": false
+            },
+            "message": "'View' object has no attribute 'highlighted_row_index'"
+          },
+          "selected_lane": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_lane_listener": false,
+              "remove_selected_lane_listener": false,
+              "selected_lane_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_lane'"
+          },
+          "selected_note": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_note_listener": false,
+              "remove_selected_note_listener": false,
+              "selected_note_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_note'"
+          },
+          "selected_pitch": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_pitch_listener": false,
+              "remove_selected_pitch_listener": false,
+              "selected_pitch_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_pitch'"
+          }
+        },
+        "type": "View",
+        "members_matching_native_terms": []
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:37:15.277861",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "View",
+        "property": "detail_clip"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:37:15.277914",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "View",
+        "property": "selected_track"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:37:15.277958",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "error_type": "AttributeError",
+        "property": "highlighted_clip_slot"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:37:15.277993",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "Clip",
+        "property": "midi_clip_type"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:37:15.278030",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "Clip",
+        "property": "playing_status"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:37:15.278064",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "error_type": "RuntimeError",
+        "property": "midi_clip_type"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:37:15.278146",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "error_type": "RuntimeError",
+        "property": "playing_status"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:37:15.278193",
+      "snapshot": 1
+    },
+    {
+      "data": {
+        "snapshot": 2,
+        "version": [
+          13,
+          0,
+          0
+        ],
+        "Live_has_StepSequencer_in_dir": false
+      },
+      "kind": "runtime",
+      "host_log_timestamp": "2026-11-18T03:38:25.788014",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "properties": {
+          "midi_clip_type": {
+            "listeners": {
+              "add_midi_clip_type_listener": true,
+              "midi_clip_type_has_listener": true,
+              "remove_midi_clip_type_listener": true
+            },
+            "value": {
+              "type": "property"
+            }
+          },
+          "step_sequencer": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_step_sequencer_listener": false,
+              "remove_step_sequencer_listener": false,
+              "step_sequencer_has_listener": false
+            },
+            "message": "type object 'Clip' has no attribute 'step_sequencer'"
+          }
+        },
+        "type": "class",
+        "members_matching_native_terms": [
+          "add_midi_clip_type_listener",
+          "is_take_lane_clip",
+          "midi_clip_type",
+          "midi_clip_type_has_listener",
+          "remove_midi_clip_type_listener"
+        ]
+      },
+      "kind": "Clip_class",
+      "host_log_timestamp": "2026-11-18T03:38:25.788316",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "path": "song.view",
+        "properties": {
+          "detail_clip": {
+            "listeners": {
+              "add_detail_clip_listener": true,
+              "detail_clip_has_listener": true,
+              "remove_detail_clip_listener": true
+            },
+            "value": null
+          },
+          "highlighted_clip_slot": {
+            "listeners": {
+              "add_highlighted_clip_slot_listener": false,
+              "highlighted_clip_slot_has_listener": false,
+              "remove_highlighted_clip_slot_listener": false
+            },
+            "value": {
+              "type": "ClipSlot"
+            }
+          },
+          "selected_track": {
+            "listeners": {
+              "add_selected_track_listener": true,
+              "remove_selected_track_listener": true,
+              "selected_track_has_listener": true
+            },
+            "value": {
+              "type": "Track"
+            }
+          }
+        },
+        "type": "View",
+        "members_matching_native_terms": []
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:25.788711",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "scan": {
+          "clip_samples": 1,
+          "max_clips": 16,
+          "slots_inspected": 32
+        }
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:25.788765",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "path": "song.tracks[0].clip_slots[0].clip",
+        "properties": {
+          "is_midi_clip": {
+            "listeners": {
+              "add_is_midi_clip_listener": false,
+              "is_midi_clip_has_listener": false,
+              "remove_is_midi_clip_listener": false
+            },
+            "value": true
+          },
+          "is_playing": {
+            "listeners": {
+              "add_is_playing_listener": false,
+              "is_playing_has_listener": false,
+              "remove_is_playing_listener": false
+            },
+            "value": false
+          },
+          "midi_clip_type": {
+            "listeners": {
+              "add_midi_clip_type_listener": true,
+              "midi_clip_type_has_listener": true,
+              "remove_midi_clip_type_listener": true
+            },
+            "value": 1
+          },
+          "playing_position": {
+            "listeners": {
+              "add_playing_position_listener": true,
+              "playing_position_has_listener": true,
+              "remove_playing_position_listener": true
+            },
+            "value": 0.0
+          },
+          "step_sequencer": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_step_sequencer_listener": false,
+              "remove_step_sequencer_listener": false,
+              "step_sequencer_has_listener": false
+            },
+            "message": "'Clip' object has no attribute 'step_sequencer'"
+          }
+        },
+        "type": "Clip",
+        "members_matching_native_terms": [
+          "add_midi_clip_type_listener",
+          "is_take_lane_clip",
+          "midi_clip_type",
+          "midi_clip_type_has_listener",
+          "remove_midi_clip_type_listener"
+        ]
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:25.788894",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "path": "song.tracks[0].clip_slots[0].clip.view",
+        "properties": {
+          "highlighted_row_index": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_highlighted_row_index_listener": false,
+              "highlighted_row_index_has_listener": false,
+              "remove_highlighted_row_index_listener": false
+            },
+            "message": "'View' object has no attribute 'highlighted_row_index'"
+          },
+          "selected_lane": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_lane_listener": false,
+              "remove_selected_lane_listener": false,
+              "selected_lane_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_lane'"
+          },
+          "selected_note": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_note_listener": false,
+              "remove_selected_note_listener": false,
+              "selected_note_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_note'"
+          },
+          "selected_pitch": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_pitch_listener": false,
+              "remove_selected_pitch_listener": false,
+              "selected_pitch_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_pitch'"
+          }
+        },
+        "type": "View",
+        "members_matching_native_terms": []
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:25.788992",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "View",
+        "property": "detail_clip"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:25.789045",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "View",
+        "property": "selected_track"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:25.789089",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "error_type": "AttributeError",
+        "property": "highlighted_clip_slot"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:25.789127",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "Clip",
+        "property": "midi_clip_type"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:25.789166",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "Clip",
+        "property": "playing_status"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:25.789208",
+      "snapshot": 2
+    },
+    {
+      "data": {
+        "snapshot": 3,
+        "version": [
+          13,
+          0,
+          0
+        ],
+        "Live_has_StepSequencer_in_dir": false
+      },
+      "kind": "runtime",
+      "host_log_timestamp": "2026-11-18T03:38:36.134339",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "properties": {
+          "midi_clip_type": {
+            "listeners": {
+              "add_midi_clip_type_listener": true,
+              "midi_clip_type_has_listener": true,
+              "remove_midi_clip_type_listener": true
+            },
+            "value": {
+              "type": "property"
+            }
+          },
+          "step_sequencer": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_step_sequencer_listener": false,
+              "remove_step_sequencer_listener": false,
+              "step_sequencer_has_listener": false
+            },
+            "message": "type object 'Clip' has no attribute 'step_sequencer'"
+          }
+        },
+        "type": "class",
+        "members_matching_native_terms": [
+          "add_midi_clip_type_listener",
+          "is_take_lane_clip",
+          "midi_clip_type",
+          "midi_clip_type_has_listener",
+          "remove_midi_clip_type_listener"
+        ]
+      },
+      "kind": "Clip_class",
+      "host_log_timestamp": "2026-11-18T03:38:36.134594",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "path": "song.view",
+        "properties": {
+          "detail_clip": {
+            "listeners": {
+              "add_detail_clip_listener": true,
+              "detail_clip_has_listener": true,
+              "remove_detail_clip_listener": true
+            },
+            "value": {
+              "type": "Clip"
+            }
+          },
+          "highlighted_clip_slot": {
+            "listeners": {
+              "add_highlighted_clip_slot_listener": false,
+              "highlighted_clip_slot_has_listener": false,
+              "remove_highlighted_clip_slot_listener": false
+            },
+            "value": {
+              "type": "ClipSlot"
+            }
+          },
+          "selected_track": {
+            "listeners": {
+              "add_selected_track_listener": true,
+              "remove_selected_track_listener": true,
+              "selected_track_has_listener": true
+            },
+            "value": {
+              "type": "Track"
+            }
+          }
+        },
+        "type": "View",
+        "members_matching_native_terms": []
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:36.135038",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "scan": {
+          "clip_samples": 2,
+          "max_clips": 16,
+          "slots_inspected": 32
+        }
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:36.135096",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "path": "song.view.detail_clip",
+        "properties": {
+          "is_midi_clip": {
+            "listeners": {
+              "add_is_midi_clip_listener": false,
+              "is_midi_clip_has_listener": false,
+              "remove_is_midi_clip_listener": false
+            },
+            "value": true
+          },
+          "is_playing": {
+            "listeners": {
+              "add_is_playing_listener": false,
+              "is_playing_has_listener": false,
+              "remove_is_playing_listener": false
+            },
+            "value": false
+          },
+          "midi_clip_type": {
+            "listeners": {
+              "add_midi_clip_type_listener": true,
+              "midi_clip_type_has_listener": true,
+              "remove_midi_clip_type_listener": true
+            },
+            "value": 1
+          },
+          "playing_position": {
+            "listeners": {
+              "add_playing_position_listener": true,
+              "playing_position_has_listener": true,
+              "remove_playing_position_listener": true
+            },
+            "value": 0.0
+          },
+          "step_sequencer": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_step_sequencer_listener": false,
+              "remove_step_sequencer_listener": false,
+              "step_sequencer_has_listener": false
+            },
+            "message": "'Clip' object has no attribute 'step_sequencer'"
+          }
+        },
+        "type": "Clip",
+        "members_matching_native_terms": [
+          "add_midi_clip_type_listener",
+          "is_take_lane_clip",
+          "midi_clip_type",
+          "midi_clip_type_has_listener",
+          "remove_midi_clip_type_listener"
+        ]
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:36.135208",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "path": "song.view.detail_clip.view",
+        "properties": {
+          "highlighted_row_index": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_highlighted_row_index_listener": false,
+              "highlighted_row_index_has_listener": false,
+              "remove_highlighted_row_index_listener": false
+            },
+            "message": "'View' object has no attribute 'highlighted_row_index'"
+          },
+          "selected_lane": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_lane_listener": false,
+              "remove_selected_lane_listener": false,
+              "selected_lane_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_lane'"
+          },
+          "selected_note": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_note_listener": false,
+              "remove_selected_note_listener": false,
+              "selected_note_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_note'"
+          },
+          "selected_pitch": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_pitch_listener": false,
+              "remove_selected_pitch_listener": false,
+              "selected_pitch_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_pitch'"
+          }
+        },
+        "type": "View",
+        "members_matching_native_terms": []
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:36.135276",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "path": "song.tracks[0].clip_slots[0].clip",
+        "properties": {
+          "is_midi_clip": {
+            "listeners": {
+              "add_is_midi_clip_listener": false,
+              "is_midi_clip_has_listener": false,
+              "remove_is_midi_clip_listener": false
+            },
+            "value": true
+          },
+          "is_playing": {
+            "listeners": {
+              "add_is_playing_listener": false,
+              "is_playing_has_listener": false,
+              "remove_is_playing_listener": false
+            },
+            "value": false
+          },
+          "midi_clip_type": {
+            "listeners": {
+              "add_midi_clip_type_listener": true,
+              "midi_clip_type_has_listener": true,
+              "remove_midi_clip_type_listener": true
+            },
+            "value": 1
+          },
+          "playing_position": {
+            "listeners": {
+              "add_playing_position_listener": true,
+              "playing_position_has_listener": true,
+              "remove_playing_position_listener": true
+            },
+            "value": 0.0
+          },
+          "step_sequencer": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_step_sequencer_listener": false,
+              "remove_step_sequencer_listener": false,
+              "step_sequencer_has_listener": false
+            },
+            "message": "'Clip' object has no attribute 'step_sequencer'"
+          }
+        },
+        "type": "Clip",
+        "members_matching_native_terms": [
+          "add_midi_clip_type_listener",
+          "is_take_lane_clip",
+          "midi_clip_type",
+          "midi_clip_type_has_listener",
+          "remove_midi_clip_type_listener"
+        ]
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:36.135377",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "path": "song.tracks[0].clip_slots[0].clip.view",
+        "properties": {
+          "highlighted_row_index": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_highlighted_row_index_listener": false,
+              "highlighted_row_index_has_listener": false,
+              "remove_highlighted_row_index_listener": false
+            },
+            "message": "'View' object has no attribute 'highlighted_row_index'"
+          },
+          "selected_lane": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_lane_listener": false,
+              "remove_selected_lane_listener": false,
+              "selected_lane_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_lane'"
+          },
+          "selected_note": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_note_listener": false,
+              "remove_selected_note_listener": false,
+              "selected_note_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_note'"
+          },
+          "selected_pitch": {
+            "error_type": "AttributeError",
+            "listeners": {
+              "add_selected_pitch_listener": false,
+              "remove_selected_pitch_listener": false,
+              "selected_pitch_has_listener": false
+            },
+            "message": "'View' object has no attribute 'selected_pitch'"
+          }
+        },
+        "type": "View",
+        "members_matching_native_terms": []
+      },
+      "kind": "object",
+      "host_log_timestamp": "2026-11-18T03:38:36.135441",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "View",
+        "property": "detail_clip"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:36.135488",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "View",
+        "property": "selected_track"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:36.135528",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "error_type": "AttributeError",
+        "property": "highlighted_clip_slot"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:36.135562",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "Clip",
+        "property": "midi_clip_type"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:36.135598",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "attached": true,
+        "object_type": "Clip",
+        "property": "playing_status"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:36.135634",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "error_type": "RuntimeError",
+        "property": "midi_clip_type"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:36.135689",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "error_type": "RuntimeError",
+        "property": "playing_status"
+      },
+      "kind": "listener",
+      "host_log_timestamp": "2026-11-18T03:38:36.135733",
+      "snapshot": 3
+    },
+    {
+      "data": {
+        "listeners_remaining": 0
+      },
+      "kind": "disconnect",
+      "host_log_timestamp": "2026-11-18T03:39:04.658941",
+      "snapshot": 3
+    }
+  ]
+}

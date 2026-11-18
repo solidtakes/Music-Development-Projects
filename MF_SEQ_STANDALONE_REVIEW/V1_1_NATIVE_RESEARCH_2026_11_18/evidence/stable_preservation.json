@@ -1,0 +1,11 @@
+{
+  "stable_milestone": "a2cec39521472bf050e3467b40f263d4b6c304e8",
+  "stable_source_git_blob": "cbf94ea1a765d3f02aa94ce844228f40f2c68faa",
+  "installed_MF_SEQ_before_after_equal": true,
+  "installed_hashes_before_and_after": {
+    "MF_SEQ.py": "f1dff03e7ec0af128a2ae609cd9d1e5cb268888e2ab0d77209c0693063dbfa9a",
+    "scale_sync.py": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397",
+    "__init__.py": "3eb0b17f311f4abf6cab2d31e9508d2412238e94b69faf9417c4deac14f4613f"
+  },
+  "caveat": "Installed script identity is not assumed to equal the repository milestone; hashes verify it was not changed during R1."
+}

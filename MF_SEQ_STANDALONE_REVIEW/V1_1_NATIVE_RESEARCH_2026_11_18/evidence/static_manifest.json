@@ -1,0 +1,96 @@
+{
+  "build": "13.0b24",
+  "method": "xdis 6.3.0 static disassembly; no installed module execution",
+  "files": [
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\live_model\\Live\\StepSequencer.pyc",
+      "sha256": "24be86d94123b33bf1d38049bd5bf160706be1b31e7a8770cd174f81fa5b9df0",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\live_model\\Live\\Clip.pyc",
+      "sha256": "f130f385e19b40edbbae8b2b2ba512c3285121d2b806fc25d03ca8dd20e47f99",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\_MxDCore\\LomTypes.pyc",
+      "sha256": "0cb34b6302584e1ab2abbfe0827d7b810fa6f0c9b047b9eac63480d38776e71a",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\Push2\\step_editor.pyc",
+      "sha256": "fed6c897076e5dc1929e637fdaf04c5349fcd88d8cf68343f7868922a1e2d08a",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\Push2\\matrix_sequencer_component.pyc",
+      "sha256": "de7c211d454dcfbfb3209e483be7abf65ecb42f36c2b82980f19e1717df555d3",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\Push2\\step_sequencer_clip_control.pyc",
+      "sha256": "9c978d5a0129c5312b445e309a762e7835c906a16399f6f0bc729e557bd13435",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\ableton\\v3\\live\\util.pyc",
+      "sha256": "654b24beed75d92ace9bc7cb41200facb87c9e0bc95ee895c2a9ff3d8e0d1467",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\live_model\\model.pyc",
+      "sha256": "a605d8eb6ec2da205d19a1bd82deff8c584ac5dea83df1a0a6ec912162e26753",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\Push2\\step_sequencer_position.pyc",
+      "sha256": "7fb8d9976f3436af6a6e87e4e82f6ac2b0d6a4c9042b73210138b1519b6d8817",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\Push2\\expressive_steps_component.pyc",
+      "sha256": "9741f643d07a00b2981068fa7d4bddeffa54932019a4032bd2720539304af155",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    }
+  ]
+}
