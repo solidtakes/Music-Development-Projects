@@ -17,6 +17,7 @@ The outer title bar/frame is owned by Live/OS. The UI does not draw fake native 
 
 The HTML UI is a **plan editor**, not an audio renderer:
 - loads source metadata and optional waveform peaks;
+- paints injected peaks with a stroked SVG path; exact silence has no bars and shows `SILENT SOURCE · ALL PEAKS 0`, while nonzero sources show their peak in dBFS;
 - displays source name, duration, sample rate, channels, bit depth and source bytes;
 - adds Reverse and Gain operations;
 - supports multiple instances of either operation;
@@ -133,6 +134,12 @@ Requires Node ≥ 22.18. The suite contains:
 - `test/reorder-core.test.mjs`: unit tests of the shipped reorder/plan core (evaluated from `interface.html`): move earlier/later, first/last boundaries, drag to first/last slot, stable IDs and parameters, bypass preservation, input immutability, and emitted plan order.
 - `test/browser-reorder.test.mjs`: real Chromium interaction tests through Playwright at 860×660 (SDK modal size), 640×660 (single-column layout) and 860×480. They demonstrate a three-operation drag reorder (`reverse, gain −3 dB (bypassed), gain +6.25 dB` → `gain +6.25, reverse, gain −3 (bypassed)` → …) and check the payload Apply sends through a mocked `close_and_send` bridge. They also cover row-body drags, handle clicks, drops over activator/remove buttons, no-op drops within the same slot, Esc and pointercancel cancellation, keyboard reordering and focus, and horizontal overflow.
 - `test/browser-host-contract.test.mjs`: real Chromium tests of the host contract. The state is built and injected with `../host/src/modal.ts`, every payload sent through the Windows (`chrome.webview`) bridge is validated with `parseModalResult`, and the suite checks: injected state renders as non-preview; LAST RENDER shows `wallMs` (17.4 ms) for an all-hit report rather than the 118.4 ms sum of carried-forward `renderMs`; `wallMs: null` shows "—"; Apply, bypass and Cancel return valid `ModalResult`s; a hostile source name cannot inject script; an unsupported envelope version disables Apply.
+
+The waveform fix follows independently reviewed T8-0 Fix 2 commit `1ccaed1a6003238a4c8546a5dc93607265c31bfd`. `test/browser-waveform.test.mjs` sends synthetic loud (0.8), quiet (0.02) and silent PCM through WAV encode/decode, `computePeaks` and the canonical host injector. Screenshot differences with the waveform path visible/hidden prove actual paint at 860×660, 640×660 and 1281×1032. It also checks level captions, missing data, design preview and the unchanged Apply/Cancel protocol. The existing preview waveform remains available when no peaks are supplied; its caption says `NO WAVEFORM DATA` and does not claim a measured level.
+
+The new suite runs in `npm test` when Playwright is available and is mandatory in `npm run test:browser`, including Windows/Linux CI. Without Playwright, all three browser suites are reported as skipped. These checks use synthetic data and do not open Live or import audio.
+
+Rollback: the original canonical editor remains in commit `a57d5aa25a68f8a40b8e07b8e3cef8df12baea10`. T8-0 draft PRs #65 and #66 and their packages are separate, unchanged rollback references. This patch does not authorize a Live trial or S5 work.
 
 | Command | Browser suite |
 | --- | --- |
