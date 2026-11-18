@@ -12,6 +12,34 @@ export function validateOutput(bytes, expected) {
   if (!(bytes instanceof Uint8Array) || bytes.byteLength > 32 * 1024 * 1024)
     throw new Error('WAV byte limit/type');
   const meta = readWavMetadata(bytes);
+  // The engine parser accepts prefixes/trailing metadata; this proposed output admission
+  // requires one complete RIFF container and validates even the chunks after audio data.
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (view.getUint32(4, true) !== bytes.byteLength - 8) throw new Error('WAV RIFF length mismatch');
+  let offset = 12, fmtCount = 0, dataCount = 0;
+  while (offset < bytes.byteLength) {
+    if (offset + 8 > bytes.byteLength) throw new Error('WAV truncated chunk header');
+    const tag = String.fromCharCode(...bytes.subarray(offset, offset + 4));
+    const size = view.getUint32(offset + 4, true);
+    const end = offset + 8 + size + (size & 1);
+    if (end > bytes.byteLength) throw new Error('WAV chunk exceeds container');
+    if (tag === 'fmt ') {
+      fmtCount++;
+      const body = offset + 8;
+      if (size < 16) throw new Error('WAV short format chunk');
+      if (![1, 3].includes(view.getUint16(body, true)))
+        throw new Error('WAV extensible/compressed output unsupported');
+      if (view.getUint32(body + 8, true) !==
+          view.getUint32(body + 4, true) * view.getUint16(body + 12, true))
+        throw new Error('WAV byteRate mismatch');
+    }
+    if (tag === 'data') {
+      dataCount++;
+      if (fmtCount !== 1) throw new Error('WAV data before format');
+    }
+    offset = end;
+  }
+  if (fmtCount !== 1 || dataCount !== 1) throw new Error('WAV ambiguous format/data chunks');
   if (![1, 2].includes(meta.channels) || meta.sampleRate < 8000 || meta.sampleRate > 192000 ||
       meta.frames < 1 || meta.frames * meta.channels > 16_000_000 ||
       meta.durationSeconds > 600) throw new Error('WAV decoded allocation/duration limit');

@@ -81,7 +81,8 @@ after render-isolation and timing tests; it is not a lossless editable reconstru
 3. **Bounded validation:** proposed pre-read stat cap 32 MiB; reject nonregular/symlink targets
    and paths outside extension-owned roots, then bounded read on an open file with size/identity
    recheck to prevent check/read races. Validate RIFF/WAVE structure, format, chunk bounds,
-   whole frames and full finite-sample decode. Proposed first policy: mono/stereo, 8–192 kHz,
+   whole frames and full finite-sample decode. Proposed first policy: non-extensible PCM/IEEE
+   float output only (reject extensible layout/valid-bit variants), mono/stereo, 8–192 kHz,
    ≤600 s, ≤16 million decoded channel samples (128 MB Float64 payload), same frames/rate/channels
    as source. Hash exact immutable bytes used for import. Memory tests cover byte/header/decode
    admission, **not OS stat, symlink, locks, disk limits or durability**.
@@ -151,7 +152,10 @@ The fixture internally constructs `FakeHost`; no actual/injected host, SDK impor
 write or network operation exists. Production WAV metadata/decode is reused in memory. It models
 original invariants, 16 before/after stage faults, 8 settled-stage cancellations, retained partial
 effects, immutable input bytes, bounded malformed output rejection, source drift, lost receipts
-and read-only restart reconciliation. A separate sync-scope counterexample illustrates why an
+and read-only restart reconciliation. Strict output admission additionally checks the exact outer
+RIFF length, all chunk bounds (including after data), byte-rate consistency and unique format/data
+chunks; extensible output is rejected. The shared engine parser alone does not enforce these
+container checks. A separate sync-scope counterexample illustrates why an
 async dependent request cannot be assumed in one group. It does not emulate Live's Undo engine.
 The fake's project hashes and restart snapshots are capabilities of the model, not beta.1.
 

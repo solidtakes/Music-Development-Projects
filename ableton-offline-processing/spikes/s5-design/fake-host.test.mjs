@@ -92,6 +92,45 @@ test('source drift stops before a new request and never reports Set unchanged', 
   }
 });
 
+test('strict output admission rejects inconsistent outer RIFF lengths before host effects', () => {
+  const input = fixture();
+  for (const declared of [0, 4, input.bytes.length - 9, 0xffffffff]) {
+    const bytes = input.bytes.slice(); new DataView(bytes.buffer).setUint32(4, declared, true);
+    assert.throws(() => validateOutput(bytes, input.expected), /RIFF length/);
+    const result = investigate({ ...input, bytes });
+    assert.equal(result.status, 'stopped-reconcile');
+    assert.deepEqual(result.host.calls, []); assert.equal(result.host.files.size, 0);
+    originalsUnchanged(result);
+  }
+});
+
+test('strict output admission checks chunks after data and rejects duplicate data chunks', () => {
+  const { bytes, expected } = fixture();
+  for (const suffix of [Buffer.from('short'), Buffer.from('JUNK\x04\0\0\0xx'),
+    Buffer.from('data\0\0\0\0')]) {
+    const joined = new Uint8Array(bytes.length + suffix.length);
+    joined.set(bytes); joined.set(suffix, bytes.length);
+    new DataView(joined.buffer).setUint32(4, joined.length - 8, true);
+    assert.throws(() => validateOutput(joined, expected), /chunk|ambiguous/);
+  }
+});
+
+test('strict output admission rejects inconsistent byte rate and unsupported extensible output', () => {
+  const { bytes, expected } = fixture();
+  const badRate = bytes.slice(); new DataView(badRate.buffer).setUint32(28, 0, true);
+  assert.throws(() => validateOutput(badRate, expected), /byteRate/);
+  // Build a valid extensible PCM header that the shared engine supports. S5's narrow
+  // generated-output policy rejects extensible variants instead of guessing layout/valid bits.
+  const pcm = encodeWav(makeMetadata(1, 48000, 16, 'pcm', 48000), new Float64Array(48000)).bytes;
+  const ext = new Uint8Array(pcm.length + 24); ext.set(pcm.subarray(0, 36));
+  const v = new DataView(ext.buffer); v.setUint32(4, ext.length - 8, true);
+  v.setUint32(16, 40, true); v.setUint16(20, 0xfffe, true);
+  v.setUint16(36, 22, true); v.setUint16(38, 16, true); v.setUint32(40, 4, true);
+  ext.set([1, 0, 0, 0, 0, 0, 16, 0, 128, 0, 0, 170, 0, 56, 155, 113], 44);
+  ext.set(pcm.subarray(36), 60);
+  assert.throws(() => validateOutput(ext, { channels: 1, sampleRate: 48000, frames: 48000 }), /extensible/);
+});
+
 test('verification mismatch preserves partial effects without publishing success', () => {
   for (const corruptAtVerify of ['path', 'timing', 'media-hash', 'extra-clip']) {
     const result = investigate({ ...fixture(), corruptAtVerify });

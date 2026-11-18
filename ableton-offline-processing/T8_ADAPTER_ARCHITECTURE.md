@@ -57,7 +57,7 @@ interface LiveHost {
   withinProgress<T>(title: string, fn: (p: Progress) => Promise<T>): Promise<T>;    // cancellable
   importIntoProject(path: string): Promise<string>;           // S5: returns the path to use
   withinTransaction<T>(fn: () => T): T;                      // synchronous grouping only; S5 unresolved
-  createTrackAndClip(spec: ResultClipSpec): Promise<void>;    // S5, called inside the transaction
+  createTrackAndClip(spec: ResultClipSpec): Promise<void>;    // hypothetical S5 port; sequential groups, not atomic
   readonly storageDirectory: string;                           // persistent: Project + cache
   readonly tempDirectory: string;                              // renders, modal documents, exports
   log(line: string): void;
@@ -146,7 +146,7 @@ Each item names the spike that resolves it. **"Archive"** means the claim comes 
 | D11 | Modal width/height units and DPI scaling | CSS pixels | Not documented | **S3** Q8 |
 | D12 | `withinProgressDialog`: progress units, abort signal | Cancellable, with a signal | Archive | S4 (or a small add-on to S1) |
 | D13 | `importIntoProject(path)` return value and file ownership afterwards | Returns the path to use | Archive | S5 |
-| D14 | `createAudioTrack` / `createAudioClip({filePath,startTime,duration,isWarped,loopSettings})` placement and settings | Placement exact; warp/loop partly restored | Archive | S5 |
+| D14 | `createAudioTrack` / `createAudioClip({filePath,startTime,duration,isWarped,loopSettings})` placement and settings | Creation surface verified; exact timing/warp/loop fidelity unproven | Beta.1 evidence matrix | Gated future S5 trial |
 | D15 | `withinTransaction`: synchronous Undo grouping; dependent async creation needs sequential groups | No verified rollback | Beta.1 types/source/guide, see S5 memo | Gated future S5 trial |
 | D16 | Where extension logs appear on Windows | Somewhere visible | Not documented here | S1 |
 | D17 | Record File Type detection (only after the render?) | Check the header after rendering | `strip-silence` per archive | S4 |
