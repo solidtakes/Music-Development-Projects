@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Offline Processing Suite</title>
+  <link rel="stylesheet" href="./editor.css">
+</head>
+<body>
+  <main class="editor" aria-label="Offline Processing Suite">
+    <header class="header">
+      <h1><span class="mark" aria-hidden="true">▮▅▂</span> Offline Processing Suite</h1>
+      <span id="mode-label" class="mode" hidden></span>
+      <label class="theme">Theme
+        <select id="theme" aria-label="Theme">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </label>
+    </header>
+    <section class="source" aria-labelledby="source-title">
+      <div class="source-heading">
+        <h2 id="source-title">Source</h2>
+        <span id="metadata"></span>
+      </div>
+      <div class="lane">
+        <canvas id="waveform" role="img" aria-label="Whole source clip waveform"></canvas>
+        <span id="clip-name" class="clip-name"></span>
+      </div>
+      <div class="transport">
+        <button id="audition" type="button" disabled>Play</button>
+        <select id="audition-target" aria-label="Audition audio" disabled>
+          <option value="source">Original</option>
+          <option value="output" disabled>Rendered output</option>
+        </select>
+        <output id="playback-time" aria-live="off">0:00.000</output>
+        <span class="spacer"></span>
+        <span>Whole clip</span>
+      </div>
+      <audio id="audio" preload="none"></audio>
+    </section>
+    <section class="history" aria-labelledby="history-title">
+      <div class="history-header">
+        <h2 id="history-title">Processing chain</h2>
+        <span class="spacer"></span>
+        <button id="add-reverse" type="button" disabled>+ Reverse</button>
+        <button id="add-gain" type="button" disabled>+ Gain</button>
+      </div>
+      <div class="chain-body">
+        <ol id="devices" aria-label="Processing order"></ol>
+        <aside class="inspector" aria-labelledby="device-title">
+          <h3 id="device-title">Parameters</h3>
+          <p id="device-description">Select an operation.</p>
+          <div id="gain-controls" hidden>
+            <label class="gain-label" for="gain">Gain <output id="gain-value" aria-live="off"></output></label>
+            <input id="gain" type="range" aria-label="Gain in decibels">
+            <div class="gain-scale" aria-hidden="true"><span>−60</span><span>+24 dB</span></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+    <footer>
+      <dl class="storage" aria-label="Logical file sizes in bytes">
+        <div><dt>Source</dt><dd id="source-bytes">—</dd></div>
+        <div><dt>Output</dt><dd id="output-bytes">—</dd></div>
+        <div><dt>Cache</dt><dd id="cache-bytes">—</dd></div>
+        <div><dt>Project</dt><dd id="project-bytes">—</dd></div>
+      </dl>
+      <div class="actions">
+        <div class="render-state">
+          <span id="status" role="status">Loading source…</span>
+          <progress id="progress" max="1" aria-label="Render progress" hidden></progress>
+        </div>
+        <button id="cancel" type="button" disabled>Cancel</button>
+        <button id="render" class="primary" type="button" disabled>Render</button>
+      </div>
+    </footer>
+  </main>
+  <template id="device-template">
+    <li class="device">
+      <div class="device-header">
+        <button class="device-on" type="button"></button>
+        <button class="device-select" type="button"></button>
+        <button class="device-remove" type="button" title="Remove operation">×</button>
+      </div>
+      <div class="device-body">
+        <span class="device-parameter"></span>
+        <span class="device-stats"></span>
+      </div>
+    </li>
+  </template>
+  <!-- LIVE_SESSION -->
+  <script type="module" src="./editor.js"></script>
+</body>
+</html>

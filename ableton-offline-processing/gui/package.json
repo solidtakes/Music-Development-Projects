@@ -1,0 +1,16 @@
+{
+  "name": "aopx-webview",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.16.0" },
+  "scripts": {
+    "preview": "node preview.mjs",
+    "build": "node build-modal.mjs",
+    "check": "tsc --project tsconfig.json",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "playwright-core": "1.65.1",
+    "typescript": "5.9.3"
+  }
+}
