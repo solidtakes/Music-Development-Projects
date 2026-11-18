@@ -1,0 +1,28 @@
+name: AOPX S5 offline safety model
+
+on:
+  pull_request:
+    branches: [ableton-offline-processing/alpha-0.1]
+    paths:
+      - 'ableton-offline-processing/spikes/s5-design/**'
+      - '.github/workflows/aopx-s5-offline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - name: Memory-only model (no SDK, Live, filesystem sources or dependencies)
+        run: node --test --test-reporter=spec ableton-offline-processing/spikes/s5-design/fake-host.test.mjs

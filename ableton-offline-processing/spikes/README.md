@@ -162,6 +162,12 @@ detected. **Writes:** temp directory only.
 
 ## S5: import, create track and clip in one transaction, original untouched
 
+**SUPERSEDED / DO NOT EXECUTE:** the checklist below is a historical hypothesis. The
+[2026-11-18 S5 investigation](s5-design/README.md) verifies that beta.1 transaction callbacks
+are synchronous; dependent new-track/clip operations cannot be promised as one Undo step, and
+failure rollback is unavailable. No S5 import/Undo experiment is currently authorized. Only the
+new [owner-gated trial proposal](s5-design/TRIAL_PROTOCOL.md) should guide a future approval.
+
 **APIs (archive review, VERIFY):** `context.resources.importIntoProject(filePath)` returns the
 path to use afterwards; `Song.createAudioTrack()`;
 `AudioTrack.createAudioClip({ filePath, startTime, duration, isWarped, loopSettings })`;
