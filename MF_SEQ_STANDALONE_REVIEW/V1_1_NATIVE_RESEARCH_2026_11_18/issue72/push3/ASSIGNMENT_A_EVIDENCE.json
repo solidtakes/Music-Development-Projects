@@ -1,0 +1,58 @@
+{
+  "assignment": "Issue #72 Assignment A",
+  "date": "2026-11-19",
+  "starting_commit": "4a0dcd4fb4b0db0f8f5225eefddcd4147e6310cf",
+  "host_build": "13.0b24",
+  "installed_runtime_executed": false,
+  "private_modules_imported": false,
+  "private_setters_called": false,
+  "hardware_retest_requested": false,
+  "sdk": {
+    "available_archive": "AOPX-sdk-local/extensions-sdk-1.0.0-beta.1/ableton-extensions-sdk-1.0.0-beta.1.tgz",
+    "package_version": "1.0.0-beta.1",
+    "archive_sha256": "1770f795c18901023d9df8129575c9a86b4e7255011c5295b2b98d0b73010c8e",
+    "declaration": "package/dist/index.d.mts",
+    "token_counts": {
+      "StepSequencer": 0,
+      "SequencerClip": 0,
+      "step_sequencer": 0,
+      "midi_clip_type": 0,
+      "MidiClip": 1,
+      "get notes": 1,
+      "set notes": 1
+    },
+    "newer_b26_package_obtained": false
+  },
+  "static_push_files": [
+    {
+      "path": "C:/ProgramData/Ableton/Live 13 Beta/Program/Push/python/live_model/Live/StepSequencer.pyc",
+      "sha256": "24be86d94123b33bf1d38049bd5bf160706be1b31e7a8770cd174f81fa5b9df0",
+      "python_version": [3, 11],
+      "pyc_magic": 3495,
+      "symbols": ["StepSequencerStep", "StepSequencerRow", "StepSequencer", "set_step", "highlighted_row_index", "active_length", "step_size", "play_direction", "swing"]
+    },
+    {
+      "path": "C:/ProgramData/Ableton/Live 13 Beta/Program/Push/python/live_model/Live/Root.pyc",
+      "sha256": "af5357c69ec1d6d160c343ac5a74a38bfe91fb8ec21fed27bb9475fea58a30a4",
+      "python_version": [3, 11],
+      "pyc_magic": 3495,
+      "finding": "Root requires a supplied Flip-backed object"
+    },
+    {
+      "path": "C:/ProgramData/Ableton/Live 13 Beta/Program/Push/python/Push2/push2.pyc",
+      "sha256": "5802e8ed02946abbf95725ab1d79721756546b34328a9a95fd67ce5cffe4351f",
+      "python_version": [3, 11],
+      "pyc_magic": 3495,
+      "finding": "Push host obtains c_instance.root() and creates LiveFlip.FlipObserver"
+    }
+  ],
+  "public_runtime_evidence": {
+    "clip_type": "is_midi_clip true; midi_clip_type 1; MidiClipType.step_sequencer 1",
+    "native_clip_getter": "AttributeError",
+    "selected_lane_candidates": "AttributeError",
+    "ordinary_c_instance_root": "AttributeError",
+    "module_discovery": {"LiveFlip": false, "live_model": false, "Push2": false}
+  },
+  "verdict": "BLOCKED: no supported third-party native step interface reached",
+  "next_action": "Wait for an Ableton-published SDK/LOM/Remote Script bridge; do not implement native editing or call private setters"
+}
