@@ -54,14 +54,17 @@ Future owner-controlled invocation, **after a reviewed unlock**, would:
    typed phrase `IMPORT ONCE TO AOPX RESULT`, with a fresh nonce. A dry preview is never Apply.
    It has no host effects. Invalid/cancel/closed/stale/extra-field envelopes cannot authorize import.
 4. Persist intent/claim, write an exclusive unique owned-temp WAV, sync and revalidate its hash.
-   After another snapshot check, request **one** `resources.importIntoProject(ownedPath)`.
+   Recheck the hash and snapshot again after the awaited import-intent journal and immediately
+   before requesting **one** `resources.importIntoProject(ownedPath)`.
 5. Record its returned copy path privately, recheck the snapshot, then request **one**
    `AudioTrack.createAudioClip({ filePath: importedPath, startTime, isWarped: false })` on the
    existing target. No track creation, Session insertion, rename, mute/routing/warp/loop edit,
    replacement, deletion, transaction wrapper, automatic Undo, cleanup or retry is implemented.
 6. Verify returned clip identity, parent, returned copy path, start/end within one sample at
    120 BPM (1/24,000 beat), warp/loop off, exactly one result clip and unchanged source snapshot.
-   Report `verified` only for those observable checks, never byte-identical saved Set or audio proof.
+   Reread all result descriptor fields after the awaited create-ack journal; same identity/count
+   alone is insufficient. Any result drift is an unknown outcome. Report `verified` only for those
+   observable checks, never byte-identical saved Set or audio proof.
 
 **Duration decision:** omit optional `duration` so the exactly one-second output supplies natural
 length. Explicit two-beat clamping is not presumed correct. Returned geometry is verified after

@@ -68,8 +68,15 @@ export function livePort(context: ExtensionContext<V>, getArgument: () => unknow
     },
     verifyResult(baseline, c) {
       const now = snapshot(); const { target } = objects();
-      if (target.arrangementClips.length !== 1 || id(target.arrangementClips[0]!) !== c.id)
+      const clips = target.arrangementClips;
+      if (clips.length !== 1 || !(clips[0] instanceof classes.AudioClip) || id(clips[0]) !== c.id)
         throw new Error('Unexpected result inventory');
+      // Re-read after the asynchronous create-ack journal. The returned descriptor can
+      // be stale even while the result's identity/count remains unchanged.
+      const current = describe(clips[0]);
+      for (const key of ['id', 'parent', 'path', 'start', 'end', 'warped', 'looping'] as const) {
+        if (current[key] !== c[key]) throw new Error('Result changed after acknowledgment');
+      }
       now.targetClips = 0;
       if (JSON.stringify(now) !== JSON.stringify(baseline)) throw new Error('State changed');
     },

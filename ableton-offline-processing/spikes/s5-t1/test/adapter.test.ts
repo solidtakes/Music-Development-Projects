@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { livePort } from '../src/live-port.ts';
-import { admit } from '../src/flow.ts';
+import { admit, controller } from '../src/flow.ts';
+import { encodeWav, makeMetadata } from '../../../engine/src/wav.ts';
+import type { Receipt } from '../src/port.ts';
 
 // Narrow in-memory SDK-like objects; no real SDK runtime imported.
 class Obj {
@@ -56,4 +58,28 @@ test('returned object parent/path/timing and original/target inventory changes a
   f.clip.name = 'changed'; assert.throws(() => f.port.verifyResult(before, created));
   f.clip.name = 'PRIVATE'; f.target.arrangementClips.push(f.clip);
   assert.throws(() => f.port.verifyResult(before, created));
+});
+test('actual flow/adapter detects result drift across the awaited create-ack journal', async () => {
+  for (const patch of [{ filePath: 'C:/PRIVATE/changed.wav' }, { startTime: 100 }, { endTime: 100 },
+    { warping: true }, { looping: true }, { parent: new Obj({ id: 999n }) }]) {
+    const f = fixture();
+    const bytes = encodeWav(makeMetadata(1, 48000, 32, 'float', 48000), new Float64Array(48000)).bytes;
+    const port = { ...f.port,
+      hasPriorOperation: async () => false,
+      render: async () => bytes,
+      exportOwned: async () => 'C:/PRIVATE/temp.wav',
+      verifyOwned: async () => {},
+      confirm: async (p: { nonce: string }) => JSON.stringify({ action: 'import-once', nonce: p.nonce,
+        attest: true, phrase: 'IMPORT ONCE TO AOPX RESULT' }),
+      journal: async (record: Receipt) => {
+        if (record.stage === 'create' && record.state === 'ack') {
+          await Promise.resolve(); Object.assign(f.target.arrangementClips[0]!, patch);
+        }
+      },
+      log: () => {},
+    };
+    const result = await controller(port, { enabled: true })();
+    assert.equal(result.status, 'unknown-outcome'); assert.equal(result.stage, 'verify');
+    assert.equal(f.target.args.length, 1); assert.equal(f.sourceTrack.arrangementClips.length, 1);
+  }
 });

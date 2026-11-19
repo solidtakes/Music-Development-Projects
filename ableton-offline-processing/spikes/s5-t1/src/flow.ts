@@ -68,6 +68,8 @@ export function controller(port: Port, options: { enabled?: boolean; timeoutMs?:
       check(); same(baseline, port.snapshot()); await port.verifyOwned(path, meta.sha256);
       stage = 'import'; await record('intent', { ownedPath: path });
       check(); same(baseline, port.snapshot());
+      await port.verifyOwned(path, meta.sha256);
+      check(); same(baseline, port.snapshot());
       requested = true;
       const imported = await bounded(() => port.importCopy(path));
       if (typeof imported !== 'string' || imported.length === 0 || imported.length > 32768 ||

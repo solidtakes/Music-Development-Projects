@@ -144,6 +144,16 @@ test('invalid import receipt path stops before creating a clip', async () => {
     assert.equal((await run(h)).status, 'unknown-outcome'); assert.ok(!h.calls.includes('create'));
   }
 });
+test('export tamper during import-intent journal is detected before the import request', async () => {
+  const h = new FakeHost(); const journal = h.journal.bind(h);
+  h.journal = async record => {
+    await journal(record);
+    if (record.stage === 'import' && record.state === 'intent') h.exported![h.exported!.length - 1] ^= 1;
+  };
+  assert.equal((await run(h)).status, 'rejected');
+  assert.ok(!h.calls.includes('import')); assert.ok(!h.calls.includes('create'));
+  assert.ok(h.records.some(x => x.stage === 'import' && x.state === 'intent'));
+});
 test('duplicate clicks are busy, then consumed; cancel preview is a new opt-in opportunity', async () => {
   const h = new FakeHost(); let finish!: (s: string) => void; let nonce = '';
   h.confirm = async p => { nonce = p.nonce; return new Promise(r => { finish = r; }); };
