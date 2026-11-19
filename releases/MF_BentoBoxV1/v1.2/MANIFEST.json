@@ -1,0 +1,60 @@
+{
+  "bank1_midi_vu": {
+    "audio_tracks": "unchanged audio output meter",
+    "limitations": "Live meter proxy; not decoded per-note activity; hardware validation pending",
+    "midi_instrument_meter": "input_meter_level",
+    "pure_midi_output_meter": "output_meter_level",
+    "rgb_push_buttons": "unchanged",
+    "selected_vu": "MIDI meter activity for MIDI tracks; audio meter on audio tracks",
+    "track_mixer": "Four white segments, bottom-to-top on MIDI tracks"
+  },
+  "base_archive": "MF_BentoBoxV1_Beta_2_4_StateManager_CaptureLED_TEST.zip",
+  "base_sha256": "0c21d503b442b97d04631770470af4a6c137a8133d9e06119fafa528551524da",
+  "control_surface_name": "MF_BentoBoxV1",
+  "files_sha256": {
+    "MF_BentoBoxV1/Bank1_SelectedTrack.py": "c585908d2e40c15269079528102cb768355d04e3aa4dce2fd6c2f29f5c105fb9",
+    "MF_BentoBoxV1/FourTrack_Bank2.py": "6d76bf3a00b39c0d2624db127d7c214bee7d306caf96fccdc1756a95cad87dd2",
+    "MF_BentoBoxV1/Sequencer_Bank3.py": "a2b38ceddd17b62769e2ec004c23e6f6552ba91f8090e806eac353db2ef8f9aa",
+    "MF_BentoBoxV1/ThreeBankHost.py": "c216fad661976ba02524a795fcebb6f0986c269d1e81b07622daa5fc240f4f6a",
+    "MF_BentoBoxV1/__init__.py": "855904ec3f0142ad3769739db05e3c2ce58930bcbc3fd034009237a8a4d11804",
+    "MF_BentoBoxV1/layout_state.py": "8ba3d31b6697720ee33faf504b8f776d7233c332e7b0fc084516d2c6f065c907",
+    "MF_BentoBoxV1/scale_sync.py": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397"
+  },
+  "hardware_mfs_changed": false,
+  "merge_approved": false,
+  "preset_behavior": {
+    "factory_restore": "right+E8 2 s on release",
+    "modifier": "Right side top: MIDI channel 4 CC11 hold",
+    "release": "consume; no double-save or recall",
+    "save": "at 2.0 s while still holding preset encoder; 3 flashes after successful disk save",
+    "short_press": "recall",
+    "slots": "right + E1-E4"
+  },
+  "qa": {
+    "hardware_validated": false,
+    "independent_review": false,
+    "python_syntax_pass": true,
+    "tests_passed": 85,
+    "tests_total": 85
+  },
+  "source_changes": {
+    "Bank1_SelectedTrack.py": "MIDI input/output activity VU, four-white-segment Track Mixer rendering",
+    "ThreeBankHost.py": "preset hold timer + immediate save feedback"
+  },
+  "status": "Working-version candidate: requires Live 13 + Twister hardware acceptance",
+  "title": "MF BentoBoxV1 v1.2 \u2014 Hold-Save Presets + MIDI Activity VU TEST",
+  "unchanged_modules_sha256": {
+    "FourTrack_Bank2.py": "6d76bf3a00b39c0d2624db127d7c214bee7d306caf96fccdc1756a95cad87dd2",
+    "Sequencer_Bank3.py": "a2b38ceddd17b62769e2ec004c23e6f6552ba91f8090e806eac353db2ef8f9aa",
+    "__init__.py": "855904ec3f0142ad3769739db05e3c2ce58930bcbc3fd034009237a8a4d11804",
+    "layout_state.py": "8ba3d31b6697720ee33faf504b8f776d7233c332e7b0fc084516d2c6f065c907",
+    "scale_sync.py": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397"
+  },
+  "unchanged_modules_verified": {
+    "FourTrack_Bank2.py": true,
+    "Sequencer_Bank3.py": true,
+    "__init__.py": true,
+    "layout_state.py": true,
+    "scale_sync.py": true
+  }
+}
