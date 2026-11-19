@@ -1,0 +1,31 @@
+Issue #73 experimental Classic/Alternate framework
+Date: 2026-11-19
+Starting research commit: 515e99264b68ba09c1f284a960c75365466796de
+
+Passed:
+- R1 baseline and lifecycle suite: 12 tests
+- Experimental gesture suite: 12 tests
+- Issue #72 inspector suite: 5 tests
+- Issue #72 Push logger suite: 4 tests
+- Total: 33 tests, zero failures/errors
+- Experimental MF_SEQ package: py_compile passed
+- git diff --check passed
+
+Experimental source behavior:
+- Classic default is preserved.
+- E1-first then E16 tap toggles once and consumes both releases.
+- E16-first Follow, E1-held E16 rotation, E13-first bar 4 and note extension
+  remain covered.
+- Alternate is an explicitly labeled conventional MIDI placeholder and refuses
+  all note edits. No native API access or writer exists in this package.
+
+Preservation:
+- Stable and Master source files were not edited.
+- No Live Set, hardware, MIDI mapping, firmware, SysEx or Native Mode action.
+- No automatic installation or merge.
+
+Experimental package:
+- Local ZIP: `MF_SEQ_Experimental_Classic_Alternate_20261119.zip`
+- SHA256: `BA2F47B737423BE8BAA1CBE18C45F747342890D0690C99072A22A878B2531D67`
+- ZIP extraction was verified; it contains only the experimental package,
+  README and test results.

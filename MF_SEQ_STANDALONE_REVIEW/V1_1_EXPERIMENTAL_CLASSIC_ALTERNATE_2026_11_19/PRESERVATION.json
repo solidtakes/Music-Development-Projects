@@ -1,0 +1,16 @@
+{
+  "issue": 73,
+  "starting_research_commit": "515e99264b68ba09c1f284a960c75365466796de",
+  "feature_branch": "mf-seq/v1.1-experimental-classic-alternate-20261119",
+  "stable_ref": "mf-seq/v1.0-stable-20261116",
+  "stable_head_verified": "a2cec39521472bf050e3467b40f263d4b6c304e8",
+  "master_ref": "master/mf-3banks-rc1-20261118",
+  "master_head_verified": "542de9c0affed231f2bf449345ab61d83bc883c7",
+  "changes_scope": [
+    "MF_SEQ_STANDALONE_REVIEW/V1_1_EXPERIMENTAL_CLASSIC_ALTERNATE_2026_11_19"
+  ],
+  "native_api_or_private_push_imports": false,
+  "native_setters_called": false,
+  "automatic_install_or_merge": false,
+  "hardware_runtime_claim": false
+}
