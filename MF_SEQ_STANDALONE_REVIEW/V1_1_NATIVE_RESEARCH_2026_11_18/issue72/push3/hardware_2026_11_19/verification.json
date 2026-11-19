@@ -1,0 +1,63 @@
+{
+  "Live_executable_ProductVersion": "13.0b24",
+  "source_commit": "1cf77341ef882b46b91f016aa6702c6435c3843c",
+  "pre_capture_research_head": "cd18ee958768bcb672ec94694d1a62f0a613db4f",
+  "logical_records": 85,
+  "samples": 59,
+  "distinct_observations": 1,
+  "last_sample_elapsed_s": 119.485,
+  "finished": [
+    {
+      "timestamp": "2026-11-19T04:16:48.126640",
+      "record": {
+        "elapsed_s": 121.51600000000326,
+        "kind": "finished",
+        "listeners_registered": 0,
+        "reason": "limit",
+        "samples": 59,
+        "writes_attempted": 0
+      }
+    }
+  ],
+  "disconnect": [
+    {
+      "timestamp": "2026-11-19T04:17:51.019611",
+      "record": {
+        "kind": "disconnect",
+        "listeners_registered": 0
+      }
+    }
+  ],
+  "installed_source": [
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_SEQ_Push_ReadOnly\\__init__.py",
+      "sha256": "4f3faaf5ce5454c78dc7d6642067006e6e054a7d75b16351e9b59a8144ec2a06",
+      "matches_delivered_package": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_SEQ_Push_ReadOnly\\inspect_host.py",
+      "sha256": "236376083f1547409ef37f7fcd54ed0faf6cc7889bae12f1a9f611688a92d17c",
+      "matches_delivered_package": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_SEQ_Push_ReadOnly\\session.py",
+      "sha256": "573f1f3310c587a70c5de49cabb8820b8ff0b2461af5648c1b073d331f992d91",
+      "matches_delivered_package": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_SEQ_Push_ReadOnly\\surface.py",
+      "sha256": "70a17b0c451cee84f824943a7eee8b5aba0dfb233471cdb524c13de87d4d0e6f",
+      "matches_delivered_package": true
+    }
+  ],
+  "protected_source_files_unchanged": 21,
+  "raw_diagnostic_archive": "E:\\Documents\\ChatGPT\\mf build 2\\MF_SEQ_Push_ReadOnly_hardware_20261119_full.json",
+  "raw_diagnostic_archive_sha256": "1fd4247fdeb6e58a8e97bafd02b6c93462fc376e63314741ed6cb21621daff43",
+  "owner_exact_action_timestamps_available": false,
+  "owner_exact_old_new_values_available": false,
+  "Pitch_checked_after_original_test": true,
+  "Push_software_version": "not supplied",
+  "new_API_writes_attempted": 0,
+  "code_changes": false,
+  "tests": "No code changed; reused previously passed tests. Installed code hashes match reviewed package."
+}

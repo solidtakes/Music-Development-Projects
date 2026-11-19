@@ -1,6 +1,7 @@
 # Push 3 desktop test — two minutes of actions
 
-**Prepared; not yet run.** The owner performs all hardware actions.
+**Owner run completed; see [results and evidence limits](hardware_2026_11_19/RESULTS.md).**
+The owner performs all hardware actions; this remains the repeat procedure.
 
 1. Preserve your working Set. Use a **disposable Set with a duplicate existing
    native Step Sequencer clip**. Keep playback/recording stopped; leave Twister

@@ -1,0 +1,966 @@
+{
+  "source_log": "C:\\Users\\lovea\\AppData\\Roaming\\Ableton\\Live 13.0b24\\Preferences\\Log.txt",
+  "deduplication": "Retained only RemoteScriptMessage: (PushReadOnly) lines; framework LOG copies excluded.",
+  "timestamp_timezone": "Not specified by Log.txt; timestamps retained verbatim.",
+  "sessions_seen": 2,
+  "selected_session": "latest runtime header through last collected diagnostic record",
+  "records": [
+    {
+      "timestamp": "2026-11-19T04:14:46.610096",
+      "record": {
+        "beta_suffix_source": "owner About Live or Log.txt header",
+        "duration_s": 120,
+        "kind": "runtime",
+        "max_samples": 61,
+        "version": [
+          13,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.611826",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "kind": "module_discovery",
+          "path": "LiveFlip",
+          "result": {
+            "discoverable": false,
+            "loaded": false,
+            "loader_type": null
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.611875",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "kind": "module_discovery",
+          "path": "live_model",
+          "result": {
+            "discoverable": false,
+            "loaded": false,
+            "loader_type": null
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.611912",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "kind": "module_discovery",
+          "path": "Push2",
+          "result": {
+            "discoverable": false,
+            "loaded": false,
+            "loader_type": null
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.611950",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "Live.StepSequencer",
+          "result": {
+            "error": "AttributeError",
+            "message": "module 'Live' has no attribute 'StepSequencer'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.611989",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "kind": "metadata",
+          "path": "Live",
+          "result": {
+            "matching_count": 2,
+            "matching_members": [
+              "Browser",
+              "TakeLane"
+            ],
+            "truncated": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612026",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "kind": "metadata",
+          "path": "Live.Clip",
+          "result": {
+            "matching_count": 0,
+            "matching_members": [],
+            "truncated": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612063",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "kind": "metadata",
+          "path": "Live.Clip.Clip",
+          "result": {
+            "matching_count": 1,
+            "matching_members": [
+              "is_take_lane_clip"
+            ],
+            "truncated": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612103",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "kind": "metadata",
+          "path": "c_instance",
+          "result": {
+            "matching_count": 0,
+            "matching_members": [],
+            "truncated": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612140",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "c_instance.flip_document",
+          "result": {
+            "error": "AttributeError",
+            "message": "'MidiRemoteScript' object has no attribute 'flip_document'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612174",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "c_instance._flip_document",
+          "result": {
+            "error": "AttributeError",
+            "message": "'MidiRemoteScript' object has no attribute '_flip_document'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612211",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "c_instance.live_model",
+          "result": {
+            "error": "AttributeError",
+            "message": "'MidiRemoteScript' object has no attribute 'live_model'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612243",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "c_instance.root",
+          "result": {
+            "error": "AttributeError",
+            "message": "'MidiRemoteScript' object has no attribute 'root'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612275",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "c_instance.root() native read route",
+          "result": {
+            "error": "AttributeError",
+            "message": "'MidiRemoteScript' object has no attribute 'root'"
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612309",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "Live.Clip.MidiClipType.piano_roll",
+          "result": {
+            "error": "AttributeError",
+            "message": "type object 'MidiClipType' has no attribute 'piano_roll'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612347",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "Live.Clip.MidiClipType.step_sequencer",
+          "result": {
+            "ok": true,
+            "value": 1
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612381",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "song.view.detail_clip",
+          "result": {
+            "present": true,
+            "type": "Clip"
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612413",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "song.view.detail_clip.is_midi_clip",
+          "result": {
+            "ok": true,
+            "value": true
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612446",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "song.view.detail_clip.midi_clip_type",
+          "result": {
+            "ok": true,
+            "value": 1
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612479",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "song.view.detail_clip.step_sequencer",
+          "result": {
+            "error": "AttributeError",
+            "message": "'Clip' object has no attribute 'step_sequencer'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612512",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "song.view.detail_clip.get_step_sequencer",
+          "result": {
+            "error": "AttributeError",
+            "message": "'Clip' object has no attribute 'get_step_sequencer'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612544",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "song.view.detail_clip._flip_object",
+          "result": {
+            "error": "AttributeError",
+            "message": "'Clip' object has no attribute '_flip_object'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612575",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "song.view.detail_clip.flip_object",
+          "result": {
+            "error": "AttributeError",
+            "message": "'Clip' object has no attribute 'flip_object'",
+            "ok": false
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612615",
+      "record": {
+        "kind": "initial_capability",
+        "record": {
+          "path": "song.view.detail_clip.get_notes_extended(0,128,0.0,4.0)",
+          "result": {
+            "note_count": 0,
+            "range_beats": [
+              0.0,
+              4.0
+            ],
+            "representation": "conventional_note_API_not_verified_native_steps"
+          }
+        }
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:46.612718",
+      "record": {
+        "elapsed_s": 0.0,
+        "kind": "sample",
+        "sample": 0,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:48.693872",
+      "record": {
+        "elapsed_s": 2.078,
+        "kind": "sample",
+        "sample": 1,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:50.726446",
+      "record": {
+        "elapsed_s": 4.11,
+        "kind": "sample",
+        "sample": 2,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:52.743319",
+      "record": {
+        "elapsed_s": 6.125,
+        "kind": "sample",
+        "sample": 3,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:54.743392",
+      "record": {
+        "elapsed_s": 8.125,
+        "kind": "sample",
+        "sample": 4,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:56.776795",
+      "record": {
+        "elapsed_s": 10.156,
+        "kind": "sample",
+        "sample": 5,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:14:58.793694",
+      "record": {
+        "elapsed_s": 12.188,
+        "kind": "sample",
+        "sample": 6,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:02.793036",
+      "record": {
+        "elapsed_s": 16.172,
+        "kind": "sample",
+        "sample": 7,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:04.809901",
+      "record": {
+        "elapsed_s": 18.203,
+        "kind": "sample",
+        "sample": 8,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:06.843232",
+      "record": {
+        "elapsed_s": 20.235,
+        "kind": "sample",
+        "sample": 9,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:08.843751",
+      "record": {
+        "elapsed_s": 22.235,
+        "kind": "sample",
+        "sample": 10,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:10.843067",
+      "record": {
+        "elapsed_s": 24.235,
+        "kind": "sample",
+        "sample": 11,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:12.843174",
+      "record": {
+        "elapsed_s": 26.235,
+        "kind": "sample",
+        "sample": 12,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:14.876563",
+      "record": {
+        "elapsed_s": 28.266,
+        "kind": "sample",
+        "sample": 13,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:16.926462",
+      "record": {
+        "elapsed_s": 30.313,
+        "kind": "sample",
+        "sample": 14,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:18.977036",
+      "record": {
+        "elapsed_s": 32.36,
+        "kind": "sample",
+        "sample": 15,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:20.993230",
+      "record": {
+        "elapsed_s": 34.375,
+        "kind": "sample",
+        "sample": 16,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:23.044155",
+      "record": {
+        "elapsed_s": 36.438,
+        "kind": "sample",
+        "sample": 17,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:25.076706",
+      "record": {
+        "elapsed_s": 38.469,
+        "kind": "sample",
+        "sample": 18,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:27.093415",
+      "record": {
+        "elapsed_s": 40.485,
+        "kind": "sample",
+        "sample": 19,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:29.093776",
+      "record": {
+        "elapsed_s": 42.485,
+        "kind": "sample",
+        "sample": 20,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:31.093198",
+      "record": {
+        "elapsed_s": 44.485,
+        "kind": "sample",
+        "sample": 21,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:33.110191",
+      "record": {
+        "elapsed_s": 46.5,
+        "kind": "sample",
+        "sample": 22,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:35.110398",
+      "record": {
+        "elapsed_s": 48.5,
+        "kind": "sample",
+        "sample": 23,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:37.110126",
+      "record": {
+        "elapsed_s": 50.5,
+        "kind": "sample",
+        "sample": 24,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:39.111199",
+      "record": {
+        "elapsed_s": 52.5,
+        "kind": "sample",
+        "sample": 25,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:41.176799",
+      "record": {
+        "elapsed_s": 54.563,
+        "kind": "sample",
+        "sample": 26,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:43.193914",
+      "record": {
+        "elapsed_s": 56.578,
+        "kind": "sample",
+        "sample": 27,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:45.193384",
+      "record": {
+        "elapsed_s": 58.578,
+        "kind": "sample",
+        "sample": 28,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:47.193410",
+      "record": {
+        "elapsed_s": 60.578,
+        "kind": "sample",
+        "sample": 29,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:49.210488",
+      "record": {
+        "elapsed_s": 62.594,
+        "kind": "sample",
+        "sample": 30,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:51.210157",
+      "record": {
+        "elapsed_s": 64.594,
+        "kind": "sample",
+        "sample": 31,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:53.243318",
+      "record": {
+        "elapsed_s": 66.625,
+        "kind": "sample",
+        "sample": 32,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:55.243304",
+      "record": {
+        "elapsed_s": 68.625,
+        "kind": "sample",
+        "sample": 33,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:57.243200",
+      "record": {
+        "elapsed_s": 70.625,
+        "kind": "sample",
+        "sample": 34,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:15:59.243336",
+      "record": {
+        "elapsed_s": 72.625,
+        "kind": "sample",
+        "sample": 35,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:01.244158",
+      "record": {
+        "elapsed_s": 74.625,
+        "kind": "sample",
+        "sample": 36,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:03.293154",
+      "record": {
+        "elapsed_s": 76.672,
+        "kind": "sample",
+        "sample": 37,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:05.293112",
+      "record": {
+        "elapsed_s": 78.672,
+        "kind": "sample",
+        "sample": 38,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:07.343661",
+      "record": {
+        "elapsed_s": 80.735,
+        "kind": "sample",
+        "sample": 39,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:09.343260",
+      "record": {
+        "elapsed_s": 82.735,
+        "kind": "sample",
+        "sample": 40,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:11.343190",
+      "record": {
+        "elapsed_s": 84.735,
+        "kind": "sample",
+        "sample": 41,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:13.359731",
+      "record": {
+        "elapsed_s": 86.75,
+        "kind": "sample",
+        "sample": 42,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:15.393318",
+      "record": {
+        "elapsed_s": 88.781,
+        "kind": "sample",
+        "sample": 43,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:17.443214",
+      "record": {
+        "elapsed_s": 90.828,
+        "kind": "sample",
+        "sample": 44,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:19.443254",
+      "record": {
+        "elapsed_s": 92.828,
+        "kind": "sample",
+        "sample": 45,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:21.460210",
+      "record": {
+        "elapsed_s": 94.844,
+        "kind": "sample",
+        "sample": 46,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:23.559797",
+      "record": {
+        "elapsed_s": 96.953,
+        "kind": "sample",
+        "sample": 47,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:25.593137",
+      "record": {
+        "elapsed_s": 98.985,
+        "kind": "sample",
+        "sample": 48,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:27.643209",
+      "record": {
+        "elapsed_s": 101.031,
+        "kind": "sample",
+        "sample": 49,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:29.710067",
+      "record": {
+        "elapsed_s": 103.094,
+        "kind": "sample",
+        "sample": 50,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:31.793079",
+      "record": {
+        "elapsed_s": 105.172,
+        "kind": "sample",
+        "sample": 51,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:33.826686",
+      "record": {
+        "elapsed_s": 107.219,
+        "kind": "sample",
+        "sample": 52,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:35.926397",
+      "record": {
+        "elapsed_s": 109.313,
+        "kind": "sample",
+        "sample": 53,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:37.976494",
+      "record": {
+        "elapsed_s": 111.36,
+        "kind": "sample",
+        "sample": 54,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:40.026540",
+      "record": {
+        "elapsed_s": 113.406,
+        "kind": "sample",
+        "sample": 55,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:42.043725",
+      "record": {
+        "elapsed_s": 115.422,
+        "kind": "sample",
+        "sample": 56,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:44.093003",
+      "record": {
+        "elapsed_s": 117.485,
+        "kind": "sample",
+        "sample": 57,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:46.093190",
+      "record": {
+        "elapsed_s": 119.485,
+        "kind": "sample",
+        "sample": 58,
+        "observation_ref": "observation_0"
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:16:48.126640",
+      "record": {
+        "elapsed_s": 121.51600000000326,
+        "kind": "finished",
+        "listeners_registered": 0,
+        "reason": "limit",
+        "samples": 59,
+        "writes_attempted": 0
+      }
+    },
+    {
+      "timestamp": "2026-11-19T04:17:51.019611",
+      "record": {
+        "kind": "disconnect",
+        "listeners_registered": 0
+      }
+    }
+  ],
+  "format": "Repeated observations dictionary-encoded; substitute observation_ref with observation to expand each sample.",
+  "observations": {
+    "observation_0": {
+      "clip": {
+        "is_midi_clip": {
+          "ok": true,
+          "value": true
+        },
+        "midi_clip_type": {
+          "ok": true,
+          "value": 1
+        },
+        "step_sequencer": {
+          "error": "AttributeError",
+          "message": "'Clip' object has no attribute 'step_sequencer'",
+          "ok": false
+        }
+      },
+      "clip_present": true,
+      "clip_type": "Clip",
+      "clip_view": {
+        "highlighted_row_index": {
+          "error": "AttributeError",
+          "message": "'View' object has no attribute 'highlighted_row_index'",
+          "ok": false
+        },
+        "selected_lane": {
+          "error": "AttributeError",
+          "message": "'View' object has no attribute 'selected_lane'",
+          "ok": false
+        },
+        "selected_note": {
+          "error": "AttributeError",
+          "message": "'View' object has no attribute 'selected_note'",
+          "ok": false
+        },
+        "selected_pitch": {
+          "error": "AttributeError",
+          "message": "'View' object has no attribute 'selected_pitch'",
+          "ok": false
+        }
+      },
+      "conventional_notes": {
+        "count": 0,
+        "native_step_representation_verified": false,
+        "range_beats": [
+          0,
+          4
+        ]
+      },
+      "push_route_candidate": [
+        {
+          "path": "c_instance.root() native read route",
+          "result": {
+            "error": "AttributeError",
+            "message": "'MidiRemoteScript' object has no attribute 'root'"
+          }
+        }
+      ]
+    }
+  },
+  "expanded_records_sha256": "642ec10fbc80432ef30d0ba5d7d95bd935ca96ec48a0731b1965757e898cc8c0"
+}

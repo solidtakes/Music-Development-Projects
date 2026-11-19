@@ -4,8 +4,9 @@ For this owner's confirmed installation, use the
 [exact Windows steps](WINDOWS_INSTALL.md). The generic locations below remain
 alternatives; install only one copy of this script.
 
-Status: source and offline checks prepared; **not installed or tested in Live**.
-The prior one-shot `MF_SEQ_I72_ReadOnly` remains separate and inactive.
+Status: **owner run captured in Live 13.0b24**; source hashes match the delivered
+package and disconnect was observed. See [hardware results](hardware_2026_11_19/RESULTS.md).
+The prior one-shot `MF_SEQ_I72_ReadOnly` remains separate.
 
 Keep all four Python files in `probe/MF_SEQ_Push_ReadOnly` together. Copy that
 folder to your Live 13 Beta User Library's `Remote Scripts` folder (or the same
