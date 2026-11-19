@@ -1,0 +1,7 @@
+{
+  "name": "AOPX S5 T1 BUILD-ONLY - NOT AUTHORIZED FOR LIVE",
+  "author": "AOPX research",
+  "version": "0.0.1",
+  "entry": ".build/ableton-offline-processing/spikes/s5-t1/src/extension.js",
+  "minimumApiVersion": "1.0.0"
+}
