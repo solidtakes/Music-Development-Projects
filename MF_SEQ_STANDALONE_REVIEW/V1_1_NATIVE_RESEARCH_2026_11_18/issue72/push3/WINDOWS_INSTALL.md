@@ -50,9 +50,9 @@ Wait **five seconds before and after** each action. Note time, row/column and
 visible old/new values. Use page 1, column 1 where possible.
 
 1. Turn Push's **jog wheel** to another existing row, then back. Note whether
-   Live's row selection follows. Identify one empty pad and one lit pad.
+   Live's row selection follows. Identify one empty pad.
 2. **Tap the empty pad once**; confirm exactly that native step turns on.
-3. **Hold the lit pad**, confirm its step highlight, and turn the encoder
+3. **Hold that newly lit pad**, confirm its step highlight, and turn the encoder
    labeled **Velocity** to a different value, e.g. 64. Release.
 4. Hold that same lit pad; turn the encoder labeled **Pitch** one displayed
    increment. Release. Record the exact values/units.

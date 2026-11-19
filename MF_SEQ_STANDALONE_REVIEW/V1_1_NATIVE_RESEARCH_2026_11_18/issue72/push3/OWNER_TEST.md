@@ -18,9 +18,9 @@
 
 | Action | Push control | Expected visible result |
 |---|---|---|
-| Select row / identify step | In Clip Mode turn **jog wheel** to another existing row and back. Identify an empty pad and a lit pad; don't tap merely to select. Check step highlight during the velocity action. | Live/Push row selection follows; record row pitch/label or disagreement. |
+| Select row / identify step | In Clip Mode turn **jog wheel** to another existing row and back. Identify an empty pad; don't tap merely to select. Check step highlight during the velocity action. | Live/Push row selection follows; record row pitch/label or disagreement. |
 | Toggle one step | **Tap the empty pad once.** | That step changes off -> on. |
-| Change velocity | **Hold the lit pad**, check its highlight, turn encoder labeled **Velocity** to a different value, e.g. 64; release. | Native Velocity changes; record both values. |
+| Change velocity | **Hold that newly lit pad**, check its highlight, turn encoder labeled **Velocity** to a different value, e.g. 64; release. | Native Velocity changes; record both values. |
 | Change pitch | Hold **the same lit pad**; turn encoder labeled **Pitch** one displayed increment; release. | Native step Pitch changes; record both values/units. |
 | Optional rate | Release pads; turn the selected row's clearly labeled **Rate** encoder one increment. Skip if unclear. | Only that row's Rate changes. |
 

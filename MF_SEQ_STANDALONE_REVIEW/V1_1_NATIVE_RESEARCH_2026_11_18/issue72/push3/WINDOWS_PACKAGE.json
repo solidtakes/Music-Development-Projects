@@ -11,11 +11,11 @@
     "MF_SEQ_Push_ReadOnly/inspect_host.py": "236376083f1547409ef37f7fcd54ed0faf6cc7889bae12f1a9f611688a92d17c",
     "MF_SEQ_Push_ReadOnly/session.py": "573f1f3310c587a70c5de49cabb8820b8ff0b2461af5648c1b073d331f992d91",
     "MF_SEQ_Push_ReadOnly/surface.py": "70a17b0c451cee84f824943a7eee8b5aba0dfb233471cdb524c13de87d4d0e6f",
-    "START_HERE.txt": "332faa5eb2cb8d279b2a248ecdec21b5bfe5089438f694c1322b5bd8a5868e56",
+    "START_HERE.txt": "f39570a14a7b36e034991c651e84752c1c4515f3206d5180ee1b4528d08f1807",
     "OWNER_RESULTS.txt": "d53a97fb4a768e460cb870ccaea335088ff9f145e86530d5b65e7204d6bb950c"
   },
   "archive_name": "MF_SEQ_Push_ReadOnly_Windows_20261119.zip",
-  "archive_sha256": "6ca8d26942526bd2f2763e6b0f178cc243d72254e235436ec6826468137bccce",
-  "archive_bytes": 7696,
+  "archive_sha256": "f5944d61e89aef43ba1be24db5cffbf4e5d0e342e945b022e5712e2ed04be328",
+  "archive_bytes": 7690,
   "protected_source_files_unchanged": 21
 }
