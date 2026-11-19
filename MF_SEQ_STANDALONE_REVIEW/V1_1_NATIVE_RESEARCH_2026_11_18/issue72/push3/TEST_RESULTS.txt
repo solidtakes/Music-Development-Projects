@@ -1,0 +1,9 @@
+2026-11-19 offline checks
+Recovered R1 suite: 12 passed
+Existing Issue #72 suite: 5 passed
+New bounded Push logger: 4 passed
+Total: 21 passed; zero failures/errors.
+Logger tests: time/sample limit, stalled dispatcher, getter-only missing routes, queued callbacks after disconnect.
+21 protected source files unchanged; eight original R1 files still match preserved Git blobs.
+Host inspector reused byte-for-byte.
+New Push/logger runtime test: PENDING. b25/b26 runtime and newer SDK declarations: NOT VERIFIED.

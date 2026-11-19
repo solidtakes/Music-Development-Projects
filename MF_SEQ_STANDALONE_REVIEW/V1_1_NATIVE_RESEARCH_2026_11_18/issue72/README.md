@@ -1,5 +1,10 @@
 # Issue #72 read-only follow-up
 
+Latest handoff: [Push 3 owner test](push3/OWNER_TEST.md) and
+[b26 SDK review](push3/SDK_REVIEW.md). Owner execution is pending; installed
+desktop evidence remains **13.0b24**. The new bounded logger is separate from
+the one-shot diagnostic below and has not been installed or loaded.
+
 Read [REPORT.md](REPORT.md) for results and limits. `runtime_evidence.json` is
 the fresh Live 13.0b24 capture; `recovery.json` identifies the eight recovered
 files and preserved local evidence. `static_findings.json` identifies new

@@ -1,0 +1,174 @@
+{
+  "date": "2026-11-19",
+  "parent_research_commit": "b26414c9aa4f4ee630b8e22222c6eea22ea35813",
+  "installed_ProductVersion": "13.0b24",
+  "latest_Push_capture_status": "PENDING_owner_execution",
+  "new_logger_installed": false,
+  "new_logger_loaded_in_Live": false,
+  "native_writes_attempted": 0,
+  "offline_tests": {
+    "recovered_R1": 12,
+    "existing_issue72": 5,
+    "new_logger": 4,
+    "failures": 0,
+    "errors": 0
+  },
+  "original_eight_files": [
+    {
+      "path": ".gitignore",
+      "git_blob": "5d5feaa2508fdffad0d2259b2f26083eba70ec08",
+      "matches_preserved_R1": true
+    },
+    {
+      "path": "README.md",
+      "git_blob": "e952efbbaa2cb0b772aa0c93863d81978b3a5a8a",
+      "matches_preserved_R1": true
+    },
+    {
+      "path": "R3_ARCHITECTURE.md",
+      "git_blob": "f047d57a52ae50312d73a29e83279642e2738622",
+      "matches_preserved_R1": true
+    },
+    {
+      "path": "VERDICT.md",
+      "git_blob": "27fb9158ae5d16a377cb3d96a1f68cc92ea33139",
+      "matches_preserved_R1": true
+    },
+    {
+      "path": "tests/test_baseline_gestures.py",
+      "git_blob": "3be1437d395c5909a57b6bf3b1aa89c275922867",
+      "matches_preserved_R1": true
+    },
+    {
+      "path": "tests/test_probe_lifecycle.py",
+      "git_blob": "9745c6f18b4cfb69f2c488b8f1b648ed11141d5c",
+      "matches_preserved_R1": true
+    },
+    {
+      "path": "evidence/followup_verification.json",
+      "git_blob": "e50298d68715dca7fa35f4ef8ced7c4da9dc8c70",
+      "matches_preserved_R1": true
+    },
+    {
+      "path": "evidence/TEST_RESULTS.txt",
+      "git_blob": "2b45c33f5b53eda49199c3a27d56dbfd6e0a4e31",
+      "matches_preserved_R1": true
+    }
+  ],
+  "protected_source_files": [
+    {
+      "path": "E:\\Documents\\ChatGPT\\mf build 2\\MF_Build_3banks_RC1_work\\MF_Build_3banks\\Bank1_SelectedTrack.py",
+      "sha256": "5e208174367ba666826fdb5b00f8b13905346e1fb5d00df919d8cc13864bdc69",
+      "unchanged": true
+    },
+    {
+      "path": "E:\\Documents\\ChatGPT\\mf build 2\\MF_Build_3banks_RC1_work\\MF_Build_3banks\\FourTrack_Bank2.py",
+      "sha256": "6d76bf3a00b39c0d2624db127d7c214bee7d306caf96fccdc1756a95cad87dd2",
+      "unchanged": true
+    },
+    {
+      "path": "E:\\Documents\\ChatGPT\\mf build 2\\MF_Build_3banks_RC1_work\\MF_Build_3banks\\scale_sync.py",
+      "sha256": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397",
+      "unchanged": true
+    },
+    {
+      "path": "E:\\Documents\\ChatGPT\\mf build 2\\MF_Build_3banks_RC1_work\\MF_Build_3banks\\Sequencer_Bank3.py",
+      "sha256": "a2b38ceddd17b62769e2ec004c23e6f6552ba91f8090e806eac353db2ef8f9aa",
+      "unchanged": true
+    },
+    {
+      "path": "E:\\Documents\\ChatGPT\\mf build 2\\MF_Build_3banks_RC1_work\\MF_Build_3banks\\ThreeBankHost.py",
+      "sha256": "da1be274799da7a02cabb7be851c15626d32c9292902e1aa8fa9edf561f61079",
+      "unchanged": true
+    },
+    {
+      "path": "E:\\Documents\\ChatGPT\\mf build 2\\MF_Build_3banks_RC1_work\\MF_Build_3banks\\__init__.py",
+      "sha256": "855904ec3f0142ad3769739db05e3c2ce58930bcbc3fd034009237a8a4d11804",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banks\\Bank1_SelectedTrack.py",
+      "sha256": "5e208174367ba666826fdb5b00f8b13905346e1fb5d00df919d8cc13864bdc69",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banks\\FourTrack_Bank2.py",
+      "sha256": "6d76bf3a00b39c0d2624db127d7c214bee7d306caf96fccdc1756a95cad87dd2",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banks\\scale_sync.py",
+      "sha256": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banks\\Sequencer_Bank3.py",
+      "sha256": "a2b38ceddd17b62769e2ec004c23e6f6552ba91f8090e806eac353db2ef8f9aa",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banks\\ThreeBankHost.py",
+      "sha256": "b2dd1aa40387f49dc7fdd6387af3bab0dceb37ea70cd9264d2c7c6335fa5bac5",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banks\\__init__.py",
+      "sha256": "855904ec3f0142ad3769739db05e3c2ce58930bcbc3fd034009237a8a4d11804",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_SEQ\\MF_SEQ.py",
+      "sha256": "f1dff03e7ec0af128a2ae609cd9d1e5cb268888e2ab0d77209c0693063dbfa9a",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_SEQ\\scale_sync.py",
+      "sha256": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_SEQ\\__init__.py",
+      "sha256": "3eb0b17f311f4abf6cab2d31e9508d2412238e94b69faf9417c4deac14f4613f",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banksb\\Bank1_SelectedTrack.py",
+      "sha256": "5e208174367ba666826fdb5b00f8b13905346e1fb5d00df919d8cc13864bdc69",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banksb\\FourTrack_Bank2.py",
+      "sha256": "6d76bf3a00b39c0d2624db127d7c214bee7d306caf96fccdc1756a95cad87dd2",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banksb\\scale_sync.py",
+      "sha256": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banksb\\Sequencer_Bank3.py",
+      "sha256": "065435dcf8d72970b1bedb64cf54af9cb5514399c222b9de9aae80b80efba5ac",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banksb\\ThreeBankHost.py",
+      "sha256": "da1be274799da7a02cabb7be851c15626d32c9292902e1aa8fa9edf561f61079",
+      "unchanged": true
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\MF_Build_3banksb\\__init__.py",
+      "sha256": "855904ec3f0142ad3769739db05e3c2ce58930bcbc3fd034009237a8a4d11804",
+      "unchanged": true
+    }
+  ],
+  "protected_remote_refs": {
+    "mf-seq/v1.0-stable-20261116": "a2cec39521472bf050e3467b40f263d4b6c304e8",
+    "master/mf-3banks-rc1-20261118": "542de9c0affed231f2bf449345ab61d83bc883c7"
+  },
+  "host_inspector_reused_byte_for_byte": true,
+  "sdk_package_version": "1.0.0-beta.1",
+  "sdk_archive_sha256": "1770f795c18901023d9df8129575c9a86b4e7255011c5295b2b98d0b73010c8e",
+  "newer_SDK_declarations_obtained": false,
+  "b25_b26_runtime_tested": false
+}
