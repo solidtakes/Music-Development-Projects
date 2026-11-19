@@ -2,6 +2,8 @@
 
 Research only, based on v1.0 Stable milestone `a2cec39521472bf050e3467b40f263d4b6c304e8`.
 Read [R1_REPORT.md](R1_REPORT.md) for the VERIFIED / INFERRED / BLOCKED matrix and evidence.
+Read [R3_ARCHITECTURE.md](R3_ARCHITECTURE.md) for the accepted-source audit and proposed
+dual-mode design, and [VERDICT.md](VERDICT.md) for the explicit PASS / BLOCKERS gates.
 
 The separate `probe/MF_SEQ_R1_ReadOnly` surface has no MIDI bindings, LED output,
 clip editing, clip conversion, playback commands or mode-switch implementation.
@@ -42,3 +44,9 @@ Static bytecode inspection uses `tools/inspect_bytecode.py` with locally install
 `xdis==6.3.0` in `tools/deps`; it does not import or execute Ableton bytecode.
 Raw disassemblies, third-party packages, the full user log and Sets are not published.
 `evidence/static_manifest.json` identifies the installed files by hash.
+
+The baseline gesture audit resolves the accepted source from its unchanged
+repository location when checked out with this branch. For a standalone copy,
+place that exact stable source in `evidence/baseline/MF_SEQ.py`; the audit verifies
+Git blob `cbf94ea1a765d3f02aa94ce844228f40f2c68faa` before extracting its input method.
+All editing helpers are spies. No new sequencer engine is included in these tests.

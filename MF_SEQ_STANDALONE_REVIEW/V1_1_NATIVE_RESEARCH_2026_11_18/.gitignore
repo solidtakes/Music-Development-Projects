@@ -4,4 +4,5 @@ tools/deps/
 evidence/static/
 evidence/support/
 evidence/runtime.json
+evidence/baseline/
 publication_payload.json
