@@ -1,0 +1,74 @@
+name: AOPX S5 T1 BUILD-ONLY
+on:
+  pull_request:
+    branches: [codex/aopx-s5-design-safety]
+    paths:
+      - 'ableton-offline-processing/spikes/s5-t1/**'
+      - 'ableton-offline-processing/spikes/s5-design/**'
+      - '.github/workflows/aopx-s5-t1-build-only.yml'
+permissions:
+  contents: read
+  issues: read
+jobs:
+  offline:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        node: ['24.22.1', '26.13.0']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install existing locked compiler only (no SDK or new dependencies)
+        working-directory: ableton-offline-processing/engine
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Offline mock SDK compile
+        run: node ableton-offline-processing/spikes/s5-t1/ci/build.mjs
+      - name: Offline tests (synthetic scratch WAVs only)
+        run: node --test --test-reporter=spec ableton-offline-processing/spikes/s5-t1/test/*.test.ts ableton-offline-processing/spikes/s5-design/fake-host.test.mjs
+  candidate:
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify review gate and exact checked out SHA
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python - <<'PY'
+          import json, os, re, urllib.request, subprocess
+          sha = os.environ['REVIEW_SHA']
+          assert re.fullmatch('[0-9a-f]{40}', sha)
+          assert subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip() == sha
+          number = os.environ['PR_NUMBER']
+          assert number.isdigit()
+          url = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/{number}/comments?per_page=100"
+          request = urllib.request.Request(url, headers={'Authorization': 'Bearer '+os.environ['GH_TOKEN']})
+          comments = json.load(urllib.request.urlopen(request))
+          approved = any(sha in c['body'] and c['body'].startswith('## Independent T1 review — PASS')
+                         and c['user']['login'] == 'solidtakes' for c in comments)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('approved=' + str(approved).lower() + '\n')
+          print('Review gate:', 'PASS' if approved else 'CLOSED - no candidate published')
+          PY
+      - name: Deterministic source-only reviewed candidate
+        if: steps.gate.outputs.approved == 'true'
+        env:
+          REVIEW_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python ableton-offline-processing/spikes/s5-t1/ci/package.py --out candidate/AOPX_S5_T1_BUILD_ONLY_NOT_AUTHORIZED_FOR_LIVE.zip --sha "$REVIEW_SHA"
+      - uses: actions/upload-artifact@v4
+        if: steps.gate.outputs.approved == 'true'
+        with:
+          name: AOPX_S5_T1_BUILD_ONLY_NOT_AUTHORIZED_FOR_LIVE
+          path: candidate/*.zip
+          retention-days: 14

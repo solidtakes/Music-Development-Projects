@@ -9,6 +9,8 @@ const fingerprint = value => hash(JSON.stringify(value));
 
 // Policy proposal, intentionally narrower than the engine's supported WAV formats.
 export function validateOutput(bytes, expected) {
+  if (expected === null || typeof expected !== 'object' || Array.isArray(expected))
+    throw new Error('WAV expected metadata required');
   if (!(bytes instanceof Uint8Array) || bytes.byteLength > 32 * 1024 * 1024)
     throw new Error('WAV byte limit/type');
   const meta = readWavMetadata(bytes);

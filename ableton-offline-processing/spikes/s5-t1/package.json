@@ -1,0 +1,12 @@
+{
+  "name": "@aopx/s5-t1-build-only",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "NOT AUTHORIZED FOR LIVE. Offline build/review candidate only.",
+  "engines": { "node": ">=24.16.0" },
+  "scripts": {
+    "test": "node --test --test-reporter=spec test/*.test.ts",
+    "build": "node ci/build.mjs"
+  }
+}
