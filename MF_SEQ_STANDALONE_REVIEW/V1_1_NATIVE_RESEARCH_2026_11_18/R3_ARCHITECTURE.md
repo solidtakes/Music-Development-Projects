@@ -16,6 +16,12 @@ gesture choice. Reconcile the two specifications before controller implementatio
 The single-owner, cancellation, state and eligibility design applies to either
 candidate; E1/E16 additionally needs turn-versus-tap arbitration for bar navigation.
 
+**Issue #72 resolution (2026-11-19):** the current owner instruction explicitly
+selects **hold E1 + tap E16**, superseding the earlier E1/E4 handoff candidate.
+The E1/E4 analysis below is retained as historical source-audit evidence, not
+the current gesture specification. Gesture implementation remains a separate task.
+See [the Issue #72 research follow-up](issue72/REPORT.md).
+
 ## Accepted source reviewed
 
 Review target is the complete `combined/MF_SEQ` source package at stable milestone

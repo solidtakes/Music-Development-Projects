@@ -14,7 +14,7 @@ Evidence-bearing runtime commit: `2bea6fc118a75bed4ea461d07346e589a1326e2d`.
 | R3 source review / architecture proposal | **PASS — proposal** | Exact accepted source blobs reviewed; E1/E4 tie and probability-release collisions demonstrated with source dispatch spies. Ownership/state/chord/manual-override design documented. No router or engine is implemented. |
 | Native editing engine | **BLOCKERS — do not implement/activate yet** | Need supported reachable row/step objects, selected-lane observation, validated units/ranges, authorized disposable-clip write/readback and feedback/lifecycle tests in a named build. No writes were attempted. |
 | Cross-bank integration | **BLOCKERS — review required** | Shared MIDI/output/scheduler changes require CROSS-BANK REVIEW. Three-bank baseline is untouched. |
-| Mode-chord specification | **BLOCKER before implementation** | This chat's handoff specifies E1 + E4; the branch's separate `V1_1_R1_OWNER_GESTURE_DECISION_2026-11-18.md` specifies ordered E1 + E16. Both records are preserved; the architecture labels the E1/E4 audit as conditional. No gesture implementation is selected or activated. |
+| Mode-chord specification | **PASS — resolved by Issue #72** | The owner now explicitly selects hold E1 + tap E16, preserving reverse-order Follow, E1 + rotate E16 navigation, and E13 + E4 bar 4. The older E1/E4 source audit is historical. No gesture is implemented or activated. |
 | Publication | **PASS — isolated research branch** | `mf-seq/v1.1-native-research-20261118`; no automatic merge or Stable update. |
 
 **Overall:** research and the read-only diagnostic PASS within their documented

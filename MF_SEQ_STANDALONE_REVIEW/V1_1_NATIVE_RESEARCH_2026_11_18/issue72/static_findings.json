@@ -1,0 +1,100 @@
+{
+  "host_build": "13.0b24",
+  "method": "Static xdis 6.3.0 inspection; no installed Push/framework modules executed",
+  "sources": [
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\live_model\\__init__.pyc",
+      "sha256": "c542a5584e71edb6e13355d1962d347e03d21d422298300aaa8d3df4ff68eb97",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\live_model\\Live\\__init__.pyc",
+      "sha256": "d0853465cbc0adecf7bee791f950e9bd76fec9bede5a4d86598b5cf9a041fa6b",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\live_model\\Live\\Root.pyc",
+      "sha256": "af5357c69ec1d6d160c343ac5a74a38bfe91fb8ec21fed27bb9475fea58a30a4",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\Push2\\__init__.pyc",
+      "sha256": "9a2c31fb660cfd0ec42b74dce30bf99e4124ff2f1a0adfabc9a1aa1563625e24",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Program\\Push\\python\\Push2\\push2.pyc",
+      "sha256": "5802e8ed02946abbf95725ab1d79721756546b34328a9a95fd67ce5cffe4351f",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\ableton\\v3\\control_surface\\components\\note_editor.pyc",
+      "sha256": "0e841d536abae5ed7ffbaaba6b0aff276ce11acf74668ac76847f1aa4d5e32e0",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    },
+    {
+      "path": "C:\\ProgramData\\Ableton\\Live 13 Beta\\Resources\\MIDI Remote Scripts\\ableton\\v3\\control_surface\\components\\loop_selector.pyc",
+      "sha256": "4c02aafe9f740d898981083b5db1a4dbaeeb168c21141eb9ff7807385ed21cda",
+      "python_version": [
+        3,
+        11
+      ],
+      "pyc_magic": 3495
+    }
+  ],
+  "findings": [
+    {
+      "source": "Program/Push/python/Push2/__init__.pyc",
+      "symbol": "create_instance",
+      "line": 4,
+      "finding": "Accepts c_instance and a separate flip_document; passes both to Push2."
+    },
+    {
+      "source": "Program/Push/python/Push2/push2.pyc",
+      "symbol": "Push2.__init__",
+      "source_lines": [
+        683,
+        685,
+        699
+      ],
+      "finding": "Stores flip_document; calls c_instance.root() in the Push host; creates LiveFlip.FlipObserver using flip_document. None of these constructors were invoked by the research probe."
+    },
+    {
+      "source": "Program/Push/python/live_model/Live/Root.pyc",
+      "symbol": "Root.__init__",
+      "line": 48,
+      "finding": "Requires a Flip-backed object; builds service wrappers from it. Not a constructor that turns an ordinary LOM Clip into a native StepSequencer."
+    },
+    {
+      "source": "Resources/MIDI Remote Scripts/ableton/v3/control_surface/components/note_editor.pyc",
+      "symbol": "NoteEditorComponent.set_clip",
+      "line": 368,
+      "finding": "Checks is_step_sequencer_clip; replaces its edit clip with None and disables matrix for native step sequencer clips. Contains limitation message."
+    }
+  ],
+  "read_write_distinction": "Push dataclass field writes are local until StepSequencerRow.set_step(index, step) forwards to the underlying Flip object. Static setter existence is not external runtime write verification."
+}

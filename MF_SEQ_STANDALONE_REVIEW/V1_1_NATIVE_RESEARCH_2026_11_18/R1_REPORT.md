@@ -1,5 +1,12 @@
 # MF Sequencer v1.1 — independent native Step Sequencer API review
 
+Follow-up: [Issue #72 research](issue72/REPORT.md) adds a second actual-host probe
+on 2026-11-19. In that ordinary Remote Script host, the Push-model enum name
+`piano_roll` is absent, while `MidiClipType.step_sequencer` is present. Keep the
+private model names below separate from the public host API. Issue #72 also
+selects E1 + E16 as the future mode chord; the original E1/E4 design note below
+is historical, with no implementation.
+
 Review date: 2026-11-18. Installed and running host: **Ableton Live 13.0b24, Windows**.
 Baseline: `mf-seq/v1.0-stable-20261116`, milestone `a2cec39521472bf050e3467b40f263d4b6c304e8`.
 Research branch: `mf-seq/v1.1-native-research-20261118`.

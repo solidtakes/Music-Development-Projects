@@ -1,0 +1,22 @@
+test_bar_navigation_uses_four_detents (test_baseline_gestures.BaselineGestureAudit.test_bar_navigation_uses_four_detents) ... ok
+test_e13_first_retains_page_selection_dispatch (test_baseline_gestures.BaselineGestureAudit.test_e13_first_retains_page_selection_dispatch) ... ok
+test_e16_first_e1_retains_follow_toggle (test_baseline_gestures.BaselineGestureAudit.test_e16_first_e1_retains_follow_toggle) ... ok
+test_e1_e4_extends_on_second_press_before_any_release (test_baseline_gestures.BaselineGestureAudit.test_e1_e4_extends_on_second_press_before_any_release) ... ok
+test_parameter_navigation_uses_eight_detents (test_baseline_gestures.BaselineGestureAudit.test_parameter_navigation_uses_eight_detents) ... ok
+test_probability_mode_e1_e4_releases_can_both_edit (test_baseline_gestures.BaselineGestureAudit.test_probability_mode_e1_e4_releases_can_both_edit) ... ok
+test_disconnect_removes_successful_subscription_and_late_callback_is_inert (test_probe_lifecycle.ProbeLifecycleTests.test_disconnect_removes_successful_subscription_and_late_callback_is_inert) ... ok
+test_event_burst_schedules_one_deferred_snapshot (test_probe_lifecycle.ProbeLifecycleTests.test_event_burst_schedules_one_deferred_snapshot) ... ok
+test_unsupported_listener_is_reported_without_ownership (test_probe_lifecycle.ProbeLifecycleTests.test_unsupported_listener_is_reported_without_ownership) ... ok
+test_actual_getter_failures_are_preserved (test_snapshot.SnapshotTests.test_actual_getter_failures_are_preserved) ... ok
+test_negative_or_stale_row_index_is_not_used (test_snapshot.SnapshotTests.test_negative_or_stale_row_index_is_not_used) ... ok
+test_selected_row_and_steps_are_only_read (test_snapshot.SnapshotTests.test_selected_row_and_steps_are_only_read) ... ok
+test_existing_root_route_is_read_without_writers_or_construction (test_inspect_host.InspectHostTests.test_existing_root_route_is_read_without_writers_or_construction) ... ok
+test_member_list_is_bounded_without_false_complete_flag (test_inspect_host.InspectHostTests.test_member_list_is_bounded_without_false_complete_flag) ... ok
+test_missing_native_getter_retains_exact_exception (test_inspect_host.InspectHostTests.test_missing_native_getter_retains_exact_exception) ... ok
+test_no_selected_clip_skips_all_clip_reads (test_inspect_host.InspectHostTests.test_no_selected_clip_skips_all_clip_reads) ... ok
+test_only_whitelisted_note_getter_is_called_and_not_labeled_native (test_inspect_host.InspectHostTests.test_only_whitelisted_note_getter_is_called_and_not_labeled_native) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.001s
+
+OK

@@ -1,6 +1,8 @@
 # MF Sequencer v1.1 experimental — R1 native API investigation
 
 Research only, based on v1.0 Stable milestone `a2cec39521472bf050e3467b40f263d4b6c304e8`.
+The latest [Issue #72 follow-up](issue72/REPORT.md) includes fresh host/Push-boundary
+checks, workspace recovery, and the now-confirmed E1 + E16 future mode chord.
 Read [R1_REPORT.md](R1_REPORT.md) for the VERIFIED / INFERRED / BLOCKED matrix and evidence.
 Read [R3_ARCHITECTURE.md](R3_ARCHITECTURE.md) for the accepted-source audit and proposed
 dual-mode design, and [VERDICT.md](VERDICT.md) for the explicit PASS / BLOCKERS gates.

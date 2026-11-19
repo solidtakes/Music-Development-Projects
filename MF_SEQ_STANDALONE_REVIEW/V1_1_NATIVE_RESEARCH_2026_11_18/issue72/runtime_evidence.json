@@ -1,0 +1,250 @@
+{
+  "build": "13.0b24",
+  "capture_date": "2026-11-19",
+  "build_source": "Installed executable ProductVersion",
+  "probe_source_sha256": {
+    "inspect_host.py": "236376083f1547409ef37f7fcd54ed0faf6cc7889bae12f1a9f611688a92d17c",
+    "surface.py": "dbf440e40b16a613dbda7080a52b7a32e06a250a8b420d6c223276687d0facc4",
+    "__init__.py": "df25504071813ceb0a12fdacc4c1757de6db9965fcf7c6610cca954a3948741d"
+  },
+  "record_count": 26,
+  "records": [
+    {
+      "kind": "runtime",
+      "version": [
+        13,
+        0,
+        0
+      ],
+      "host_log_timestamp": "2026-11-19T02:59:36.133178"
+    },
+    {
+      "kind": "module_discovery",
+      "path": "LiveFlip",
+      "result": {
+        "discoverable": false,
+        "loaded": false,
+        "loader_type": null
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.134788"
+    },
+    {
+      "kind": "module_discovery",
+      "path": "live_model",
+      "result": {
+        "discoverable": false,
+        "loaded": false,
+        "loader_type": null
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.134842"
+    },
+    {
+      "kind": "module_discovery",
+      "path": "Push2",
+      "result": {
+        "discoverable": false,
+        "loaded": false,
+        "loader_type": null
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.134879"
+    },
+    {
+      "path": "Live.StepSequencer",
+      "result": {
+        "error": "AttributeError",
+        "message": "module 'Live' has no attribute 'StepSequencer'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.134917"
+    },
+    {
+      "kind": "metadata",
+      "path": "Live",
+      "result": {
+        "matching_count": 2,
+        "matching_members": [
+          "Browser",
+          "TakeLane"
+        ],
+        "truncated": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.134955"
+    },
+    {
+      "kind": "metadata",
+      "path": "Live.Clip",
+      "result": {
+        "matching_count": 0,
+        "matching_members": [],
+        "truncated": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.134996"
+    },
+    {
+      "kind": "metadata",
+      "path": "Live.Clip.Clip",
+      "result": {
+        "matching_count": 1,
+        "matching_members": [
+          "is_take_lane_clip"
+        ],
+        "truncated": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135042"
+    },
+    {
+      "kind": "metadata",
+      "path": "c_instance",
+      "result": {
+        "matching_count": 0,
+        "matching_members": [],
+        "truncated": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135079"
+    },
+    {
+      "path": "c_instance.flip_document",
+      "result": {
+        "error": "AttributeError",
+        "message": "'MidiRemoteScript' object has no attribute 'flip_document'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135115"
+    },
+    {
+      "path": "c_instance._flip_document",
+      "result": {
+        "error": "AttributeError",
+        "message": "'MidiRemoteScript' object has no attribute '_flip_document'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135151"
+    },
+    {
+      "path": "c_instance.live_model",
+      "result": {
+        "error": "AttributeError",
+        "message": "'MidiRemoteScript' object has no attribute 'live_model'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135189"
+    },
+    {
+      "path": "c_instance.root",
+      "result": {
+        "error": "AttributeError",
+        "message": "'MidiRemoteScript' object has no attribute 'root'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135223"
+    },
+    {
+      "path": "c_instance.root() native read route",
+      "result": {
+        "error": "AttributeError",
+        "message": "'MidiRemoteScript' object has no attribute 'root'"
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135255"
+    },
+    {
+      "path": "Live.Clip.MidiClipType.piano_roll",
+      "result": {
+        "error": "AttributeError",
+        "message": "type object 'MidiClipType' has no attribute 'piano_roll'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135289"
+    },
+    {
+      "path": "Live.Clip.MidiClipType.step_sequencer",
+      "result": {
+        "ok": true,
+        "value": 1
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135322"
+    },
+    {
+      "path": "song.view.detail_clip",
+      "result": {
+        "present": true,
+        "type": "Clip"
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135353"
+    },
+    {
+      "path": "song.view.detail_clip.is_midi_clip",
+      "result": {
+        "ok": true,
+        "value": true
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135386"
+    },
+    {
+      "path": "song.view.detail_clip.midi_clip_type",
+      "result": {
+        "ok": true,
+        "value": 1
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135418"
+    },
+    {
+      "path": "song.view.detail_clip.step_sequencer",
+      "result": {
+        "error": "AttributeError",
+        "message": "'Clip' object has no attribute 'step_sequencer'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135451"
+    },
+    {
+      "path": "song.view.detail_clip.get_step_sequencer",
+      "result": {
+        "error": "AttributeError",
+        "message": "'Clip' object has no attribute 'get_step_sequencer'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135485"
+    },
+    {
+      "path": "song.view.detail_clip._flip_object",
+      "result": {
+        "error": "AttributeError",
+        "message": "'Clip' object has no attribute '_flip_object'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135519"
+    },
+    {
+      "path": "song.view.detail_clip.flip_object",
+      "result": {
+        "error": "AttributeError",
+        "message": "'Clip' object has no attribute 'flip_object'",
+        "ok": false
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135551"
+    },
+    {
+      "path": "song.view.detail_clip.get_notes_extended(0,128,0.0,4.0)",
+      "result": {
+        "note_count": 0,
+        "range_beats": [
+          0.0,
+          4.0
+        ],
+        "representation": "conventional_note_API_not_verified_native_steps"
+      },
+      "host_log_timestamp": "2026-11-19T02:59:36.135585"
+    },
+    {
+      "kind": "finished",
+      "listeners_registered": 0,
+      "writes_attempted": 0,
+      "host_log_timestamp": "2026-11-19T02:59:36.135621"
+    },
+    {
+      "kind": "disconnect",
+      "listeners_registered": 0,
+      "host_log_timestamp": "2026-11-19T03:00:16.555203"
+    }
+  ]
+}

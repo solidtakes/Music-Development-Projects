@@ -1,0 +1,15 @@
+{
+  "date": "2026-11-19",
+  "build": "13.0b24",
+  "offline_tests": {
+    "run": 17,
+    "failures": 0,
+    "errors": 0
+  },
+  "runtime_records": 26,
+  "protected_python_files_unchanged": 21,
+  "raw_R1_evidence_unchanged": true,
+  "probe_restored_to_none": true,
+  "native_writes_attempted": 0,
+  "newer_betas_tested": false
+}
