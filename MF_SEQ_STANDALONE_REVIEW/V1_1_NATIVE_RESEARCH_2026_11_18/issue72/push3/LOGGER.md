@@ -1,5 +1,9 @@
 # Separate read-only logger
 
+For this owner's confirmed installation, use the
+[exact Windows steps](WINDOWS_INSTALL.md). The generic locations below remain
+alternatives; install only one copy of this script.
+
 Status: source and offline checks prepared; **not installed or tested in Live**.
 The prior one-shot `MF_SEQ_I72_ReadOnly` remains separate and inactive.
 

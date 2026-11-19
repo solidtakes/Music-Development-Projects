@@ -1,0 +1,17 @@
+Live full build:
+Push software version:
+Logger selected at local time:
+Native 8-Row controls available: yes / no
+Clip: disposable duplicate; page / row pitch or label / column:
+
+Action stopwatch times and visible results:
+Row selection: time ___; Live followed yes / no; row ___ -> ___
+Step on/off: time ___; row/column ___; off -> on yes / no
+Velocity: time ___; row/column ___; ___ -> ___
+Pitch: time ___; same step ___; ___ -> ___ (units ___)
+Optional lane Rate: time ___; ___ -> ___ / skipped
+
+Diagnostic slot restored to None: yes / no
+Unexpected behavior or missing controls:
+
+Reply test finished when ready. Codex will read the local diagnostic log.
