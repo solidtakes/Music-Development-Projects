@@ -25,6 +25,22 @@ unchanged and unmerged. No existing source file is modified by this candidate.
   This is a source package, not a tested ready-to-run extension installer. Host loading remains
   untested; separate future approval must cover the exact local SDK binding/build and emitted files.
 
+## Beta.1 loader compatibility
+
+The installed SDK beta.1 examples use esbuild `0.28.1` to emit a bundled CommonJS `.js` entry even
+though their source packages declare `"type": "module"`. The first controlled candidate instead
+emitted unbundled ESM and the native Extension Host rejected its leading `import` statement before
+activation. This branch preserves the manifest path and runtime source while changing only the
+controlled build product: TypeScript still performs strict declaration-only checking, then pinned
+esbuild bundles all AOPX modules as CommonJS. `@ableton-extensions/sdk` remains the one external
+package and resolves through its published beta.1 CommonJS `require` export in the staged SDK.
+
+Offline loader tests resolve the manifest entry, reject ESM syntax and relative runtime requires,
+parse the bundle through a CommonJS wrapper, and prove that evaluating it has no registrations or
+project effects. A mock activation may register exactly one command and one context-menu action;
+the command is never invoked. These checks run on the native host's Node `24.14.1` line and current
+Node `26.13.0`, but they do not launch or emulate the native Extension Host.
+
 ## Pinned owner source and verification boundary
 
 The owner reports: mono, 48 kHz, 32-bit WAV, **48,000 frames / 192,080 bytes**, SHA-256
@@ -94,9 +110,11 @@ python ableton-offline-processing/spikes/s5-t1-trial/ci/test_package.py
 ```
 
 Both build scripts accept `--tsc <existing typescript/lib/tsc.js>` and `--sdk-types <actual
-beta.1 index.d.mts>` for **declaration-only** static compilation. The actual SDK runtime is never
-loaded in build/test. CI uses the existing lockfile compiler and explicitly handwritten mock SDK,
-Windows/Linux × Node 24.22.1/26.13.0. No dependency upgrades or native SDK distribution.
+beta.1 index.d.mts>` for **declaration-only** static checking. The controlled build also accepts
+`--esbuild <existing esbuild/bin/esbuild>` and uses the pinned `0.28.1` compiler. The actual SDK
+runtime is never loaded in build/test. CI uses the locked compiler/bundler and explicitly
+handwritten mock SDK, Windows/Linux × Node 24.14.1/26.13.0. No SDK dependency or native SDK
+distribution is added.
 
 Tests cover both activation entries and real adapter through mock SDK, invalid consent, one-shot
 effects, profile constraints, source provenance limitation, DOM confirmation behavior and privacy;
