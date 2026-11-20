@@ -19,6 +19,7 @@ do not approve a moving branch or rebuild with changed source.
 | Source clip | Its isolated Arrangement AudioClip at known nonnegative start, two-beat length, unwarped/unlooped/unmuted; source track contains only it, no Session content/take lanes/devices/group. No source edits. |
 | Target | Exactly one existing completely empty regular AudioTrack named `AOPX RESULT`; separate from source; no clips/Session content/lanes/devices/group. No creating or renaming a target. |
 | Global state | 120 BPM, stopped transport, no tempo/clip/track automation, fades/FX/routing ambiguity; one CLI, no concurrent edits. Manual checks where SDK does not expose evidence. |
+| Render preferences | Record current Live Record File Type: WAV, relevant exposed recording bit-depth and audio-engine sample-rate settings. Original file 48k/32-bit does not establish pre-FX output format. The candidate requires actual rendered 48k/32-bit WAV; settings/output mismatch means STOP, not an automatic settings change. Any preference adjustment needs separate explicit owner scope. |
 | Future effects | One pre-FX owned-temp render/read, Reverse + Gain −3 dB, unique owned-temp export/private receipt; then exactly one import and one Arrangement clip on target, returned imported path, explicit `isWarped:false`. No extra setters, track creation, Session insertion, replacement/deletion/retry. |
 | Expected geometry | Output 48,000 frames mono 48 kHz; result starts at original beat and lasts approximately two beats (≤one-sample measured tolerance). Duration argument omitted; host behavior is an observation target. |
 | Recovery | Owner already reports separate whole-project copy, collected media and successful backup opening. Confirm that baseline/current state remain intact. Unknown outcome → stop/manual inspect, retain media/receipts; normal close without save, reopen verified baseline. No forced kill or media deletion. |
@@ -67,7 +68,12 @@ Separate source preparation approval and review PASS do not authorize any of the
 5. **Manual preflight before a future approved load.** Owner would stop other extension CLIs,
    keep production closed, confirm stopped transport/120 BPM/source and target table conditions,
    record baseline screenshots/object counts. Check FX, fades, automation, group/routing and exact
-   selected source manually. A populated/duplicate/wrong target or uncertain source means STOP.
+   selected source manually. Record File Type must be observed as WAV; record relevant exposed
+   recording bit-depth and audio-engine sample-rate settings. Confirm actual preview/render metadata
+   meets mono/48k/32-bit/48000-frame admission; original media metadata is insufficient. No code
+   changes preferences. If settings need adjustment or render differs, STOP for separate owner
+   direction instead of silently widening validation. A wrong/populated target or uncertain source
+   also means STOP.
 6. **One owner-controlled load, only as explicitly approved.** Owner would load only the staged
    controlled candidate through the approved existing SDK CLI. Connection should merely register
    `AOPX CONTROLLED T1 — DO NOT RUN WITHOUT APPROVAL`, with no render/import/create. Unexpected

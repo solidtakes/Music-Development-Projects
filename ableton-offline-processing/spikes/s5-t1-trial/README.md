@@ -48,6 +48,10 @@ be equated with the original checksum. Runtime instead admits a complete bounded
 exactly 48,000 frames, mono 48 kHz and 32-bit samples, then uses the inherited Reverse/Gain −3 dB
 processing/output checks. The shared mono/stereo code is not relaxed; this owner-specific profile
 intentionally narrows the trial to mono. Other source layouts require another reviewed profile.
+Record File Type follows Live preferences, not the original file. The future packet explicitly
+requires observing WAV, relevant bit-depth and engine-rate settings and validating actual rendered
+metadata. A mismatch stops before import; no preference is changed automatically or implicitly
+authorized by preparation.
 
 ## Consent, exact effects and recovery
 
@@ -99,6 +103,9 @@ effects, profile constraints, source provenance limitation, DOM confirmation beh
 the inherited suite covers late ack, timeout, restart, snapshot/hash drift, receipts and failures.
 Only synthetic scratch files are used. Local junction creation may skip under sandbox restrictions;
 CI must disclose skips. ZIP tests reject traversal, vendor/private/emitted paths and bad SHAs.
+Synthetic Windows fixtures canonicalize TEMP aliases; the inherited runtime file guard remains
+strict and may refuse an SDK-returned short/aliased path. Such refusal is a pre-import stop,
+not permission to bypass owned-root checks.
 
 ## Review-gated source package
 

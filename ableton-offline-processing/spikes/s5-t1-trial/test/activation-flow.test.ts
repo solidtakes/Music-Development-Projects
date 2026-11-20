@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
-import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { encodeWav, makeMetadata } from '../../../engine/src/wav.ts';
@@ -13,7 +13,9 @@ test('actual trial activation/adapter with mock SDK: invalid consent has zero ef
     return s === '@ableton-extensions/sdk' ? { url: sdkUrl, shortCircuit: true } : next(s,c);
   } });
   const sdk = await import('../../s5-t1/ci/runtime-sdk.mjs');
-  const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-controlled-mock-'));
+  // Windows runners may supply an 8.3 TEMP alias. Use a canonical synthetic path so
+  // this test reaches consent instead of intentionally strict owned-root admission.
+  const temp = await realpath(await mkdtemp(path.join(os.tmpdir(), 'aopx-controlled-mock-')));
   const storage = path.join(temp, 'storage'); await mkdir(storage);
   const wav = path.join(temp, 'synthetic-render.wav');
   await writeFile(wav, encodeWav(makeMetadata(1,48000,32,'float',48000),new Float64Array(48000).fill(.25)).bytes);
