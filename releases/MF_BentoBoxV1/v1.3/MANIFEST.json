@@ -1,0 +1,50 @@
+{
+  "name": "MF BentoBoxV1 v1.3 DUAL MODE / BANK SCROLL TEST",
+  "status": "Offline-tested integration candidate, not hardware tested / not stable",
+  "base_zip": "MF_BentoBoxV1_v1.2_HoldSave_MIDI_Activity_VU_TEST.zip",
+  "base_sha256": "9b1d5a40800646b92bb84264d6c386453de3e1436b93da3e6f8dfc25abcbc692",
+  "control_surface": "MF_BentoBoxV1",
+  "features": {
+    "left_right_toggle": "independent, both active",
+    "right_only": "Editing E13-E16",
+    "both": "Editing E9-E12 and Transport E13-E16",
+    "right_preset_chords": "unchanged",
+    "edit": "Punch In, create/move/resize loop-brace range, focused zoom H/V, Punch Out",
+    "status": "Best-effort ~4sec show_message refresh",
+    "animation": "Ch4 CC0-2 trigger PROVISIONAL, 1.85s scroll white-ring+RGB, no blackout; Bank4 untouched"
+  },
+  "hardware_mfs_changed": false,
+  "stable_branch_merged": false,
+  "qa": {
+    "tests_passed": 105,
+    "tests_total": 105,
+    "hardware_tested": false,
+    "independent_reviewed": false,
+    "syntax_pass": true
+  },
+  "unchanged_bank_files_verified": {
+    "Bank1_SelectedTrack.py": true,
+    "FourTrack_Bank2.py": true,
+    "Sequencer_Bank3.py": true,
+    "layout_state.py": true,
+    "scale_sync.py": true,
+    "__init__.py": true
+  },
+  "source_sha256": {
+    "MF_BentoBoxV1/Bank1_SelectedTrack.py": "c585908d2e40c15269079528102cb768355d04e3aa4dce2fd6c2f29f5c105fb9",
+    "MF_BentoBoxV1/FourTrack_Bank2.py": "6d76bf3a00b39c0d2624db127d7c214bee7d306caf96fccdc1756a95cad87dd2",
+    "MF_BentoBoxV1/Sequencer_Bank3.py": "a2b38ceddd17b62769e2ec004c23e6f6552ba91f8090e806eac353db2ef8f9aa",
+    "MF_BentoBoxV1/ThreeBankHost.py": "4ea9fbaa33a0ddd1694298af90aee4f73bacf2e03306ad899fb3be1e2089f176",
+    "MF_BentoBoxV1/__init__.py": "855904ec3f0142ad3769739db05e3c2ce58930bcbc3fd034009237a8a4d11804",
+    "MF_BentoBoxV1/bank_transition.py": "bf89895df7f2b35ec32b37730011c348c733b95b4a6d7360f7c8031640aba6ee",
+    "MF_BentoBoxV1/layout_state.py": "8ba3d31b6697720ee33faf504b8f776d7233c332e7b0fc084516d2c6f065c907",
+    "MF_BentoBoxV1/scale_sync.py": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397",
+    "MF_BentoBoxV1/secondary_edit.py": "cb7fd6f6b67f634df7cf667bc66ce84b3ea24b03865a0d1589d66d94a01ec58a"
+  },
+  "known_limitations": [
+    "No general Live time-selection API; loop brace is edited instead",
+    "Bank-select event channel/CC unverified on owner hardware",
+    "Active zoom view API may vary in real Live",
+    "Status bar is refreshed, not pinned"
+  ]
+}
