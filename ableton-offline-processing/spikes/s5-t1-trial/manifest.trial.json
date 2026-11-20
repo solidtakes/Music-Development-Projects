@@ -1,0 +1,7 @@
+{
+  "name": "AOPX S5 T1 CONTROLLED CANDIDATE - NOT AUTHORIZED FOR LIVE - DO NOT RUN",
+  "author": "AOPX research",
+  "version": "0.0.1",
+  "entry": ".build/ableton-offline-processing/spikes/s5-t1-trial/src/extension.js",
+  "minimumApiVersion": "1.0.0"
+}

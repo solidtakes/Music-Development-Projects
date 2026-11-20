@@ -1,0 +1,5 @@
+.build/
+.compile.generated.json
+*.zip
+__pycache__/
+*.pyc
