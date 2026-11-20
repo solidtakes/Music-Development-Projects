@@ -1,0 +1,13 @@
+{
+  "name": "@aopx/s5-t1-controlled-source-candidate",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "NOT AUTHORIZED FOR LIVE / DO NOT RUN. Separate trial source profile.",
+  "engines": { "node": ">=24.16.0" },
+  "scripts": {
+    "build": "node ../s5-t1/ci/build.mjs",
+    "build:controlled:offline": "node ci/build.mjs",
+    "test": "node --test --test-reporter=spec test/*.test.ts"
+  }
+}
