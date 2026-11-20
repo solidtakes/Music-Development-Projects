@@ -21,16 +21,17 @@ The requested white-ring 0–127 progression and final color flash are extension
 ## Transition sequence
 
 1. Detect the incoming physical bank. Verify whether the current `222.mfs` profile emits a reliable bank-change message. RC1 currently infers Bank 1 or 2 from the next bank-specific CC and routes Bank 3 through its own CC range, so a transition before the first encoder action is not established by RC1.
-2. Show the bank label in Live's status bar as soon as the bank is known. Start a cancellable host-owned variation of the existing startup sweep lasting about one second at most.
-3. During that interval, suspend outgoing parameter LED refreshes for the departing bank. Reconcile current track, device, clip, send and sequencer state for the incoming bank in bounded scheduled steps. Keep Live input and the audio thread responsive. Retain each module's required listeners and clean them up through its normal lifecycle.
+2. Show the bank label in Live's status bar as soon as the bank is known. Start a cancellable host-owned variation of the existing startup sweep with a two-second maximum.
+3. During that interval, suspend outgoing parameter LED refreshes for the departing bank. Stop optional old-bank observers and release their listener references through their normal lifecycle. Reconcile current track, device, clip, send and sequencer state for the incoming bank in bounded scheduled steps. Keep Live input and the audio thread responsive. Retain each module's required listeners and clean them up through its normal lifecycle.
 4. Use the existing four-column RGB sweep as the timing reference, then sweep the incoming bank's white rings through a small number of 0–127 steps, staggered across encoders. Use changed-value MIDI writes and an explicit transition owner so normal VU, clip and sequencer renderers cannot overwrite the cue.
 5. At the end, light the incoming bank's normal colors, flash them once, and render current ring and RGB state from fresh Live values. Clear any temporary animation state and return LED ownership to the bank.
 6. If another bank is selected during the cue, cancel the old cue and start the new one. On disconnect, cancel queued callbacks and avoid further MIDI output.
 
 ## Optimization and acceptance
 
-- Use scheduled callbacks with a generation token. Avoid a blocking one-second sleep.
+- Use scheduled callbacks with a generation token. Use the two-second ceiling for visual pacing, not a blocking delay. Finish early when the incoming state is ready.
 - Read only the incoming bank's required Live properties. Defer optional meter, clip-position and animation polling during the cue, then resume each active module once.
+- Two seconds is a maximum animation duration, not a guarantee that every Live API request finishes within that window. If a read is delayed or fails, finish the cue safely and refresh that value when available.
 - Keep parameter input responsive throughout the transition. Define which temporary LED writes are allowed while controls are moving.
 - Bound the number of MIDI messages and verify that the final display matches the bank's actual parameters after rapid switches, device changes and track deletion.
 - Confirm bank-change detection, 0–127 sweep behavior, RGB flash behavior and timing on the owner's current firmware and `222.mfs` before implementation. Keep Utility settings, Native Mode and CC assignments unchanged.
