@@ -12,6 +12,7 @@ TREE = ast.parse(CONTENT)
 CLASS = next(node for node in TREE.body if isinstance(node, ast.ClassDef) and node.name == "MF_SEQ")
 RECEIVE = next(node for node in CLASS.body if isinstance(node, ast.FunctionDef) and node.name == "receive_midi")
 DISCONNECT = next(node for node in CLASS.body if isinstance(node, ast.FunctionDef) and node.name == "disconnect")
+INIT = next(node for node in CLASS.body if isinstance(node, ast.FunctionDef) and node.name == "__init__")
 GLOBALS = {"ROT_CHANNEL": 11, "PUSH_CHANNEL": 10, "FIRST_CC": 32,
            "STEPS": 16, "MAX_PAGES": 4}
 exec(compile(ast.Module(body=[RECEIVE], type_ignores=[]), str(SOURCE), "exec"), GLOBALS)
@@ -124,6 +125,22 @@ class ExperimentalDispatchSpy(unittest.TestCase):
 
 
 class GestureTests(unittest.TestCase):
+    def test_mode_state_does_not_read_uninitialized_classic_fields(self):
+        mode_values = {}
+        for node in INIT.body:
+            if (isinstance(node, ast.Assign) and len(node.targets) == 1 and
+                    isinstance(node.targets[0], ast.Attribute) and
+                    isinstance(node.targets[0].value, ast.Name) and
+                    node.targets[0].value.id == "self" and
+                    node.targets[0].attr in ("_mode_edit_modes", "_mode_parameters")):
+                mode_values[node.targets[0].attr] = node.value
+        self.assertEqual({node.attr for node in ast.walk(mode_values["_mode_edit_modes"])
+                          if isinstance(node, ast.Attribute) and
+                          isinstance(node.value, ast.Name) and node.value.id == "self"}, set())
+        self.assertEqual({node.attr for node in ast.walk(mode_values["_mode_parameters"])
+                          if isinstance(node, ast.Attribute) and
+                          isinstance(node.value, ast.Name) and node.value.id == "self"}, set())
+
     def test_e1_first_e16_tap_toggles_once_and_consumes_releases(self):
         spy = ExperimentalDispatchSpy()
         spy.push(1, True)

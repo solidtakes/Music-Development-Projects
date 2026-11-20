@@ -72,8 +72,8 @@ class MF_SEQ(ControlSurface):
         # placeholder and deliberately has no native Step Sequencer writer.
         self._sequencer_mode = 'classic'
         self._mode_pages = {'classic': 0, 'alternate': 0}
-        self._mode_edit_modes = {'classic': self._edit_mode, 'alternate': 'notes'}
-        self._mode_parameters = {'classic': self._last_edit_mode, 'alternate': 'velocity'}
+        self._mode_edit_modes = {'classic': 'notes', 'alternate': 'notes'}
+        self._mode_parameters = {'classic': 'velocity', 'alternate': 'velocity'}
         self._mode_chord_pending = False
         self._mode_chord_cancelled = False
         self._ring_view = 'velocity'  # retained for existing ring calculation

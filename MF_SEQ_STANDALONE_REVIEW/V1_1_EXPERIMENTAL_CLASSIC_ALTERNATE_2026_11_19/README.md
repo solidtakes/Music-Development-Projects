@@ -6,6 +6,12 @@ This package is an isolated experimental Remote Script source line based on
 research commit `515e99264b68ba09c1f284a960c75365466796de`. It does not modify
 the v1.0 Stable source or the three-bank Master build.
 
+The corrective package fixes the shipped constructor defect: mode-state defaults
+previously read Classic parameter fields before initialization. That could leave
+the intended surface unavailable while ordinary step handling remained active.
+The repair uses literal safe defaults and retains the E1/E16 event-consumption
+tests.
+
 ## Behavior
 
 - Starts in **Classic** mode.
