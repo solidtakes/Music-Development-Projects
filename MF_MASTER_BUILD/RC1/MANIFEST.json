@@ -1,0 +1,30 @@
+{
+  "files_sha256": {
+    "MF_Build_3banks/Bank1_SelectedTrack.py": "5e208174367ba666826fdb5b00f8b13905346e1fb5d00df919d8cc13864bdc69",
+    "MF_Build_3banks/FourTrack_Bank2.py": "6d76bf3a00b39c0d2624db127d7c214bee7d306caf96fccdc1756a95cad87dd2",
+    "MF_Build_3banks/Sequencer_Bank3.py": "a2b38ceddd17b62769e2ec004c23e6f6552ba91f8090e806eac353db2ef8f9aa",
+    "MF_Build_3banks/ThreeBankHost.py": "da1be274799da7a02cabb7be851c15626d32c9292902e1aa8fa9edf561f61079",
+    "MF_Build_3banks/__init__.py": "855904ec3f0142ad3769739db05e3c2ce58930bcbc3fd034009237a8a4d11804",
+    "MF_Build_3banks/scale_sync.py": "f79a262b0efd67c86e09b92a7877b9d141cf402a1076860eb1ac919849d48397",
+    "README_INSTALL_AND_ROLLBACK.md": "d700c9187ad8b29a822463b53e2f17fd49fcc2010dd180e1c19864fd596ac630",
+    "qa/test_integration.py": "08518aace413f35c7376cad9f106bafc8da7c1b799614b45592d731464340433"
+  },
+  "hardware_tested": false,
+  "notes": [
+    "Owner Live 13 Log.txt confirms Beta 1 and Beta 1.1 fail loading due to NameError MF4TRKBento inside FourTrack_Bank2._monitor_color",
+    "Corrected precisely two executable class constant references to FourTrackBank2; same original monitor colors",
+    "New regression tests first reproduced NameError on old code and now pass on fixed code",
+    "14/14 controlled framework smoke tests; no actual Live hardware retest, independent review pending",
+    "Unmodified Bank1_SelectedTrack.py, Sequencer_Bank3.py, ThreeBankHost.py, __init__.py, scale_sync.py vs Beta 1.1",
+    "Physical CC0-15, CC16-31, CC32-47; no Twister 222.mfs or standalone changes; no global transport"
+  ],
+  "previous_beta1_1_sha256": "3ba2863f4626dee36ff4328aef3fd820bfa3de036a9b5d9ee3d978170d6121ea",
+  "previous_beta1_sha256": "d092296d5e3e843286e7bc3c70b6c71d75f9dad64a94b3fe99935fd83d8237c6",
+  "release": "MF Build 3 Banks — Beta 1.2 Startup NameError Fix TEST (offline candidate)",
+  "source_archive_sha256": {
+    "bank1_exact_v2_2": "59fc6d6f732a8e4f7ee969caa1224bbf10bf03b9a3acb79c85ec07655be07a4b",
+    "bank2_stable_v1_0": "332ba9a54f24c96eecb0c7979652282cb6661b697a227607ad753f5823890d77",
+    "bank3_sp1": "223601c89dc84653e706e9027a5904c450d2e3fcfce87b2e02db07de06b7b180",
+    "prior_two_bank_sp1_reference": "354b0721c35fb82e3328d68f205e9b96398bad63a161955a1f316e0680f5bdbd"
+  }
+}
