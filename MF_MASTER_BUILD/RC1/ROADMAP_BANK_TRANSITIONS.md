@@ -12,12 +12,18 @@ Status is proposed for a future candidate after RC1. The owner requested a short
 
 The Twister has white LED indicator rings around its encoders and no character display. Exact `Sel`, `4`, and `SeQ` text should appear in Live's status bar. The white rings can convey the same identity through distinct motion. A gradual 0–127 ring-value sweep is a candidate visual treatment, subject to a short physical preview for readability and MIDI load. [DJ TechTools Twister guide](https://media.justmusic.de/shop/assets/handbuch/DJ%20Techtools%20Midi-Fighter-Twister-User-Guide-2016.pdf)
 
+## Existing startup animation
+
+RC1 already runs `Bank1_SelectedTrack._startup_sweep()` during script construction. It sends an RGB color sweep across Bank 1's four columns, schedules each next step after three Live ticks, uses a generation token to cancel stale callbacks, then restores Bank 1 LEDs. This is the startup cue the owner sees. It currently runs once when the script loads and is not triggered by a physical bank switch. The bank transition design should reuse its scheduled, cancellable sweep and cache restoration pattern in `ThreeBankHost`, with each bank's own CC range and LED ownership. Calling the Bank 1 method directly for other banks would address the wrong LEDs.
+
+The requested white-ring 0–127 progression and final color flash are extensions to this existing visual language. Keep the current startup cue intact until a bank-transition variant is hardware validated.
+
 ## Transition sequence
 
 1. Detect the incoming physical bank. Verify whether the current `222.mfs` profile emits a reliable bank-change message. RC1 currently infers Bank 1 or 2 from the next bank-specific CC and routes Bank 3 through its own CC range, so a transition before the first encoder action is not established by RC1.
-2. Show the bank label in Live's status bar as soon as the bank is known. Start a cancellable animation lasting about one second at most.
+2. Show the bank label in Live's status bar as soon as the bank is known. Start a cancellable host-owned variation of the existing startup sweep lasting about one second at most.
 3. During that interval, suspend outgoing parameter LED refreshes for the departing bank. Reconcile current track, device, clip, send and sequencer state for the incoming bank in bounded scheduled steps. Keep Live input and the audio thread responsive. Retain each module's required listeners and clean them up through its normal lifecycle.
-4. Sweep the incoming bank's white rings through a small number of 0–127 steps, staggered across encoders. Use changed-value MIDI writes and an explicit transition owner so normal VU, clip and sequencer renderers cannot overwrite the cue.
+4. Use the existing four-column RGB sweep as the timing reference, then sweep the incoming bank's white rings through a small number of 0–127 steps, staggered across encoders. Use changed-value MIDI writes and an explicit transition owner so normal VU, clip and sequencer renderers cannot overwrite the cue.
 5. At the end, light the incoming bank's normal colors, flash them once, and render current ring and RGB state from fresh Live values. Clear any temporary animation state and return LED ownership to the bank.
 6. If another bank is selected during the cue, cancel the old cue and start the new one. On disconnect, cancel queued callbacks and avoid further MIDI output.
 
