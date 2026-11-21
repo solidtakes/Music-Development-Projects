@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { builtinModules, createRequire } from 'node:module';
-import { readFile, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { readFile, mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import os from 'node:os';
@@ -361,6 +361,75 @@ fs.writeFileSync(metafile, JSON.stringify({
     assert.equal(late.status, 1);
     assert.match(late.stderr, /Unexpected external\/dynamic dependencies/);
     await verify();
+  } finally {
+    await rm(temp, { recursive: true, force: true });
+  }
+});
+
+
+// P2-B: a symlinked CLI path must run validation and clear stale controlled
+// outputs. All fixtures live in an OS-temp directory; no SDK or tools execute.
+test('canonical and symlinked offline build invocation reject invalid arguments and stale outputs', async t => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-p2b-main-'));
+  try {
+    const scratchProject = path.join(temp, 'spikes/s5-t1-trial');
+    const script = path.join(scratchProject, 'ci/build.mjs');
+    const buildDir = path.join(scratchProject, '.build');
+    const controlledEntry = path.resolve(scratchProject, manifest.entry);
+    const controlledOutputs = [
+      controlledEntry,
+      controlledEntry + '.aopx-pending.js',
+      path.join(buildDir, 'package.json'),
+      path.join(buildDir, 'bundle-meta.json'),
+    ];
+    const unrelated = path.join(buildDir, 'unrelated.keep');
+    await mkdir(path.dirname(script), { recursive: true });
+    await mkdir(path.dirname(controlledEntry), { recursive: true });
+    await writeFile(script, await readFile(path.join(project, 'ci/build.mjs')));
+    await writeFile(path.join(scratchProject, 'manifest.trial.json'),
+      JSON.stringify({ entry: manifest.entry }));
+    await writeFile(unrelated, 'must survive');
+
+    const invokeInvalid = async (scriptPath: string) => {
+      for (const file of controlledOutputs) {
+        await writeFile(file, 'stale controlled output: ' + path.basename(file));
+      }
+      const env = { ...process.env };
+      delete env.NODE_TEST_CONTEXT; // Prevent nested node:test worker recursion.
+      const result = spawnSync(process.execPath, [scriptPath, '--bogus'],
+        { cwd: temp, env, encoding: 'utf8', timeout: 15_000, maxBuffer: 2 * 1024 * 1024 });
+      assert.equal(result.error, undefined);
+      assert.equal(result.signal, null);
+      assert.equal(result.status, 1, 'invalid build arguments must fail, not silently exit 0');
+      assert.match(result.stderr ?? '', /Unrecognized or repeated build option: --bogus/,
+        'main() must execute argument validation');
+      for (const file of controlledOutputs) {
+        await assert.rejects(readFile(file), /ENOENT/,
+          'stale controlled artifact survived invalid invocation: ' + file);
+      }
+      assert.equal(await readFile(unrelated, 'utf8'), 'must survive');
+      await assert.rejects(readFile(path.join(scratchProject, '.compile.generated.json')), /ENOENT/);
+    };
+
+    await t.test('canonical path', async () => {
+      await invokeInvalid(script);
+    });
+
+    await t.test('symlinked directory path', async subtest => {
+      const alias = path.join(temp, 'linked-project');
+      try {
+        await symlink(scratchProject, alias, process.platform === 'win32' ? 'junction' : 'dir');
+      } catch (error) {
+        const code = error instanceof Error && 'code' in error ? String(error.code) : '';
+        if (['EPERM', 'EACCES', 'ENOTSUP', 'EOPNOTSUPP', 'ENOSYS', 'EINVAL'].includes(code)) {
+          subtest.diagnostic('SYMLINK_UNSUPPORTED=' + code + '; this guard is NOT qualified on this runner');
+          subtest.skip('Symlink or junction creation unsupported: ' + code + '; do not count as PASS');
+          return;
+        }
+        throw error;
+      }
+      await invokeInvalid(path.join(alias, 'ci/build.mjs'));
+    });
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
