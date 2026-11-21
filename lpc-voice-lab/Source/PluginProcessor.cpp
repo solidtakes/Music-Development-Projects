@@ -169,6 +169,9 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         || (carrier.getNumChannels() == 0 && ! bypassed))
     {
         output.clear();
+        meterVoice.store (0.0f, std::memory_order_relaxed);
+        meterCarrier.store (0.0f, std::memory_order_relaxed);
+        meterOutput.store (0.0f, std::memory_order_relaxed);
         return;
     }
 
@@ -213,6 +216,9 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // No heap allocation in processBlock, and host blocks may exceed kChunkSize.
     // Read input into scratch before writing: the main input aliases the output.
+    float voicePeak = 0.0f;
+    float carrierPeak = 0.0f;
+    float outputPeak = 0.0f;
     for (int offset = 0; offset < numSamples; offset += kChunkSize)
     {
         const int count = juce::jmin (kChunkSize, numSamples - offset);
@@ -223,6 +229,8 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             voiceScratch[(size_t) i] = 0.5f * (modL[offset + i] + modR[offset + i]) * inputGain;
             carrierScratch[(size_t) i] = hasCarrier
                 ? 0.5f * (carL[offset + i] + carR[offset + i]) * carrierGain : 0.0f;
+            voicePeak = juce::jmax (voicePeak, std::abs (voiceScratch[(size_t) i]));
+            carrierPeak = juce::jmax (carrierPeak, std::abs (carrierScratch[(size_t) i]));
         }
         core.process (voiceScratch.data(), carrierScratch.data(),
                       outL + offset, outR + offset, count);
@@ -241,8 +249,12 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             const float y = mixed * outGainSmooth.getNextValue();
             outL[offset + i] = y;
             outR[offset + i] = y;
+            outputPeak = juce::jmax (outputPeak, std::abs (y));
         }
     }
+    meterVoice.store (voicePeak, std::memory_order_relaxed);
+    meterCarrier.store (carrierPeak, std::memory_order_relaxed);
+    meterOutput.store (outputPeak, std::memory_order_relaxed);
 }
 
 //==============================================================================

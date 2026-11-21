@@ -498,7 +498,7 @@ void LPCVoiceLabEditor::paint (juce::Graphics& g)
     g.setColour (cyan.withAlpha (0.45f));
     g.drawLine (48, 654, 1172, 654, 1.0f);
     label (g, "TALKBOX ENGINE ACTIVE  /  NUVO + TAZMANIA RESEARCH ONLY",
-           { 52, 696, 665, 20 }, 12, muted);
+           { 52, 704, 610, 19 }, 11, muted);
 }
 
 void LPCVoiceLabEditor::resized()
@@ -507,8 +507,8 @@ void LPCVoiceLabEditor::resized()
     savePreset.setBounds (822, 107, 103, 43);
     openPreset.setBounds (938, 107, 91, 43);
     programButton.setBounds (1041, 107, 132, 43);
-    currentProgram.setBounds (49, 690, 525, 29);
-    presetMessage.setBounds (805, 439, 365, 31);
+    currentProgram.setBounds (665, 687, 505, 29);
+    presetMessage.setBounds (806, 447, 360, 29);
 
     controls[0].setBounds (74, 216, 190, 157);
     controls[1].setBounds (311, 216, 190, 157);
