@@ -8,4 +8,4 @@ Retro is an independent first-pass first-order bandwidth limiter + tanh saturati
 
 Compile/run/DAW testing pending. No automated Ableton launch or installation. Do not overwrite the working Alpha 0.2 plugin until owner manually auditions a verified build. Plugin IDs retain their original Alpha 0.2 values, and existing parameter IDs are unchanged.
 
-Max for Live source is under max-for-live/. It is native 8-band filterbank, *not* the LPC engine.
+Max for Live exploration has been deferred by owner and preserved separately on `experimental/lpc-max-for-live-parked`. No Max code is included in this VST3 GUI PR.
