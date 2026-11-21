@@ -345,7 +345,7 @@ void TalkBoxCore::setParams (const Params& p)
 
 int TalkBoxCore::latencySamples() const noexcept
 {
-    return unvoicedOn ? uv.lookaheadSamples() : 0;
+    return (unvoicedOn || fixedLookahead) ? uv.lookaheadSamples() : 0;
 }
 
 void TalkBoxCore::process (const float* inL, const float* inR,
@@ -376,8 +376,11 @@ void TalkBoxCore::process (const float* inL, const float* inR,
         // Carrier and modulator are delayed together so the two stay aligned,
         // and the host is told about the latency so the output lands back on
         // the timeline. With the feature off nothing is delayed at all.
-        const float o = unvoicedOn ? modDelayed : modLive;
-        float x = unvoicedOn ? carDelayed : carLive;
+        // The host wrapper opts into fixed lookahead for both modes so toggling
+        // Unvoiced cannot request a real-time DAW latency reconfiguration.
+        // The library reference path retains its original zero-latency default.
+        const float o = (unvoicedOn || fixedLookahead) ? modDelayed : modLive;
+        float x = (unvoicedOn || fixedLookahead) ? carDelayed : carLive;
         const float dr = o;
 
         float passSample = 0.0f;

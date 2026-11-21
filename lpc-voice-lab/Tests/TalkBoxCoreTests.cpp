@@ -414,6 +414,50 @@ void orderNormalIsTheOriginal()
     check (worst == 0.0 && changed > 1.0e-6, "order normal is the original, high is not", buf);
 }
 
+
+void fixedLookaheadDryOnlyKeepsSpeech()
+{
+    // Regression for Live: Unvoiced ON + Wet=0 + Dry=100 must never
+    // be silent when the voice bus has audio. Output is the delayed voice.
+    const size_t len = (size_t) (kSr * 0.25);
+    std::vector<float> mod (len), car (len), outL (len), outR (len);
+    for (size_t i = 0; i < len; ++i)
+        mod[i] = (i % 2 == 0) ? 0.1f : 0.3f;
+    makeSaw (car, 110.0f, 0.5f);
+
+    TalkBoxCore core;
+    core.prepare (kSr);
+    core.useFixedLookahead (true);
+
+    TalkBoxCore::Params p;
+    p.unvoiced = true; p.wet = 0.0f; p.dry = 1.0f;
+    core.setParams (p);
+
+    const int latency = core.latencySamples();
+    core.process (mod.data(), car.data(), outL.data(), outR.data(), (int) len);
+
+    double maxError = 0.0;
+    double outputPeak = 0.0;
+    for (size_t i = 0; i < len; ++i)
+    {
+        const double expected = (i < (size_t) latency)
+            ? 0.0 : 2.0 * (double) mod[i - (size_t) latency];
+        maxError = std::max (maxError, std::fabs ((double) outL[i] - expected));
+        outputPeak = std::max (outputPeak, std::fabs ((double) outL[i]));
+    }
+
+    char buf[128];
+    std::snprintf (buf, sizeof (buf), "delay=%d maxerr=%.9g peak=%.4g",
+                   latency, maxError, outputPeak);
+    check (latency > 0 && maxError < 1.0e-6 && outputPeak > 0.1,
+           "fixed-lookahead dry-only Unvoiced ON passes speech", buf);
+
+    p.unvoiced = false;
+    core.setParams (p);
+    check (core.latencySamples() == latency,
+           "fixed-lookahead latency does not change with Unvoiced toggle", "");
+}
+
 void unvoicedNeedsACarrier()
 {
     // Broadband modulator that will latch the detector, with nothing to
@@ -531,6 +575,7 @@ int main()
     orderModeDoublesTheCoefficients();
     orderNormalIsTheOriginal();
     latencyFollowsUnvoiced();
+    fixedLookaheadDryOnlyKeepsSpeech();
     unvoicedOffChangesNothing();
     unvoicedNeedsACarrier();
     fricativeGainScalesThePassthrough();

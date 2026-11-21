@@ -80,8 +80,11 @@ LPCVoiceLabProcessor::LPCVoiceLabProcessor()
 void LPCVoiceLabProcessor::prepareToPlay (double sampleRate, int)
 {
     core.prepare (sampleRate);
-    reportedLatency = 0;
-    setLatencySamples (0);
+    core.useFixedLookahead (true);
+    // Constant, declared before processing starts. Never change host PDC
+    // from the audio callback when Unvoiced is toggled.
+    reportedLatency = core.latencySamples();
+    setLatencySamples (reportedLatency);
 }
 
 void LPCVoiceLabProcessor::releaseResources()
@@ -131,13 +134,8 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     p.lowEnd          = pLowEnd->load();
     core.setParams (p);
 
-    // TODO: review dynamic latency updates for real-time safety and host PDC.
-    const int latency = core.latencySamples();
-    if (latency != reportedLatency)
-    {
-        reportedLatency = latency;
-        setLatencySamples (latency);
-    }
+    // Fixed 25 ms latency was already declared in prepareToPlay.
+    // Do not notify the DAW or allocate while rendering audio.
 
     const float* modL = voice.getReadPointer (0);
     const float* modR = voice.getReadPointer (voice.getNumChannels() > 1 ? 1 : 0);

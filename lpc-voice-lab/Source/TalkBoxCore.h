@@ -259,6 +259,11 @@ public:
     void prepare (double sampleRate);
     void reset();
 
+    /** Host wrapper option: apply the existing lookahead to both modes, so
+        reported PDC never changes inside the audio callback. Off by default
+        to preserve the upstream DSP's zero-latency original mode. */
+    void useFixedLookahead (bool enabled) noexcept { fixedLookahead = enabled; }
+
     /** Cheap enough to call every block; only recomputes what changed. */
     void setParams (const Params& p);
 
@@ -296,6 +301,7 @@ private:
     float wet = 0.125f, dry = 0.0f;
     bool swap = false;
     bool unvoicedOn = false;
+    bool fixedLookahead = false;
     bool lowEndOn = false;
     float passGain = 0.0f;
 
