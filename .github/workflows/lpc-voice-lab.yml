@@ -1,0 +1,41 @@
+name: LPC Voice Lab - offline build and DSP tests
+on:
+  push:
+    branches: [codex/lpc-voice-lab-alpha01, fix/lpc-unvoiced-fixed-latency-a02, codex/lpc-voice-lab-a03-ui-m4l]
+    paths:
+      - 'lpc-voice-lab/**'
+      - '.github/workflows/lpc-voice-lab.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S lpc-voice-lab -B lpc-voice-lab/build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build lpc-voice-lab/build --config Release --parallel 4
+      - name: Run DSP tests
+        run: ctest --test-dir lpc-voice-lab/build -C Release --output-on-failure
+      - name: Stage Windows VST3
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force lpc-voice-lab/dist | Out-Null
+          Copy-Item -Recurse 'lpc-voice-lab/build/LPCVoiceLab_artefacts/Release/VST3/LPC Voice Lab.vst3' 'lpc-voice-lab/dist/'
+      - name: Stage macOS plugins
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p lpc-voice-lab/dist
+          cp -R 'lpc-voice-lab/build/LPCVoiceLab_artefacts/Release/VST3/LPC Voice Lab.vst3' lpc-voice-lab/dist/
+          cp -R 'lpc-voice-lab/build/LPCVoiceLab_artefacts/Release/AU/LPC Voice Lab.component' lpc-voice-lab/dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LPC-Voice-Lab-${{ runner.os }}
+          path: lpc-voice-lab/dist/
+          if-no-files-found: error
