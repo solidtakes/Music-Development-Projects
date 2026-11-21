@@ -1,0 +1,19 @@
+{
+  "name": "@aopx/integration",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "description": "SDK-free Alpha 0.1 offline integration core: clip admission, render-file admission, progress mapping and the Offline Process flow against a narrow LivePort. Never imports the Ableton SDK.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test --test-reporter=spec \"test/**/*.test.ts\"",
+    "check": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

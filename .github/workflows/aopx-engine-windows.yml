@@ -6,10 +6,12 @@ on:
   push:
     branches:
       - claude/aopx-02-engine-proof
+      - claude/peaceful-edison-ix41ct
       - ableton-offline-processing/alpha-0.1
     paths:
       - 'ableton-offline-processing/engine/**'
       - 'ableton-offline-processing/host/**'
+      - 'ableton-offline-processing/integration/**'
       - 'ableton-offline-processing/editor/**'
       - 'ableton-offline-processing/spikes/**'
       - '.github/workflows/aopx-engine-windows.yml'
@@ -18,6 +20,7 @@ on:
     paths:
       - 'ableton-offline-processing/engine/**'
       - 'ableton-offline-processing/host/**'
+      - 'ableton-offline-processing/integration/**'
       - 'ableton-offline-processing/editor/**'
       - 'ableton-offline-processing/spikes/**'
       - '.github/workflows/aopx-engine-windows.yml'
@@ -63,6 +66,14 @@ jobs:
       - name: Host modal contract (typecheck + tests)
         if: success() || failure()
         working-directory: ableton-offline-processing/host
+        run: npm run check
+      - name: Offline integration core (npm ci)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/integration
+        run: npm ci
+      - name: Offline integration core (typecheck + tests; no SDK, no Live)
+        if: success() || failure()
+        working-directory: ableton-offline-processing/integration
         run: npm run check
       - name: Editor tests (browser suites skip without Playwright)
         if: success() || failure()
