@@ -110,7 +110,7 @@ jobs:
           node --version
           node -p "process.platform + ' ' + process.arch + ' ' + require('os').release()"
           node -p "require('playwright/package.json').version"
-      - name: Editor browser suites (reorder + host contract)
+      - name: Editor browser suites (reorder + host contract + waveform)
         working-directory: ableton-offline-processing/editor
         run: npm run test:browser
       - name: Spike S3 (npm ci, typecheck-only dev dependencies)

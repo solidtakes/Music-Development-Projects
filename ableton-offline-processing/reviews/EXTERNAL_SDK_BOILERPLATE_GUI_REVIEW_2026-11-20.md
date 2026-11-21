@@ -121,6 +121,16 @@ Codex's boilerplate report was not yet on #40 at the time of this review (last c
 | P3 | `editor/interface.html` (GUI lane) | M5 no synthetic waveform for real state; L3 max-reduce; L4 Esc/Enter | `editor/test/browser-host-contract.test.mjs` cases |
 | P4 | `editor/interface.html` + plan-core (GUI lane) | R1 labelled peak preview of Reverse/Gain | Unit test on plan-core against `engine/src/dsp.ts` reverse/gain peaks |
 
+### Update 2026-11-21: P3/P4 implemented offline (owner GO)
+
+P3 and P4 landed on this branch in `editor/interface.html`, with tests. P1 and P2 remain proposals for the integration owner.
+- **M5:** host state without peaks now draws no waveform and shows "NO WAVEFORM DATA". Only the labelled design preview uses sample peaks.
+- **L3:** columns are max-reduced (`reducePeaks`).
+- **L4:** Esc returns the cancel envelope (or closes the + ADD OP menu). Apply is **Ctrl/Cmd+Enter** rather than plain Enter, because it writes to Live.
+- **R1:** labelled PEAK PREVIEW (`previewPeaks`), cross-checked against the engine kernels.
+- **Additional pre-existing defect fixed:** on `a57d5aa` the waveform never rendered at all. `.waveform` set only `fill`, but every column is a zero-area line, so the computed stroke was `none`; a screenshot showed an empty frame for both sample and host peaks. The path is now stroked.
+- **Tests:** `npm test` 49/49 (was 32/32), and `npm run test:browser` 26/26 (was 17/17), Node 22.23.5 with Chromium via Playwright. Run against the old `interface.html`, the new tests fail (13 failures). Nothing was installed.
+
 ## 5. beta.1 declarations Codex should check (do not assume beta.0)
 
 1. `ExtensionContext.withinTransaction`: callback type (sync or async), return type, and whether it rolls back.

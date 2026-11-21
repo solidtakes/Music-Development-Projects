@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const result = spawnSync(
   process.execPath,
-  ['--test', join(root, 'test', 'browser-reorder.test.mjs'), join(root, 'test', 'browser-host-contract.test.mjs')],
+  ['--test', join(root, 'test', 'browser-reorder.test.mjs'), join(root, 'test', 'browser-host-contract.test.mjs'), join(root, 'test', 'browser-waveform.test.mjs')],
   { cwd: root, stdio: 'inherit', env: { ...process.env, AOPX_REQUIRE_BROWSER: '1' } },
 );
 if (result.error) {

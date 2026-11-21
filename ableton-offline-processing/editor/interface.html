@@ -47,8 +47,20 @@ button{color:inherit}
 .wave-area{height:100px;position:relative}
 .wave-area svg{display:block;width:100%;height:100%}
 .wave-grid{stroke:rgba(255,255,255,.09);stroke-width:1;shape-rendering:crispEdges}
-.waveform{fill:#8b9b9f;opacity:.95}
+/* Each column is a zero-area vertical line, so the waveform needs a stroke (a fill alone draws nothing). */
+.waveform,.waveform-over{fill:none;stroke-width:3;stroke-linecap:butt}
+.waveform{stroke:#8b9b9f;opacity:.95}
+.waveform-over{stroke:var(--live-red)}
+.waveframe.estimate{border-color:#6b5a3a}
+.waveframe.estimate .waveform{stroke:#c4a46e}
 .wave-mid{stroke:#777;stroke-width:.7;opacity:.6}
+.wave-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.wave-head .section-label{margin:0;flex:1;min-width:0}
+.view-toggle{display:flex;gap:4px;flex:none}
+.view-toggle .small-button{padding:2px 7px;font-size:9px;letter-spacing:.05em}
+.view-toggle .small-button[aria-pressed="true"]{border-color:var(--live-accent);color:#fff}
+.view-toggle .small-button:disabled{opacity:.45;cursor:default}
+#wave-note.warn{color:var(--live-red)}
 .playhead{position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--live-accent);box-shadow:0 0 4px rgba(243,154,66,.5)}
 .wave-caption{display:flex;justify-content:space-between;margin-top:6px;color:#888;font-size:9px}
 .workspace{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(235px,.9fr);min-height:245px;background:#303030}
@@ -148,17 +160,23 @@ input[type=range]{width:100%;accent-color:var(--live-accent);height:15px;cursor:
     <div class="source-size">SOURCE FILE<strong id="source-size">—</strong></div>
   </section>
   <section class="wave-section">
-    <div class="section-label">SOURCE AUDIO / FULL CLIP</div>
-    <div class="waveframe">
+    <div class="wave-head">
+      <div class="section-label" id="wave-label">SOURCE AUDIO / FULL CLIP</div>
+      <div class="view-toggle" role="group" aria-label="Waveform view">
+        <button class="small-button" id="view-source" type="button" aria-pressed="true">SOURCE</button>
+        <button class="small-button" id="view-preview" type="button" aria-pressed="false" title="Estimate of the processed waveform from the source peaks. Not a render.">PEAK PREVIEW</button>
+      </div>
+    </div>
+    <div class="waveframe" id="waveframe">
       <div class="ruler" id="ruler"><span>0:00</span><span>25%</span><span>50%</span><span>75%</span><span>END</span></div>
       <div class="wave-area">
         <svg id="waveform" viewBox="0 0 900 100" preserveAspectRatio="none" role="img" aria-label="Audio waveform">
-          <g id="wave-grid"></g><path id="wave-path" class="waveform" d=""></path><line class="wave-mid" x1="0" y1="50" x2="900" y2="50"></line>
+          <g id="wave-grid"></g><path id="wave-path" class="waveform" d=""></path><path id="wave-over" class="waveform-over" d=""></path><line class="wave-mid" x1="0" y1="50" x2="900" y2="50"></line>
         </svg>
         <div class="playhead" id="playhead"></div>
       </div>
     </div>
-    <div class="wave-caption"><span>WHOLE CLIP PROCESSING · RANGE EDITING NOT ENABLED</span><span id="clip-range">0:00 — —</span></div>
+    <div class="wave-caption"><span id="wave-note">WHOLE CLIP PROCESSING · RANGE EDITING NOT ENABLED</span><span id="clip-range">0:00 — —</span></div>
   </section>
   <main class="workspace">
     <section class="chain-panel">
@@ -229,7 +247,43 @@ window.AOPX_PLAN_CORE = (function(){
     const plan={version:1,operations:ops.map(op=>({...op, ...(op.type==="gain"?{db:Number(op.db.toFixed(6))}:{})}))};
     return plan;
   }
-  return Object.freeze({indexOfId,moveToIndex,moveByDelta,insertionIndex,sameOrder,buildPlan});
+  /*
+   * Max-reduce min/max peaks into `count` display columns. Every input bin lands in exactly one
+   * column, so a short transient is never skipped. With fewer bins than columns, bins repeat.
+   */
+  function reducePeaks(peaks,count){
+    const n=peaks.length,out=[];
+    if(!n||!(count>0))return out;
+    for(let i=0;i<count;i++){
+      const a=Math.min(n-1,Math.floor(i*n/count)),b=Math.max(a+1,Math.floor((i+1)*n/count));
+      let min=0,max=0;
+      for(let j=a;j<b&&j<n;j++){const p=peaks[j];if(p.min<min)min=p.min;if(p.max>max)max=p.max}
+      out.push({min,max});
+    }
+    return out;
+  }
+  function dbToLinear(db){return Math.pow(10,db/20)}
+  /*
+   * PEAK PREVIEW: an estimate of the processed waveform, computed from the source peaks for display
+   * only. It is never a render result and never part of the returned plan.
+   * - Reverse mirrors the bins. This equals the peaks of the reversed audio only when the bins split
+   *   the frames evenly; otherwise bin edges differ slightly.
+   * - Gain multiplies the bins by 10^(dB/20). Like the engine kernel, nothing is clipped here;
+   *   bins beyond full scale are counted so the UI can warn (PCM export saturates them).
+   * Bypassed operations are skipped. The input array and its objects are never modified.
+   */
+  function previewPeaks(peaks,ops){
+    let out=peaks.map(p=>({min:p.min,max:p.max}));
+    for(const op of ops){
+      if(!op.enabled)continue;
+      if(op.type==="reverse")out.reverse();
+      else if(op.type==="gain"){const k=dbToLinear(op.db);out=out.map(p=>({min:p.min*k,max:p.max*k}))}
+    }
+    let overFullScale=0;
+    for(const p of out)if(Math.max(-p.min,p.max)>1)overFullScale++;
+    return {peaks:out,overFullScale};
+  }
+  return Object.freeze({indexOfId,moveToIndex,moveByDelta,insertionIndex,sameOrder,buildPlan,reducePeaks,dbToLinear,previewPeaks});
 })();
 </script>
 <script>
@@ -256,10 +310,15 @@ window.AOPX_PLAN_CORE = (function(){
     source:initial.source || fallback.source,
     operations:(initial.plan?.operations || fallback.plan.operations).map(op=>({...op})),
     selectedId:(initial.plan?.operations || fallback.plan.operations)[0]?.id || null,
-    waveform:initial.waveform || [],
+    waveform:Array.isArray(initial.waveform)?initial.waveform:[],
     preview:initial.preview ?? !window.AOPX_INITIAL_STATE,
+    view:"source", // "source" | "preview" (PEAK PREVIEW)
     busy:false
   };
+  // Only the labelled browser design preview gets made-up peaks. Host state with no peaks shows none.
+  if(state.preview&&!state.waveform.length){
+    state.waveform=Array.from({length:180},(_,i)=>{const v=.12+Math.abs(Math.sin(i*.43)*Math.cos(i*.117))*.72;return {min:-v,max:v}});
+  }
   const $ = id => document.getElementById(id);
   const core = window.AOPX_PLAN_CORE;
   const opLabel = op => op.type==="reverse"?"REVERSE":"GAIN";
@@ -288,16 +347,31 @@ window.AOPX_PLAN_CORE = (function(){
     $("mode-label").textContent=state.preview?"DESIGN PREVIEW":"EDITOR";
     renderWaveform();
   }
+  const WAVE_COLUMNS=180;
   function renderWaveform(){
-    const peaks=state.waveform;
-    const count=180, vals=[];
-    for(let i=0;i<count;i++){
-      if(peaks.length){const p=peaks[Math.min(peaks.length-1,Math.floor(i*peaks.length/count))];vals.push(Math.max(Math.abs(p.min),Math.abs(p.max)))}
-      else vals.push(.12+Math.abs(Math.sin(i*.43)*Math.cos(i*.117))*.72);
-    }
-    let d="";
-    vals.forEach((v,i)=>{const x=i*5;const h=Math.max(2,Math.min(46,v*46));d+=`M${x} 50 L${x} ${50-h} M${x} 50 L${x} ${50+h} `});
+    const has=state.waveform.length>0;
+    if(!has)state.view="source";
+    const showPreview=state.view==="preview";
+    const result=showPreview?core.previewPeaks(state.waveform,state.operations):null;
+    const cols=core.reducePeaks(showPreview?result.peaks:state.waveform,WAVE_COLUMNS);
+    let d="",over="";
+    cols.forEach((p,i)=>{
+      const v=Math.max(-p.min,p.max),x=i*5,h=Math.max(2,Math.min(46,v*46));
+      const seg=`M${x} 50 L${x} ${50-h} M${x} 50 L${x} ${50+h} `;
+      if(showPreview&&v>1)over+=seg;else d+=seg;
+    });
     $("wave-path").setAttribute("d",d);
+    $("wave-over").setAttribute("d",over);
+    $("view-preview").disabled=!has;
+    $("view-source").setAttribute("aria-pressed",String(!showPreview));
+    $("view-preview").setAttribute("aria-pressed",String(showPreview));
+    $("waveframe").classList.toggle("estimate",showPreview);
+    $("wave-label").textContent=showPreview?"PEAK PREVIEW · ESTIMATE FROM SOURCE PEAKS · NOT A RENDER":"SOURCE AUDIO / FULL CLIP";
+    const note=$("wave-note");note.classList.toggle("warn",!has||(showPreview&&result.overFullScale>0));
+    if(!has)note.textContent="NO WAVEFORM DATA · THE HOST SENT NO PEAKS";
+    else if(showPreview&&result.overFullScale>0)note.textContent=result.overFullScale+" OF "+result.peaks.length+" PEAKS EXCEED 0 dBFS · PCM EXPORT WOULD SATURATE";
+    else if(showPreview)note.textContent="ESTIMATE ONLY · THE HOST RENDER IS AUTHORITATIVE";
+    else note.textContent="WHOLE CLIP PROCESSING · RANGE EDITING NOT ENABLED";
     let grid="";
     for(let i=0;i<=8;i++){const x=i*112.5;grid+=`<line class="wave-grid" x1="${x}" y1="0" x2="${x}" y2="100"/>`}
     $("wave-grid").innerHTML=grid;
@@ -334,7 +408,7 @@ window.AOPX_PLAN_CORE = (function(){
       actions.append(remove);device.append(handle,activator,main,actions);
       device.addEventListener("click",()=>{state.selectedId=op.id;render()});
       // Only the row itself selects on Enter/Space; keys on its inner buttons keep their own meaning.
-      device.addEventListener("keydown",e=>{if(e.target!==device)return;if(e.key==="Enter"||e.key===" "){e.preventDefault();state.selectedId=op.id;render()}});
+      device.addEventListener("keydown",e=>{if(e.target!==device||e.ctrlKey||e.metaKey||e.altKey)return;if(e.key==="Enter"||e.key===" "){e.preventDefault();state.selectedId=op.id;render()}});
       list.append(device);
     });
   }
@@ -353,7 +427,7 @@ window.AOPX_PLAN_CORE = (function(){
       const name=document.createElement("span");name.textContent="Gain";
       const value=document.createElement("output");value.className="value-box";value.textContent=(op.db>=0?"+":"")+op.db.toFixed(1)+" dB";row.append(name,value);
       const range=document.createElement("input");range.type="range";range.min="-60";range.max="24";range.step=".1";range.value=String(op.db);range.setAttribute("aria-label","Gain in decibels");
-      range.addEventListener("input",()=>{op.db=Number(range.value);value.textContent=(op.db>=0?"+":"")+op.db.toFixed(1)+" dB";const card=$("device-list").querySelector(".device.selected .device-summary");if(card)card.textContent=(op.db>=0?"+":"")+op.db.toFixed(1)+" dB"});
+      range.addEventListener("input",()=>{op.db=Number(range.value);value.textContent=(op.db>=0?"+":"")+op.db.toFixed(1)+" dB";const card=$("device-list").querySelector(".device.selected .device-summary");if(card)card.textContent=(op.db>=0?"+":"")+op.db.toFixed(1)+" dB";if(state.view==="preview")renderWaveform()});
       const scale=document.createElement("div");scale.className="range-scale";scale.innerHTML="<span>−60 dB</span><span>0 dB</span><span>+24 dB</span>";
       const knob=document.createElement("div");knob.className="knob-row";const visual=document.createElement("div");visual.className="knob";const info=document.createElement("div");info.className="knob-info";info.innerHTML='<div class="device-title">OUTPUT LEVEL</div><div class="hint">Gain is applied equally to all channels. PCM output saturates at full scale.</div>';knob.append(visual,info);
       block.append(row,range,scale,knob);controls.append(block);
@@ -367,7 +441,7 @@ window.AOPX_PLAN_CORE = (function(){
     [["↑","Move earlier",idx>0,-1],["↓","Move later",idx<state.operations.length-1,1]].forEach(([glyph,title,allowed,delta])=>{const b=document.createElement("button");b.className="small-button";b.type="button";b.dataset.move=String(delta);b.textContent=glyph+" "+title;b.disabled=!allowed;b.addEventListener("click",()=>reorder(core.moveByDelta(state.operations,op.id,delta),op.id,{focus:"move",delta}));buttons.append(b)});
     order.append(orderLabel,buttons);controls.append(order);
   }
-  function render(message){renderDevices();renderInspector();$("status").textContent=message||(state.operations.length+" operation"+(state.operations.length===1?"":"s")+" · edits are local until Apply.")}
+  function render(message){renderDevices();renderInspector();renderWaveform();$("status").textContent=message||(state.operations.length+" operation"+(state.operations.length===1?"":"s")+" · edits are local until Apply.")}
   /*
    * Commit a new order. Selection is tracked by id, so it follows the moved
    * operation automatically; nothing else about any operation is touched.
@@ -465,15 +539,35 @@ window.AOPX_PLAN_CORE = (function(){
     $("status").textContent="Preview only · host message bridge is not available.";
     return false;
   }
-  $("cancel").addEventListener("click",()=>closeWith({envelopeVersion:ENVELOPE_VERSION,action:"cancel"}));
-  $("apply").addEventListener("click",()=>{
+  function cancelNow(){closeWith({envelopeVersion:ENVELOPE_VERSION,action:"cancel"})}
+  function applyNow(){
     if(state.busy||drag||unsupportedEnvelope)return;
     if(!state.operations.length){$("status").textContent="Add at least one operation before applying.";return}
     state.busy=true;$("apply").disabled=true;
     const plan=core.buildPlan(state.operations);
     const ok=closeWith({envelopeVersion:ENVELOPE_VERSION,action:"process",plan});
     if(!ok){state.busy=false;$("apply").disabled=false}
+  }
+  $("cancel").addEventListener("click",cancelNow);
+  $("apply").addEventListener("click",applyNow);
+  /*
+   * Dialog keys. Esc closes the + ADD OP menu if it is open, otherwise returns an explicit cancel
+   * envelope (an Esc during a drag is consumed by the drag handler first). Apply writes to Live, so
+   * it needs Ctrl+Enter (Cmd+Enter on macOS); a plain Enter never applies.
+   */
+  window.addEventListener("keydown",e=>{
+    if(e.defaultPrevented||e.isComposing||drag)return;
+    if(e.key==="Escape"){
+      e.preventDefault();
+      const pop=document.getElementById("add-pop");
+      if(pop){pop.remove();$("add-menu").focus();return}
+      if(!state.busy)cancelNow();
+      return;
+    }
+    if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)&&!e.altKey&&!e.shiftKey&&!e.repeat){e.preventDefault();applyNow()}
   });
+  $("view-source").addEventListener("click",()=>{state.view="source";renderWaveform()});
+  $("view-preview").addEventListener("click",()=>{if(state.waveform.length){state.view="preview";renderWaveform()}});
   function renderDiagnostics(report){
     if(!report)return;
     const steps=report.steps||[];

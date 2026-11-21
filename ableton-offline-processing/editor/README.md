@@ -29,6 +29,31 @@ It deliberately does not perform DSP, render audio, access the Live Set, or inve
 
 If opened directly in a browser, it uses labelled sample preview data. The Apply and Cancel buttons report that the host bridge is unavailable; no fake processing is claimed.
 
+## Waveform and PEAK PREVIEW
+
+The waveform strip has two views, switched with **SOURCE** / **PEAK PREVIEW** above it.
+
+| View | What it shows |
+| --- | --- |
+| SOURCE | The host-supplied source peaks, max-reduced into 180 columns so no bin (and no short transient) is skipped. |
+| PEAK PREVIEW | An **estimate** of the processed waveform, computed from the source peaks by `previewPeaks` in the plan core. It updates live as operations are added, removed, reordered, bypassed or edited. The label reads "PEAK PREVIEW · ESTIMATE FROM SOURCE PEAKS · NOT A RENDER". |
+
+PEAK PREVIEW rules:
+- Reverse mirrors the peak bins. This equals the peaks of the reversed audio only when the bins split the frames evenly; otherwise the bin edges differ slightly.
+- Gain multiplies the bins by 10^(dB/20). Like the engine kernel, nothing is clipped: columns beyond full scale are drawn in red and the caption counts them ("PCM EXPORT WOULD SATURATE").
+- Bypassed operations are skipped.
+- The preview is display-only. It never changes the returned plan and is never presented as a render result; the host render is authoritative.
+
+If the host sends no peaks, no waveform is drawn: the caption reads "NO WAVEFORM DATA" and PEAK PREVIEW is disabled. Only the labelled browser design preview (PREVIEW DATA) uses sample peaks.
+
+## Dialog keys
+
+| Key | Result |
+| --- | --- |
+| `Esc` | Closes the **+ ADD OP** menu if it is open. Otherwise returns `{ envelopeVersion: 1, action: "cancel" }`. During a drag it cancels only the drag. Ignored after Apply. |
+| `Ctrl+Enter` (`Cmd+Enter` on macOS) | Same as **APPLY TO CLIP**. A plain `Enter` never applies, because Apply writes to Live. |
+| `Enter` / `Space` on a focused row | Selects that operation (unchanged). |
+
 ## Reordering the processing history
 
 Each row in **Processing History** has a dedicated grip handle on its left edge.
@@ -131,6 +156,8 @@ npm test
 Requires Node ≥ 22.18. The suite contains:
 - `test/ui-contract.test.mjs`: static checks of the operation-plan and SDK bridge contract markers.
 - `test/reorder-core.test.mjs`: unit tests of the shipped reorder/plan core (evaluated from `interface.html`): move earlier/later, first/last boundaries, drag to first/last slot, stable IDs and parameters, bypass preservation, input immutability, and emitted plan order.
+- `test/peak-preview-core.test.mjs`: unit tests of the shipped `reducePeaks` and `previewPeaks`, cross-checked against the real engine kernels (`engine/src/dsp.ts` `reverse`, `gain`, `computePeaks`): transient kept, every bin covered once, bypass skipped, input not mutated, exact match for Reverse→Gain chains when bins divide the frames, the documented Reverse estimate at uneven bin edges, and over-full-scale counting without clipping.
+- `test/browser-waveform.test.mjs`: real Chromium tests of the waveform (stroked and visible, transient kept, no made-up waveform for host state without peaks), PEAK PREVIEW (labelled, live with gain/bypass, plan unchanged and validated with `parseModalResult`), and the dialog keys (Esc cancel, Esc closes the menu, Esc during a drag, plain Enter vs Ctrl+Enter, no second send after Apply).
 - `test/browser-reorder.test.mjs`: real Chromium interaction tests through Playwright at 860×660 (SDK modal size), 640×660 (single-column layout) and 860×480. They demonstrate a three-operation drag reorder (`reverse, gain −3 dB (bypassed), gain +6.25 dB` → `gain +6.25, reverse, gain −3 (bypassed)` → …) and check the payload Apply sends through a mocked `close_and_send` bridge. They also cover row-body drags, handle clicks, drops over activator/remove buttons, no-op drops within the same slot, Esc and pointercancel cancellation, keyboard reordering and focus, and horizontal overflow.
 - `test/browser-host-contract.test.mjs`: real Chromium tests of the host contract. The state is built and injected with `../host/src/modal.ts`, every payload sent through the Windows (`chrome.webview`) bridge is validated with `parseModalResult`, and the suite checks: injected state renders as non-preview; LAST RENDER shows `wallMs` (17.4 ms) for an all-hit report rather than the 118.4 ms sum of carried-forward `renderMs`; `wallMs: null` shows "—"; Apply, bypass and Cancel return valid `ModalResult`s; a hostile source name cannot inject script; an unsupported envelope version disables Apply.
 
@@ -168,11 +195,13 @@ None of this replaces testing in the Live SDK runtime. Browser preview never ren
 5. End a drag over another row's × or activator. Check that nothing is removed or bypassed.
 6. Tab to a grip handle and press `↑`/`↓`. Then use **Move earlier/later**. Check that focus stays on the control you used.
 7. Press **Apply**. The status shows "host message bridge is not available" because no audio is rendered in preview. To inspect the plan, run the browser test above.
+8. Click **PEAK PREVIEW**, then bypass the Reverse row or move the Gain slider to +24 dB. Check that the waveform follows, the label says NOT A RENDER, and red columns plus a 0 dBFS warning appear for loud settings.
+9. Press `Esc` with the **+ ADD OP** menu open (it closes), then press `Esc` again (the status reports that the bridge is unavailable; in Live this returns cancel).
 
 ## Known limitations / next integration work
 
 - No actual Webview launch from Live yet.
-- No actual waveform peaks until the host injects them.
+- No actual waveform peaks until the host injects them; PEAK PREVIEW is an estimate from those peaks, not audio rendered in the Webview.
 - No audio audition/transport: the documented modal Webview flow is submit-and-close, not persistent bidirectional host messaging.
 - Render progress/cancellation belongs to the host's native progress dialog, not this modal.
 - Result/diagnostics display can be opened as a second modal after rendering; this first UI currently supports an injected report for preview/testing.
