@@ -1,7 +1,4 @@
-/**
- * Typed failures of the offline integration flow. `status` says what the user is told and whether
- * the Set may have changed: everything except 'unknown-outcome' is raised before any host effect.
- */
+/** Typed failures of the offline integration flow. The flow maps each to a FlowResult status. */
 export type IntegrationErrorCode =
   | 'no-storage'
   | 'not-admitted'
@@ -18,7 +15,9 @@ export type IntegrationErrorCode =
   | 'render-frame-mismatch'
   | 'render-changed'
   | 'output-format-mismatch'
-  | 'output-changed';
+  | 'output-changed'
+  | 'project-unreadable'
+  | 'journal-failed';
 
 export class IntegrationError extends Error {
   readonly code: IntegrationErrorCode;

@@ -15,6 +15,7 @@ async function assertSourceUntouched(p: FakePort): Promise<void> {
 
 function noEffects(r: FlowResult, p: FakePort): void {
   assert.deepEqual(r.effects, []);
+  assert.equal(r.setChanged, 'no');
   assert.deepEqual(effectCalls(p), [], `no import/create may be requested, got ${p.calls.join(', ')}`);
 }
 
@@ -72,6 +73,7 @@ test('second invocation on the same audio restores the saved plan and hits the c
   const p = await makeFakePort({ editor: (s) => (p.editorStates.length === 1 ? processPlan(edited) : processPlan(s.plan)) });
   const run = createOfflineProcess(p);
   assert.equal((await run()).status, 'completed');
+  p.selection.resultOverlapCount = 0; // the user moved the first result out of the way
   const second = await run();
   assert.equal(second.status, 'completed', second.message);
   assert.deepEqual(p.editorStates[0]!.plan, DEFAULT_PLAN);
@@ -142,9 +144,9 @@ test('render admission: AIFF, RF64, empty, wrong length, too large, outside temp
     assert.equal(r.reason, 'render-too-large');
     noEffects(r, p);
   });
-  await t.test('decoded-memory cap', async () => {
+  await t.test('working-set memory cap', async () => {
     const p = await makeFakePort();
-    const r = await createOfflineProcess(p, { admission: { maxDecodedBytes: 1024 } })();
+    const r = await createOfflineProcess(p, { admission: { maxWorkingSetBytes: 1024 } })();
     assert.equal(r.reason, 'render-too-large');
     noEffects(r, p);
   });
@@ -199,7 +201,9 @@ test('cancellation after import: reports the known import, does not create', asy
   const ac = new AbortController();
   const p = await makeFakePort({ onImport: () => ac.abort() });
   const r = await createOfflineProcess(p)(ac.signal);
-  assert.equal(r.status, 'cancelled');
+  assert.equal(r.status, 'partial');
+  assert.equal(r.reason, 'user-cancel');
+  assert.equal(r.setChanged, 'yes');
   assert.deepEqual(r.effects.map((e) => e.kind), ['imported']);
   assert.deepEqual(effectCalls(p), ['importIntoProject']);
 });
@@ -227,7 +231,7 @@ test('unknown outcomes are never reported as "no change" and are never retried',
 });
 
 test('drift between render and import stops before any host effect', async () => {
-  const p = await makeFakePort({ onResolve: (n, s) => n === 2 && (s.resultOverlapCount = 1) });
+  const p = await makeFakePort({ onResolve: (n, s) => void (n === 2 && (s.resultOverlapCount = 1)) });
   const r = await createOfflineProcess(p)();
   assert.equal(r.status, 'rejected');
   assert.equal(r.reason, 'selection-changed');
@@ -237,7 +241,8 @@ test('drift between render and import stops before any host effect', async () =>
 test('a misplaced result clip is reported, left in place, not "fixed"', async () => {
   const p = await makeFakePort({ createBehaviour: 'wrong-start' });
   const r = await createOfflineProcess(p)();
-  assert.equal(r.status, 'failed');
+  assert.equal(r.status, 'partial');
+  assert.equal(r.setChanged, 'yes');
   assert.equal(r.reason, 'result-geometry-mismatch');
   assert.deepEqual(r.effects.map((e) => e.kind), ['imported', 'clip-created']);
   assert.equal(effectCalls(p).length, 2);

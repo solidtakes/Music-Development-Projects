@@ -32,15 +32,24 @@ npm run check    # tsc + all tests (no SDK, no Live)
 
 ## Outcomes
 
-`createOfflineProcess` returns `{ status, stage, reason, effects, ... }`. `effects` lists every host effect known to have happened, and nothing is undone automatically.
+`createOfflineProcess` returns `{ status, setChanged, stage, reason, effects, pending, ... }`. `effects` lists every host effect known to have happened, and nothing is undone automatically.
 
-| status | Meaning | Can the Set have changed? |
+| status | Meaning | `setChanged` |
 |---|---|---|
-| `completed` | Imported once; one new clip on AOPX RESULT; result geometry verified | Yes, as intended |
-| `rejected` | Admission or render admission refused, or the selection drifted before any effect | No |
-| `cancelled` | User cancel, editor closed, or an invalid editor result | No, unless `effects` lists the import (cancel after import) |
-| `failed` | Engine failure, or a post-create verification failure | Only what `effects` lists |
-| `unknown-outcome` | Import or create threw, timed out, or returned no usable receipt | **Possibly.** Check the Set before trying again |
-| `busy` | Another invocation is running | No |
+| `completed` | Imported once; one new clip on AOPX RESULT; content and geometry verified | `yes` |
+| `partial` | Stopped after at least one **known** effect (for example a cancel or drift after the import, a mismatched import, or a misplaced clip). `effects` lists what happened | `yes` |
+| `rejected` / `cancelled` / `failed` | Stopped **before any effect was requested** | `no` |
+| `unknown-outcome` | An effect was requested and Live gave no valid answer (throw, timeout or unusable receipt). **Check the Set** | `unknown` |
+| `reconciliation-required` | An earlier invocation's effects are not all known (durable journal). Nothing was done, not even a Live read | `no` |
+| `busy` | Another invocation is running in this process | `no` |
 
-Import and create are each requested **at most once**, and **nothing is retried**. A timeout is not a cancellation, because the host call may still complete. The flow never deletes, moves or edits a clip.
+Import and create are each requested **at most once**, and **nothing is retried**.
+- A timeout is not a cancellation: the host call may still complete.
+- Before each request, an intent record is written durably to `storageDirectory/aopx-journal/`. A record is closed only when every effect it describes is known. Until then, every invocation returns `reconciliation-required` (also after a restart), until the adapter calls `acknowledgeReconciliation(storageDirectory, invocation)` once the user has checked the Set.
+- The flow never deletes, moves or edits a clip.
+
+## Admission and memory
+
+- **Render read:** the render is read **once**, through one descriptor with a size cap and identity, growth and shrink checks (`src/bounded-read.ts`).
+- **Container check:** the WAV is validated strictly (`src/wav-container.ts`), and the verified bytes are passed to the engine (`Project.importSourceBytes`).
+- **Memory budget:** peak memory is estimated as `3 × file bytes + 24 × samples` and must fit `maxWorkingSetBytes` (2 GiB by default). Only one invocation runs per process.

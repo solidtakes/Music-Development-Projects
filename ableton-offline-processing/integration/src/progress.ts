@@ -44,8 +44,12 @@ export class ProgressForwarder {
     return this.opts.now ? this.opts.now() : performance.now();
   }
 
+  /** True once a drain timed out: the host's update is hung, so no further updates are sent. */
+  detached = false;
+
   /** Queue an update; returns immediately. Never moves backwards. */
   update(text: string, fraction: number): void {
+    if (this.detached) return;
     const percent = Math.max(this.lastPercent, toSdkPercent(fraction), this.pending?.percent ?? -1);
     if (percent === this.lastPercent && text === this.lastText && !this.pending) return;
     this.pending = { text, percent };
@@ -77,6 +81,28 @@ export class ProgressForwarder {
       this.inflight = this.pump();
       await this.inflight;
     }
+  }
+
+  /**
+   * Like flush, but never waits longer than `timeoutMs`. If the host's update does not settle in
+   * time, the forwarder detaches (stops sending) so a hung progress dialog can never delay the
+   * outcome or reconciliation report (review M1). Returns false if it detached.
+   */
+  async drain(timeoutMs: number): Promise<boolean> {
+    if (this.detached) return false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const settled = await Promise.race([
+      this.flush().then(() => true),
+      new Promise<boolean>((r) => {
+        timer = setTimeout(() => r(false), timeoutMs);
+      }),
+    ]);
+    clearTimeout(timer);
+    if (!settled) {
+      this.detached = true;
+      this.pending = null;
+    }
+    return settled;
   }
 
   /** Last percent actually sent to the host. */

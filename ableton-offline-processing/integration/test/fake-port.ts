@@ -39,12 +39,16 @@ export interface FakeOptions {
   /** Where the render is written; default: inside tempDirectory. */
   renderOutsideTemp?: boolean;
   editor?: (state: HostInitialState) => unknown | Promise<unknown>;
-  importBehaviour?: 'ok' | 'throw' | 'hang' | 'empty';
+  importBehaviour?: 'ok' | 'throw' | 'hang' | 'empty' | 'late' | 'same-path' | 'relative' | 'in-temp' | 'corrupt-copy' | 'unreadable';
+  /** For 'late': the import resolves (successfully) after this many ms. */
+  lateMs?: number;
   createBehaviour?: 'ok' | 'throw' | 'hang' | 'wrong-start';
   /** Called before each resolveSelection after the first; may mutate the selection. */
-  onResolve?: (n: number, sel: ClipSelection) => void;
+  onResolve?: (n: number, sel: ClipSelection, port: FakePort) => void | Promise<void>;
   onImport?: () => void;
   onProgress?: (text: string, percent: number) => void;
+  /** Make reportProgress never settle. */
+  hangProgress?: boolean;
 }
 
 export interface FakePort extends LivePort {
@@ -58,6 +62,10 @@ export interface FakePort extends LivePort {
   sourceMediaSha: string;
   projectDir: string;
   logs: Array<Record<string, string | number | boolean>>;
+  /** Imports that completed after the flow had already given up on them. */
+  lateImports: number;
+  /** Path of the export the flow handed (or will hand) to importIntoProject. */
+  exportPaths(): Promise<string[]>;
 }
 
 export async function makeFakePort(opts: FakeOptions = {}): Promise<FakePort> {
@@ -91,10 +99,15 @@ export async function makeFakePort(opts: FakeOptions = {}): Promise<FakePort> {
 
   const port: FakePort = {
     storageDirectory, tempDirectory, calls, progress, editorStates, selection, root, sourceMediaPath,
-    sourceMediaSha: sha256(media), projectDir, logs,
+    sourceMediaSha: sha256(media), projectDir, logs, lateImports: 0,
+    async exportPaths() {
+      const dir = join(tempDirectory, 'aopx-engine');
+      const { readdir } = await import('node:fs/promises');
+      return (await readdir(dir).catch(() => [])).filter((n) => n.startsWith('aopx-') && n.endsWith('.wav')).map((n) => join(dir, n));
+    },
     async resolveSelection() {
       calls.push('resolveSelection');
-      if (resolves > 0) opts.onResolve?.(resolves, port.selection);
+      if (resolves > 0) await opts.onResolve?.(resolves, port.selection, port);
       resolves++;
       return { ...port.selection };
     },
@@ -113,6 +126,7 @@ export async function makeFakePort(opts: FakeOptions = {}): Promise<FakePort> {
     async reportProgress(text, percent) {
       progress.push({ text, percent });
       opts.onProgress?.(text, percent);
+      if (opts.hangProgress) return never();
     },
     async importIntoProject(path) {
       calls.push('importIntoProject');
@@ -121,8 +135,22 @@ export async function makeFakePort(opts: FakeOptions = {}): Promise<FakePort> {
       if (b === 'throw') throw new Error('host import failed');
       if (b === 'hang') return never();
       if (b === 'empty') return '';
-      const dest = join(projectDir, `imported-${calls.length}.wav`);
+      if (b === 'same-path') return path;
+      if (b === 'relative') return 'Samples/Imported/aopx.wav';
+      const dest = join(b === 'in-temp' ? tempDirectory : projectDir, `imported-${calls.length}.wav`);
+      if (b === 'late') {
+        await new Promise((r) => setTimeout(r, opts.lateMs ?? 100));
+        await copyFile(path, dest);
+        port.lateImports++;
+        return dest;
+      }
+      if (b === 'unreadable') return join(projectDir, 'does-not-exist.wav');
       await copyFile(path, dest);
+      if (b === 'corrupt-copy') {
+        const bytes = new Uint8Array(await readFile(dest));
+        bytes[bytes.length - 1] = bytes[bytes.length - 1]! ^ 0xff;
+        await writeFile(dest, bytes);
+      }
       return dest;
     },
     async createAudioClip(trackId, spec) {
@@ -130,10 +158,13 @@ export async function makeFakePort(opts: FakeOptions = {}): Promise<FakePort> {
       const b = opts.createBehaviour ?? 'ok';
       if (b === 'throw') throw new Error('host create failed');
       if (b === 'hang') return never();
-      const { format } = decodeWav(new Uint8Array(await readFile(spec.filePath)));
-      const lengthBeats = (format.frames / format.sampleRate) * (port.selection.tempo / 60);
+      // Live knows the file's length; if the fake cannot read it, use the requested range.
+      const lengthBeats = await readFile(spec.filePath)
+        .then((b) => { const { format } = decodeWav(new Uint8Array(b)); return (format.frames / format.sampleRate) * (port.selection.tempo / 60); })
+        .catch(() => port.selection.endBeat - port.selection.startBeat);
       const start = b === 'wrong-start' ? spec.startBeat + 1 : spec.startBeat;
       const created: CreatedClip = { id: 'clip-new', trackId, filePath: spec.filePath, startBeat: start, endBeat: start + lengthBeats, warping: false, looping: false };
+      port.selection.resultOverlapCount++; // the result range is now occupied, as in Live
       return created;
     },
     log(event) {

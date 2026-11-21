@@ -229,7 +229,15 @@ export class Project {
 
   /** Copy a WAV into immutable project storage. The file at `path` is only read, never modified. */
   async importSource(path: string, name: string = basename(path)): Promise<SourceInfo> {
-    const bytes = await readFile(path);
+    return this.importSourceBytes(new Uint8Array(await readFile(path)), name, path);
+  }
+
+  /**
+   * Import WAV bytes the caller has already read and verified, so the file is not read a second
+   * time (a second read could see different content). `importedFrom` is recorded for provenance only.
+   */
+  async importSourceBytes(bytes: Uint8Array, name: string, importedFrom: string = name): Promise<SourceInfo> {
+    const path = importedFrom;
     const { format } = decodeWav(bytes); // validates the whole file
     const fingerprint = sha256Hex(bytes);
     const storedPath = join('sources', `${fingerprint}.wav`);

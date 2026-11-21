@@ -2,6 +2,8 @@
 
 **Assignment:** Issue #40 comment 7053628549, with the role change in 7053412885 (Claude implements, Codex audits). The owner approved it in chat, and I acknowledged it in comment 7054181284.
 
+**Revision 2 (remediation):** Codex review #7054566988 blocked `0690422`, and the owner GO #7055012449 authorized the fixes. §4a lists them. The plan below is otherwise unchanged except where marked.
+
 **Status:** an offline plan plus offline code. **No Live, no Extension Host, no CLI, no SDK install, no Set or media change, no merge.** PRs #75 and #78 have not been touched and remain drafts.
 
 **Branch:** `claude/peaceful-edison-ix41ct`, created from canonical `ableton-offline-processing/alpha-0.1` at `a57d5aa`.
@@ -47,7 +49,7 @@ These were read on GitHub master on 2026-11-21 for design facts only.
 |---|---|---|
 | Audacity `au3/libraries/au3-builtin-effects/TwoPassSimpleMono.cpp` | The two-pass effect framework runs an analysis pass over every selected track, then an apply pass, block by block | A future **Normalize** needs a peak-analysis pass and then a gain pass. The engine's per-node cache already stores the analysed input, so the analysis can be its own cacheable step. Not needed for Alpha 0.1 |
 | Audacity `au3/libraries/au3-wave-track/SampleBlock.h`, `Sequence.cpp` | Blocks of roughly 128k–256k float samples (1 MiB disk blocks), each with a `MinMaxRMS` summary and 256- and 64k-sample summaries. Whole-block summaries are combined, and only edge blocks are read | AOPX recomputes 512 min/max peaks from the decoded render each time it's invoked. That's fine for whole-clip Alpha. For long files, store multi-level peaks next to each cache object (future work) |
-| Audacity `Sequence.cpp` | Dither only when narrowing the sample format | AOPX output always equals the source format (it never narrows), so no dither is correct. This is already in the cache key as `dither:'none'` |
+| Audacity `Sequence.cpp` | Dither only when narrowing the sample format | **Corrected after review #7054566988 (LOW).** Keeping the source bit depth does **not** avoid quantization: the engine computes each step in float64 and quantizes back to the source PCM format (round half up, then saturate) at every node, so Gain on PCM loses up to ½ LSB per step and the error is correlated with the signal. Alpha 0.1 deliberately uses **no dither** (`dither:'none'`, part of the cache key) so output is deterministic, bit-exact across runs and cacheable. That is a policy trade-off, not "no precision loss". Pure Reverse is exact and must stay undithered. For float32/float64 sources the re-quantization error is far below audibility. TPDF dither with a fixed seed is the candidate if a later milestone wants it |
 | Audacity Reverse | **Not found** in the directories listed (`au3/src/effects`, `au3-builtin-effects`) | No claim made. The engine's frame-wise Reverse is already exact and tested |
 | Ardour `audiographer/general/normalizer.h` + `peak_reader.h` | `PeakReader` measures, then `Normalizer.set_peak()` applies gain: two passes | Confirms the Normalize design above |
 | Ardour `audiographer/general/sample_format_converter.h`, `chunker.h`, `process_context.h` | Chunked `ProcessContext` pushed through `Source → Sink`; float→int conversion with optional dither and a `max_samples` chunk cap | Path to **bounded memory**: the engine currently decodes whole files to float64. Streaming via fixed chunks through the existing kernels is the scalable design. Alpha 0.1 caps memory instead (`maxFileBytes` 512 MiB, `maxDecodedBytes` 2 GiB) |
@@ -110,6 +112,20 @@ The general flow drops #78's 2-beat/120 BPM/48 kHz restriction. Any rate, length
 - disabling AIFF detection (2 fail);
 - disabling the history restore (1 fail).
 
+## 4a. Remediation of review #7054566988
+
+| Finding | Fix | Regression tests (`test/review-regressions.test.ts`) |
+|---|---|---|
+| **H1** existing project overwritten | Create only when `project.json` is absent (lstat ENOENT). Any other open or lstat error → `failed/project-unreadable`, with no writes and before the editor | Newer schema with Cancel (the probe), corrupt JSON, a directory in place of the manifest, missing stored media: manifest bytes unchanged. Absent manifest: created |
+| **H2** blind re-run after an uncertain effect | `journal.ts`: a durable intent (exclusive tmp, fsync, rename, dir sync) before each request, then an ack. A record is closed only when every effect is known. Any open, interrupted or unparsable record makes every invocation return `reconciliation-required` **with no host call**, in this controller, another one, or after a restart, until `acknowledgeReconciliation`. An in-memory latch backs it up. A failed intent write means no dispatch | Hang→timeout→re-run (the probe): one import. Late completion: no create, no retry. Restart. Acknowledge clears it. Intent on disk before the import call. Write failure. Unreadable journal. Interrupted tmp |
+| **H3** cancel during the pre-create recheck still creates | The cancel check runs after every await (recheck, re-verify, journal), immediately before each dispatch | Abort at n===3 (the probe): no create, `partial`. Abort at n===2: no import |
+| **H4** export and import not verified | The export is re-read through a bounded read and hash-checked right before import. The receipt must be absolute, not the export path, not inside temp or storage (else `unknown-outcome/invalid-import-receipt`, no create). The imported copy is read back and hash-checked before create (`partial/imported-content-mismatch` or `-unverified`; record left open) | One byte changed during recheck (the probe). Same-path, relative and in-temp receipts. Corrupt copy. Unreadable copy (required vs `if-readable`) |
+| **H5** memory and re-read | `bounded-read.ts`: one descriptor, O_NOFOLLOW where available, dev/ino match, size cap, exact read, growth/shrink/mtime check. Prefix checks (format, frames, budget) run before the full allocation. Working-set budget `3×file + 24×samples` ≤ `maxWorkingSetBytes` (2 GiB default). One invocation per **process**. The engine gets the verified bytes via the new `Project.importSourceBytes`, so the render path is never read twice | The engine stores the admitted bytes even when the render path is rewritten afterwards. Growth and shrink during the read. Symlink. Cap. Budget refusal before the read. Second controller → `busy` |
+| **M1** hung progress blocks the outcome | `ProgressForwarder.drain(ms)` replaces the unbounded flush; after a timeout it detaches | Hung progress on success, host timeout and cancel: each returns, and the next run isn't blocked |
+| **M2** dishonest statuses after an effect | New statuses `partial` and `reconciliation-required`, plus `setChanged: 'no' \| 'yes' \| 'unknown'`. Known effects turn any non-completed stop into `partial`; uncertainty turns it into `unknown-outcome` | Drift after import (the probe): `partial`, `setChanged: 'yes'`. Existing tests updated |
+| **M3** loose container check | `wav-container.ts`: RIFF extent = file length, chunks in bounds with pad bytes, unique `fmt ` before a unique `data`, supported tag/bits (incl. EXTENSIBLE PCM/float), blockAlign/byteRate consistency, whole frames, finite floats. Runs on the full bytes, before the engine | The probe (RIFF size 12), plus 12 malformed variants; everything the engine writes (odd sizes with pad bytes) and EXTENSIBLE are accepted |
+| **LOW** dither wording | §3 corrected | — |
+
 ## 5. File-by-file plan for what remains (not implemented; each step is gated)
 
 | # | File | Change | Gate |
@@ -117,7 +133,7 @@ The general flow drops #78's 2-beat/120 BPM/48 kHz restriction. Any rate, length
 | P1 | `extension/src/live-port.ts` (new; **the only SDK importer**) | Implement `LivePort` with beta.1. Base it on #78's reviewed `live-port.ts` patterns: `getObjectFromHandle`, `instanceof AudioTrack`, BigInt handle IDs via `String()`, and overlap counts from `arrangementClips` over the range. Use `createAudioClip({ filePath, startTime, isWarped:false })` with **no `duration`** | Codex audit of this branch, then owner approval |
 | P2 | `extension/src/extension.ts` | Register the AudioClip context action. Wrap `createOfflineProcess` in `withinProgressDialog`, passing its `AbortSignal` and `update`. Show the outcome with its `effects` | P1 |
 | P3 | `extension/src/modal-delivery.ts` | Port `spikes/s3-modal/delivery.mjs`: `injectInitialState` into `editor/interface.html`, delivered as a unique temp file or a base64 data URL, whichever S3 proves | Independent pristine Modal fixture review (open gate) |
-| P4 | `extension/src/journal.ts` | Persist an intent/ack record before each effect (the #78 receipt pattern), so an `unknown-outcome` survives a crash and blocks a blind re-run | Optional for a first trial; recommended |
+| P4 | ~~`extension/src/journal.ts`~~ **Done in `integration/src/journal.ts`** (review H2) | A durable intent/ack record before each effect; `reconciliation-required` until acknowledged. The adapter must add a user-facing "I have checked the Set" action that calls `acknowledgeReconciliation` | **Mandatory** before any native trial |
 | P5 | `extension/ci/build.mjs`, `package.json`, `manifest.json` | A pinned esbuild **CommonJS** bundle with the SDK as the only external, and no minification (GUI review L1). This is the #78 loader fix | Native-loader gate |
 | P6 | `editor/interface.html` | Progress and error states for each `FlowResult.status`; GUI review M5 (no synthetic waveform for real state) | Separate GUI task |
 | P7 | `T8_ADAPTER_ARCHITECTURE.md` | Replace the "one transaction / create track" step with this flow | Doc-only, with P1 |
@@ -132,6 +148,9 @@ The general flow drops #78's 2-beat/120 BPM/48 kHz restriction. Any rate, length
 - **U6.** The modal close or Esc result on Windows WebView2. The flow treats any non-string or invalid value as a cancel.
 - **U7.** What an `importIntoProject` or `createAudioClip` throw means natively. The flow treats it as an unknown outcome, never as "no change".
 - **U8.** The end beat `createAudioClip` returns when `duration` is omitted. It is verified within the frame tolerance.
+- **U9.** Whether the Extension may read the project-managed imported copy. With `verifyImportedContent: 'required'`, the default, the flow stops before create if it can't, so this must be observed natively before a trial. Choosing `'if-readable'` is a decision for the owner.
+- **U10.** Whether Live's renders pass strict container validation: exact RIFF extent, unique `fmt `/`data`, consistent byteRate/blockAlign. A refusal is safe (`render-invalid-wav`) but would block the trial; record the actual header in the first native run.
+- **U11.** Output-affecting source state the selection snapshot doesn't capture: clip gain, fades, envelopes, source-media identity, song identity, tempo map (review note). The adapter must either add these to the recheck or keep a manual narrow preflight.
 
 ## 7. Codex audit target
 
