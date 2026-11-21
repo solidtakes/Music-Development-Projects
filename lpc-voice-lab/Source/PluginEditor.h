@@ -16,7 +16,8 @@ public:
 };
 
 class LPCVoiceLabEditor final : public juce::AudioProcessorEditor,
-                                private juce::Timer
+                                private juce::Timer,
+                                private juce::ChangeListener
 {
 public:
     explicit LPCVoiceLabEditor (LPCVoiceLabProcessor&);
@@ -27,6 +28,10 @@ public:
 
 private:
     void timerCallback() override;
+    void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    // Syncs the mode dropdown and repaints only the mode status label, and only
+    // when the shown mode actually changed.
+    void refreshVoiceModeDisplay();
     void applyFactoryPreset (int);
     void refreshPresetList();
     void savePresetDialog();
@@ -58,6 +63,8 @@ private:
     juce::Array<juce::File> userPresets;
     std::unique_ptr<juce::FileChooser> presetChooser;
     int presetIndex = -1;
+    LPCVoiceLabProcessor::VoiceMode shownVoiceMode = LPCVoiceLabProcessor::VoiceMode::talkBox;
+    static constexpr int kModeLabelX = 52, kModeLabelY = 704, kModeLabelW = 610, kModeLabelH = 19;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LPCVoiceLabEditor)
 };

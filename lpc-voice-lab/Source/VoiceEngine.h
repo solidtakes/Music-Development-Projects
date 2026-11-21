@@ -14,13 +14,24 @@ enum class VoiceMode { talkBox, nuVo };
 // only the selected core runs, and TalkBox output passes through untouched.
 //
 // A mode change is a crossfade, never a dropout. The incoming core starts from
-// cleared history (inactive-mode tails cannot reappear), so it is silent until
-// its fixed lookahead has filled; the outgoing core keeps running at full level
-// for that time, then the two are crossfaded linearly over 10 ms. A transition
-// therefore completes one lookahead (25 ms) plus 10 ms after the switch. Both
-// cores have the same fixed latency, so the crossfade is time-aligned and host
-// PDC never changes. Switching back mid-transition reverses the fade from where
-// it is, using the outgoing core, which is still live.
+// cleared history (inactive-mode tails cannot reappear), so its wet output is
+// not ready until it has warmed up; the outgoing core keeps running at full
+// level for that whole time, then the two are crossfaded linearly over 10 ms.
+//
+// Readiness is per core, measured from a reset against a continuously running
+// core on sustained input (see VoiceEngineTests):
+//   TalkBox: fixed lookahead + 3 N, where N = (int) (0.01633 * min (sr, 96 k))
+//            is its half-rate analysis buffer (one frame = 2 N input samples).
+//            A reset core is silent until about lookahead + 2 N and within
+//            1 dB by about lookahead + 2.5 N; lookahead + 3 N is the first
+//            point at which a frame made entirely of post-lookahead input has
+//            completed. About 74 ms at 48 kHz.
+//   NuVo:    fixed lookahead + 40 ms. Envelope followers settle with Quality:
+//            within 1 dB by about +18 ms at Quality 1, but only within 3.7 dB
+//            at +20 ms and 1.7 dB at +40 ms at Quality 0.
+// Both cores have the same fixed latency, so the crossfade is time-aligned and
+// host PDC never changes. Switching back mid-transition reverses the fade from
+// where it is, using the outgoing core, which is still live.
 class VoiceEngine
 {
 public:
@@ -30,8 +41,21 @@ public:
         talkBox.useFixedLookahead (true);
         nuVo.prepare (sr);
         rampLength = std::max (1, (int) (0.010 * sr));
+
+        // Mirrors TalkBoxCore::prepare exactly (float arithmetic, 8-96 kHz
+        // clamp, kBufMax bound); TalkBoxCore itself is left untouched.
+        float fs = sr > 0.0 ? (float) sr : 44100.0f;
+        fs = std::min (std::max (fs, 8000.0f), 96000.0f);
+        const int frameHalf = std::min (std::max ((int) (0.01633f * fs), 1), mdatb::kBufMax);
+        const int lookahead = talkBox.latencySamples();
+        ready[0] = lookahead + 3 * frameHalf;
+        ready[1] = lookahead + (int) (0.040 * (sr > 0.0 ? sr : 44100.0));
         reset();
     }
+
+    /** Samples from a switch until the output is purely the incoming core,
+        when that core starts from reset. */
+    int transitionSamples (VoiceMode to) const noexcept { return ready[(size_t) to] + rampLength; }
 
     // Snaps to the current mode with no transition in progress.
     void reset() noexcept
@@ -78,7 +102,7 @@ public:
         }
 
         const int target = (int) mode;
-        const int lookahead = latencySamples();
+        const int readyAt = ready[(size_t) target];
         for (int done = 0; done < count;)
         {
             const int n = std::min (kSubBlock, count - done);
@@ -86,8 +110,8 @@ public:
             nuVo.process (voice + done, carrier + done, nvL.data(), nvR.data(), n);
             for (int i = 0; i < n; ++i)
             {
-                // Hold the mix until the incoming core's lookahead is full.
-                if (primed[(size_t) target] >= lookahead)
+                // Hold the mix until the incoming core's wet path is ready.
+                if (primed[(size_t) target] >= readyAt)
                 {
                     if (target == 1 && position < rampLength) ++position;
                     else if (target == 0 && position > 0) --position;
@@ -120,6 +144,7 @@ private:
     VoiceMode mode = VoiceMode::talkBox;
     std::array<bool, 2> running { true, false };
     std::array<int, 2> primed { INT_MAX, INT_MAX };
+    std::array<int, 2> ready { 0, 0 };   // samples after reset until wet output is ready
     int rampLength = 441, position = 0;
     // Scratch for the crossfade only; no allocation on the audio thread.
     std::array<float, kSubBlock> tbL {}, tbR {}, nvL {}, nvR {};

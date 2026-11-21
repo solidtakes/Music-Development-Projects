@@ -6,6 +6,8 @@
  *   - New presets written in either mode restore that mode and every parameter.
  *   - Unknown or malformed modes fall back to TalkBox; foreign XML is rejected.
  *   - All fourteen Alpha 0.4 parameter IDs are present, unchanged, in order.
+ *   - A host session restore never reports nonParameterStateChanged; user
+ *     mode changes and preset loads still do.
  */
 
 #include "PluginProcessor.h"
@@ -246,6 +248,132 @@ void factoryPresetsSelectTalkBox()
     check (ok, "factory presets select TalkBox");
 }
 
+//==============================================================================
+// Host notification: counts audioProcessorChanged calls flagged
+// nonParameterStateChanged (what JUCE's VST3 wrapper turns into setDirty).
+struct DirtyCounter final : juce::AudioProcessorListener
+{
+    int count = 0;
+    void audioProcessorParameterChanged (juce::AudioProcessor*, int, float) override {}
+    void audioProcessorChanged (juce::AudioProcessor*, const ChangeDetails& details) override
+    {
+        if (details.nonParameterStateChanged) ++count;
+    }
+};
+
+juce::MemoryBlock chunkFor (Mode mode)
+{
+    LPCVoiceLabProcessor source;
+    setValues (source, kNewValues);
+    source.setVoiceMode (mode);
+    juce::MemoryBlock chunk;
+    source.getStateInformation (chunk);
+    return chunk;
+}
+
+void hostRestoreDoesNotNotify()
+{
+    std::string detail;
+    bool ok = true;
+    // A NuVo session opened into a fresh (TalkBox) instance, and a legacy
+    // Alpha 0.4 chunk opened into a NuVo instance: both change the mode.
+    {
+        LPCVoiceLabProcessor p;
+        DirtyCounter dirty;
+        p.addListener (&dirty);
+        const auto chunk = chunkFor (Mode::nuVo);
+        p.setStateInformation (chunk.getData(), (int) chunk.getSize());
+        ok = ok && p.getVoiceMode() == Mode::nuVo && dirty.count == 0;
+        detail += "nuvo chunk: " + std::to_string (dirty.count);
+        p.removeListener (&dirty);
+    }
+    {
+        auto xml = parse (kLegacyPreset);
+        juce::MemoryBlock chunk;
+        juce::AudioProcessor::copyXmlToBinary (*xml, chunk);
+        LPCVoiceLabProcessor p;
+        p.setVoiceMode (Mode::nuVo);
+        DirtyCounter dirty;
+        p.addListener (&dirty);
+        p.setStateInformation (chunk.getData(), (int) chunk.getSize());
+        ok = ok && p.getVoiceMode() == Mode::talkBox && dirty.count == 0;
+        detail += ", legacy chunk: " + std::to_string (dirty.count);
+        p.removeListener (&dirty);
+    }
+    check (ok, "host session restore sends no dirty notification", detail + " (want 0)");
+}
+
+void userChangesStillNotify()
+{
+    LPCVoiceLabProcessor p;
+    DirtyCounter dirty;
+    p.addListener (&dirty);
+
+    p.setVoiceMode (Mode::nuVo);                    // dropdown: change
+    const int afterDropdown = dirty.count;
+    p.setVoiceMode (Mode::nuVo);                    // dropdown: same mode, no change
+    const int afterSame = dirty.count;
+
+    auto legacy = parse (kLegacyPreset);            // user loads an Alpha 0.4 preset
+    p.restoreStateXml (*legacy);
+    const int afterPreset = dirty.count;
+
+    p.setVoiceMode (Mode::nuVo);
+    const int beforeFactory = dirty.count;
+    p.applyFactoryPreset (0);                       // factory preset selects TalkBox
+    const int afterFactory = dirty.count;
+    p.removeListener (&dirty);
+
+    const bool ok = afterDropdown == 1 && afterSame == 1 && afterPreset == 2
+                 && afterFactory == beforeFactory + 1 && p.getVoiceMode() == Mode::talkBox;
+    char buf[128];
+    std::snprintf (buf, sizeof buf, "dropdown %d, same %d, preset %d, factory +%d",
+                   afterDropdown, afterSame, afterPreset, afterFactory - beforeFactory);
+    check (ok, "user mode changes and presets still notify", buf);
+}
+
+void editorFollowsModeChanges()
+{
+    LPCVoiceLabProcessor p;
+    std::unique_ptr<juce::AudioProcessorEditor> editor (p.createEditor());
+    juce::ComboBox* modeBox = nullptr;
+    for (auto* child : editor->getChildren())
+        if (auto* box = dynamic_cast<juce::ComboBox*> (child))
+            if (box->getNumItems() == 2 && box->getItemText (1).startsWith ("NUVO"))
+                modeBox = box;
+    if (modeBox == nullptr)
+    {
+        check (false, "editor mode display follows every change", "mode dropdown not found");
+        return;
+    }
+
+    // Deliver the async change message the way the message loop would.
+    const auto shown = [&] { p.voiceModeChanged.dispatchPendingMessages(); return modeBox->getSelectedId(); };
+    std::string detail;
+
+    const auto chunk = chunkFor (Mode::nuVo);
+    p.setStateInformation (chunk.getData(), (int) chunk.getSize());    // DAW restore, editor open
+    const int afterRestore = shown();
+    p.restoreStateXml (*parse (kLegacyPreset));                       // preset load
+    const int afterPreset = shown();
+    p.setVoiceMode (Mode::nuVo);                                       // change from elsewhere
+    const int afterExternal = shown();
+
+    DirtyCounter dirty;
+    p.addListener (&dirty);
+    modeBox->setSelectedId (1, juce::sendNotificationSync);           // user picks TalkBox
+    p.removeListener (&dirty);
+
+    const bool ok = afterRestore == 2 && afterPreset == 1 && afterExternal == 2
+                 && p.getVoiceMode() == Mode::talkBox && dirty.count == 1;
+    char buf[128];
+    std::snprintf (buf, sizeof buf, "restore %d, preset %d, external %d, dropdown -> %s (notified %d)",
+                   afterRestore, afterPreset, afterExternal,
+                   p.getVoiceMode() == Mode::talkBox ? "TalkBox" : "NuVo", dirty.count);
+    check (ok, "editor mode display follows every change", buf);
+    editor.reset();
+}
+
 } // namespace
 
 int main()
@@ -265,6 +393,9 @@ int main()
     foreignXmlIsRejected();
     voiceModeStaysOutOfParameterTree();
     factoryPresetsSelectTalkBox();
+    hostRestoreDoesNotNotify();
+    userChangesStillNotify();
+    editorFollowsModeChanges();
 
     std::printf ("\n%s\n", failures == 0 ? "all checks passed" : "FAILURES PRESENT");
     return failures == 0 ? 0 : 1;

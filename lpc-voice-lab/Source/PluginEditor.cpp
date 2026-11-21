@@ -177,13 +177,16 @@ LPCVoiceLabEditor::LPCVoiceLabEditor (LPCVoiceLabProcessor& p)
     voiceModeChoice.setColour (juce::ComboBox::backgroundColourId, lighter);
     voiceModeChoice.setColour (juce::ComboBox::textColourId, paper);
     voiceModeChoice.setColour (juce::ComboBox::outlineColourId, muted);
-    voiceModeChoice.setSelectedId (processor.getVoiceMode() == LPCVoiceLabProcessor::VoiceMode::nuVo ? 2 : 1);
+    shownVoiceMode = processor.getVoiceMode();
+    voiceModeChoice.setSelectedId (shownVoiceMode == LPCVoiceLabProcessor::VoiceMode::nuVo ? 2 : 1);
     voiceModeChoice.onChange = [this]
     {
         processor.setVoiceMode (voiceModeChoice.getSelectedId() == 2
             ? LPCVoiceLabProcessor::VoiceMode::nuVo : LPCVoiceLabProcessor::VoiceMode::talkBox);
+        refreshVoiceModeDisplay();
     };
     addAndMakeVisible (voiceModeChoice);
+    processor.voiceModeChanged.addChangeListener (this);
 
     for (auto* button : { &unvoicedToggle, &retroToggle, &bypassToggle })
     {
@@ -242,6 +245,7 @@ LPCVoiceLabEditor::LPCVoiceLabEditor (LPCVoiceLabProcessor& p)
 
 LPCVoiceLabEditor::~LPCVoiceLabEditor()
 {
+    processor.voiceModeChanged.removeChangeListener (this);
     stopTimer();
     for (auto& item : attachments) item.reset();
     orderAttachment.reset();
@@ -384,6 +388,7 @@ void LPCVoiceLabEditor::loadPresetFromFile (const juce::File& file)
     presetIndex = -1;
     currentProgram.setText (file.getFileNameWithoutExtension(), juce::dontSendNotification);
     presetMessage.setText ("LOADED  /  " + file.getFileName(), juce::dontSendNotification);
+    refreshVoiceModeDisplay();
     repaint();
 }
 
@@ -397,13 +402,31 @@ void LPCVoiceLabEditor::applyFactoryPreset (int index)
     currentProgram.setText (names[juce::jlimit (0, 2, index)], juce::dontSendNotification);
     presetMessage.setText ("PRESET CHANGED / GAIN TRIMS PRESERVED",
                             juce::dontSendNotification);
+    refreshVoiceModeDisplay();
     repaint();
+}
+
+void LPCVoiceLabEditor::refreshVoiceModeDisplay()
+{
+    const auto mode = processor.getVoiceMode();
+    voiceModeChoice.setSelectedId (mode == LPCVoiceLabProcessor::VoiceMode::nuVo ? 2 : 1,
+                                   juce::dontSendNotification);
+    if (mode != shownVoiceMode)
+    {
+        shownVoiceMode = mode;
+        repaint (kModeLabelX, kModeLabelY, kModeLabelW, kModeLabelH);
+    }
+}
+
+void LPCVoiceLabEditor::changeListenerCallback (juce::ChangeBroadcaster*)
+{
+    // Message thread, posted by setVoiceMode (dropdown, presets, DAW restore).
+    refreshVoiceModeDisplay();
 }
 
 void LPCVoiceLabEditor::timerCallback()
 {
-    voiceModeChoice.setSelectedId (processor.getVoiceMode() == LPCVoiceLabProcessor::VoiceMode::nuVo ? 2 : 1,
-                                   juce::dontSendNotification);
+    refreshVoiceModeDisplay();  // cheap fallback; repaints the label only on change
     repaint (juce::Rectangle<int> (800, 215, 380, 180));
 }
 
@@ -489,7 +512,7 @@ void LPCVoiceLabEditor::paint (juce::Graphics& g)
     label (g, processor.getVoiceMode() == LPCVoiceLabProcessor::VoiceMode::nuVo
                ? "NUVO EXPERIMENT  /  REFERENCE MATCH UNVERIFIED"
                : "TALKBOX ENGINE  /  ALPHA 0.4 PROCESSING",
-           { 52, 704, 610, 19 }, 11, muted);
+           { kModeLabelX, kModeLabelY, kModeLabelW, kModeLabelH }, 11, muted);
 }
 
 void LPCVoiceLabEditor::resized()

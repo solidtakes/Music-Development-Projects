@@ -42,10 +42,21 @@ public:
     // Optional preset metadata, deliberately not a new automatable parameter.
     using VoiceMode = lpc::VoiceMode;
     VoiceMode getVoiceMode() const noexcept { return voiceMode.load (std::memory_order_relaxed); }
-    void setVoiceMode (VoiceMode);
+
+    // notifyHost = true for user-driven changes (the dropdown, presets): the
+    // host is told the non-parameter state changed so it can offer to save.
+    // A host-driven session restore passes false: the host supplied that
+    // state itself, so reporting it as a change would only mark the session
+    // dirty on open.
+    void setVoiceMode (VoiceMode, bool notifyHost = true);
     std::unique_ptr<juce::XmlElement> captureStateXml();
-    bool restoreStateXml (const juce::XmlElement&);
+    bool restoreStateXml (const juce::XmlElement&, bool notifyHost = true);
     void applyFactoryPreset (int index);
+
+    // UI-only: fires (asynchronously, on the message thread) whenever the
+    // voice mode changes, including host session restores, so an open editor
+    // can refresh its mode display. Independent of host notification.
+    juce::ChangeBroadcaster voiceModeChanged;
 
     juce::AudioProcessorValueTreeState apvts;
 

@@ -271,13 +271,17 @@ void LPCVoiceLabProcessor::getStateInformation (juce::MemoryBlock& destData)
 
 void LPCVoiceLabProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
+    // Host-driven restore: never report it back as a change (see header).
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
-        restoreStateXml (*xml);
+        restoreStateXml (*xml, false);
 }
 
-void LPCVoiceLabProcessor::setVoiceMode (VoiceMode mode)
+void LPCVoiceLabProcessor::setVoiceMode (VoiceMode mode, bool notifyHost)
 {
-    if (voiceMode.exchange (mode, std::memory_order_relaxed) != mode)
+    if (voiceMode.exchange (mode, std::memory_order_relaxed) == mode)
+        return;
+    voiceModeChanged.sendChangeMessage();  // async; safe from any non-audio thread
+    if (notifyHost)
         updateHostDisplay (ChangeDetails().withNonParameterStateChanged (true));
 }
 
@@ -289,7 +293,7 @@ std::unique_ptr<juce::XmlElement> LPCVoiceLabProcessor::captureStateXml()
     return xml;
 }
 
-bool LPCVoiceLabProcessor::restoreStateXml (const juce::XmlElement& xml)
+bool LPCVoiceLabProcessor::restoreStateXml (const juce::XmlElement& xml, bool notifyHost)
 {
     if (! xml.hasTagName (apvts.state.getType())) return false;
     auto state = juce::ValueTree::fromXml (xml);
@@ -299,7 +303,8 @@ bool LPCVoiceLabProcessor::restoreStateXml (const juce::XmlElement& xml)
     state.removeProperty ("voiceMode", nullptr);
     apvts.replaceState (state);
     // Legacy presets and unknown future modes always select the protected engine.
-    setVoiceMode (xml.getStringAttribute ("voiceMode") == "NuVo" ? VoiceMode::nuVo : VoiceMode::talkBox);
+    setVoiceMode (xml.getStringAttribute ("voiceMode") == "NuVo" ? VoiceMode::nuVo : VoiceMode::talkBox,
+                  notifyHost);
     return true;
 }
 
