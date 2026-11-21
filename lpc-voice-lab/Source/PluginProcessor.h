@@ -53,11 +53,26 @@ private:
     std::atomic<float>* pUnvoiced = nullptr;
     std::atomic<float>* pFricGain = nullptr;
     std::atomic<float>* pLowEnd   = nullptr;
+    std::atomic<float>* pMicGain  = nullptr;
+    std::atomic<float>* pCarGain  = nullptr;
+    std::atomic<float>* pOutGain  = nullptr;
+    std::atomic<float>* pBypass   = nullptr;
+    std::atomic<float>* pRetro    = nullptr;
+    std::atomic<float>* pGrit     = nullptr;
+    std::atomic<float>* pBandwidth = nullptr;
 
     static constexpr int kChunkSize = 1024;
     std::array<float, kChunkSize> voiceScratch {};
     std::array<float, kChunkSize> carrierScratch {};
     int reportedLatency = 0;
+    float sampleRateHz = 44100.0f;
+    float retroLP = 0.0f;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> micGainSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> carGainSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> outGainSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> retroMixSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> lpAlphaSmooth;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Linear> driveSmooth;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LPCVoiceLabProcessor)
 };

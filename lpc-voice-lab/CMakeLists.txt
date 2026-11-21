@@ -69,6 +69,7 @@ juce_add_plugin(LPCVoiceLab
 
 target_sources(LPCVoiceLab PRIVATE
     Source/PluginProcessor.cpp
+    Source/PluginEditor.cpp
     Source/TalkBoxCore.cpp)
 
 target_compile_definitions(LPCVoiceLab PUBLIC
