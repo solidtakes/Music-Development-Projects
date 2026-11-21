@@ -59,12 +59,16 @@ Separate source preparation approval and review PASS do not authorize any of the
    `spikes/s5-t1-trial/.build/`. No script launches a host.
    The trial manifest is `manifest.trial.json`, not an automatically installed `manifest.json`.
    In the **new scratch trial workspace only**, the owner-approved staging procedure would copy that
-   reviewed manifest to the CLI-required `manifest.json`, with identical bytes/checksum, and make
-   the exact locally installed beta.1 SDK resolvable to the emitted entry (no SDK payload in ZIP).
-   The already-installed matching SDK CLI would be used; no registry upgrades or new build hooks.
-   Record exact source/emitted/manifest checksums and paths locally. Loader compatibility is untested:
-   if the existing CLI rejects the ESM static build or module resolution, STOP and report before
-   any mutation; do not improvise a bundler, change code or relax guards without review.
+   reviewed manifest to the CLI-required `manifest.json`, with identical bytes/checksum. The
+   reviewed controlled build must use `--sdk-runtime <verified beta.1 dist/index.cjs>` and
+   `--sdk-types <matching index.d.mts>` to embed the verified SDK in the CommonJS entry;
+   stage the generated `.build/package.json` alongside that entry. The source ZIP itself contains
+   neither SDK nor emitted runtime bundle. The already-installed matching SDK CLI would be used
+   only after separate native authorization; no registry upgrades or new build hooks.
+   Record SDK/toolchain versions, runtime/declaration and emitted entry SHA-256, CJS scope,
+   manifest checksums and paths locally. Loader compatibility is still untested natively:
+   if the host rejects the CommonJS entry or handshake, STOP before any mutation; do not
+   improvise a bundler, change code or relax guards without review.
 5. **Manual preflight before a future approved load.** Owner would stop other extension CLIs,
    keep production closed, confirm stopped transport/120 BPM/source and target table conditions,
    record baseline screenshots/object counts. Check FX, fades, automation, group/routing and exact

@@ -1,9 +1,14 @@
 name: AOPX S5 T1 controlled candidate OFFLINE
 on:
   pull_request:
-    branches: [codex/aopx-s5-t1-build-only]
+    branches: [codex/aopx-s5-t1-build-only, codex/aopx-s5-t1-controlled-candidate]
     paths:
       - 'ableton-offline-processing/spikes/s5-t1-trial/**'
+      - 'ableton-offline-processing/spikes/s5-t1/**'
+      - 'ableton-offline-processing/spikes/s5-design/**'
+      - 'ableton-offline-processing/engine/src/**'
+      - 'ableton-offline-processing/engine/package.json'
+      - 'ableton-offline-processing/engine/package-lock.json'
       - '.github/workflows/aopx-s5-t1-controlled.yml'
 permissions:
   contents: read
@@ -14,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
-        node: ['24.14.1','26.13.0']
+        node: ['24.14.1','24.22.1','26.13.0']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -22,13 +27,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+      - name: Report toolchain (24.14.1 below real SDK minimum; mock only)
+        run: |
+          node --version
+          npm --version
+          python --version
       - name: Existing locked compiler and CommonJS bundler only
         working-directory: ableton-offline-processing/engine
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Default locked static build
         run: node ableton-offline-processing/spikes/s5-t1/ci/build.mjs
       - name: Separate controlled CommonJS bundle (mock SDK declarations)
-        run: node ableton-offline-processing/spikes/s5-t1-trial/ci/build.mjs
+        run: node ableton-offline-processing/spikes/s5-t1-trial/ci/build.mjs --sdk-mock
       - name: Manifest and host-loader compatibility evidence
         run: node --test --test-reporter=spec ableton-offline-processing/spikes/s5-t1-trial/test/loader-format.test.ts
       - name: Mock SDK and synthetic tests - NO LIVE

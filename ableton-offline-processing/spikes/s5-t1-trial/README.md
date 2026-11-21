@@ -27,19 +27,23 @@ unchanged and unmerged. No existing source file is modified by this candidate.
 
 ## Beta.1 loader compatibility
 
-The installed SDK beta.1 examples use esbuild `0.28.1` to emit a bundled CommonJS `.js` entry even
-though their source packages declare `"type": "module"`. The first controlled candidate instead
-emitted unbundled ESM and the native Extension Host rejected its leading `import` statement before
-activation. This branch preserves the manifest path and runtime source while changing only the
-controlled build product: TypeScript still performs strict declaration-only checking, then pinned
-esbuild bundles all AOPX modules as CommonJS. `@ableton-extensions/sdk` remains the one external
-package and resolves through its published beta.1 CommonJS `require` export in the staged SDK.
+The verified beta.1 modal-dialog example bundles the SDK into a standalone CommonJS `.js` entry.
+The former candidate left `@ableton-extensions/sdk` external, a loader assumption not demonstrated
+in the native host. The manifest path and all runtime source remain unchanged. Strict TypeScript
+checking runs before pinned esbuild `0.28.1` creates a CommonJS entry containing either the CI-only
+mock SDK (`--sdk-mock`) or the *verified locally installed* beta.1 CJS SDK runtime
+(`--sdk-runtime <verified-index.cjs> --sdk-types <matching-index.d.mts>`).
+The latter validates the package's name/version, published CJS export and colocated declarations,
+then bundles the runtime without executing it. No implicit external-SDK fallback is permitted.
 
-Offline loader tests resolve the manifest entry, reject ESM syntax and relative runtime requires,
-parse the bundle through a CommonJS wrapper, and prove that evaluating it has no registrations or
-project effects. A mock activation may register exactly one command and one context-menu action;
-the command is never invoked. These checks run on the native host's Node `24.14.1` line and current
-Node `26.13.0`, but they do not launch or emulate the native Extension Host.
+The generated `.build/package.json` declares `"type":"commonjs"` so ordinary Node loading
+treats the emitted `.js` as CJS despite the source package's `"type":"module"`.
+The builder fixes esbuild's working directory to the repository root, rejects unexpected or
+dynamic runtime dependencies, and logs toolchain versions and artifact SHA-256 hashes.
+Mock-only loader tests verify zero load-time side effects, exact registration without command
+invocation, ordinary CommonJS load, and filesystem/dependency/ESM mutation detection. CI tests
+Windows/Linux on 24.14.1 (diagnostic **below** beta.1's declared >=24.16.0 minimum), current
+Live 12 target 24.22.1, and development Node 26.13.0. None proves native host behavior.
 
 ## Pinned owner source and verification boundary
 
@@ -104,17 +108,18 @@ From extracted/repository root, using the existing pinned compiler dependencies:
 
 ```powershell
 node ableton-offline-processing/spikes/s5-t1/ci/build.mjs
-node ableton-offline-processing/spikes/s5-t1-trial/ci/build.mjs
+node ableton-offline-processing/spikes/s5-t1-trial/ci/build.mjs --sdk-mock
 node --test --test-reporter=spec ableton-offline-processing/spikes/s5-t1-trial/test/*.test.ts ableton-offline-processing/spikes/s5-t1/test/*.test.ts ableton-offline-processing/spikes/s5-design/fake-host.test.mjs
 python ableton-offline-processing/spikes/s5-t1-trial/ci/test_package.py
 ```
 
-Both build scripts accept `--tsc <existing typescript/lib/tsc.js>` and `--sdk-types <actual
-beta.1 index.d.mts>` for **declaration-only** static checking. The controlled build also accepts
-`--esbuild <existing esbuild/bin/esbuild>` and uses the pinned `0.28.1` compiler. The actual SDK
-runtime is never loaded in build/test. CI uses the locked compiler/bundler and explicitly
-handwritten mock SDK, Windows/Linux × Node 24.14.1/26.13.0. No SDK dependency or native SDK
-distribution is added.
+Both build scripts accept `--tsc <existing typescript/lib/tsc.js>` and an explicit
+`--sdk-types <actual beta.1 index.d.mts>` for declaration-based checking. The controlled
+builder accepts `--esbuild <existing esbuild/bin/esbuild>` and requires exactly one of
+`--sdk-mock` or `--sdk-runtime <verified beta.1 dist/index.cjs>`; real-SDK mode also requires
+matching `--sdk-types`. It reads SDK bytes for bundling but never imports/executes the runtime.
+CI uses only the handwritten SDK mock. The actual SDK is **not** included in the source ZIP and
+no native load, registration or processing is authorized by an offline build.
 
 Tests cover both activation entries and real adapter through mock SDK, invalid consent, one-shot
 effects, profile constraints, source provenance limitation, DOM confirmation behavior and privacy;
