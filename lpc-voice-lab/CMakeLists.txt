@@ -6,7 +6,7 @@ if(APPLE)
     set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "macOS architectures")
 endif()
 
-project(MDATalkboxPlus VERSION 1.0.0 LANGUAGES C CXX)
+project(LPCVoiceLab VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -51,12 +51,12 @@ if(APPLE)
     list(APPEND TBX_FORMATS AU)
 endif()
 
-juce_add_plugin(MDATalkboxPlus
-    PRODUCT_NAME                "MDA Talkbox Plus"
-    COMPANY_NAME                "mda-talkbox-plus"
-    BUNDLE_ID                   "com.mdatalkboxplus.talkboxplus"
-    PLUGIN_MANUFACTURER_CODE    Brrs
-    PLUGIN_CODE                 Tbxp
+juce_add_plugin(LPCVoiceLab
+    PRODUCT_NAME                "LPC Voice Lab"
+    COMPANY_NAME                "solidtakes"
+    BUNDLE_ID                   "com.solidtakes.lpcvoicelab"
+    PLUGIN_MANUFACTURER_CODE    Sltk
+    PLUGIN_CODE                 Lpvc
     FORMATS                     ${TBX_FORMATS}
     VST3_CATEGORIES             "Fx" "Modulation"
     AU_MAIN_TYPE                kAudioUnitType_Effect
@@ -67,18 +67,18 @@ juce_add_plugin(MDATalkboxPlus
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD     FALSE)
 
-target_sources(MDATalkboxPlus PRIVATE
+target_sources(LPCVoiceLab PRIVATE
     Source/PluginProcessor.cpp
     Source/TalkBoxCore.cpp)
 
-target_compile_definitions(MDATalkboxPlus PUBLIC
+target_compile_definitions(LPCVoiceLab PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
     JUCE_REPORT_APP_USAGE=0)
 
-target_link_libraries(MDATalkboxPlus PRIVATE
+target_link_libraries(LPCVoiceLab PRIVATE
     juce::juce_audio_utils
     PUBLIC
     juce::juce_recommended_config_flags

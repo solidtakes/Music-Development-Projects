@@ -3,13 +3,14 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "TalkBoxCore.h"
+#include <array>
 
 //==============================================================================
-class MDATalkboxPlusProcessor final : public juce::AudioProcessor
+class LPCVoiceLabProcessor final : public juce::AudioProcessor
 {
 public:
-    MDATalkboxPlusProcessor();
-    ~MDATalkboxPlusProcessor() override = default;
+    LPCVoiceLabProcessor();
+    ~LPCVoiceLabProcessor() override = default;
 
     //==========================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -47,14 +48,16 @@ private:
 
     std::atomic<float>* pWet      = nullptr;
     std::atomic<float>* pDry      = nullptr;
-    std::atomic<float>* pCarrier  = nullptr;
     std::atomic<float>* pQuality  = nullptr;
     std::atomic<float>* pOrder    = nullptr;
     std::atomic<float>* pUnvoiced = nullptr;
     std::atomic<float>* pFricGain = nullptr;
     std::atomic<float>* pLowEnd   = nullptr;
 
+    static constexpr int kChunkSize = 1024;
+    std::array<float, kChunkSize> voiceScratch {};
+    std::array<float, kChunkSize> carrierScratch {};
     int reportedLatency = 0;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MDATalkboxPlusProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LPCVoiceLabProcessor)
 };

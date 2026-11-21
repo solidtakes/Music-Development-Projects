@@ -11,7 +11,7 @@ namespace
 
 //==============================================================================
 juce::AudioProcessorValueTreeState::ParameterLayout
-MDATalkboxPlusProcessor::createParameterLayout()
+LPCVoiceLabProcessor::createParameterLayout()
 {
     using namespace juce;
 
@@ -28,11 +28,6 @@ MDATalkboxPlusProcessor::createParameterLayout()
     layout.add (std::make_unique<AudioParameterFloat> (
         ParameterID { "dry", 1 }, "Dry", unitRange, 0.0f,
         AudioParameterFloatAttributes().withStringFromValueFunction (percentString)));
-
-    // Which input channel carries the carrier (the synth). The other channel is
-    // the modulator (the voice). Index order matches upstream's swap flag.
-    layout.add (std::make_unique<AudioParameterChoice> (
-        ParameterID { "carrier", 1 }, "Carrier", StringArray { "Right", "Left" }, 0));
 
     layout.add (std::make_unique<AudioParameterFloat> (
         ParameterID { "quality", 1 }, "Quality", unitRange, 1.0f,
@@ -65,15 +60,15 @@ MDATalkboxPlusProcessor::createParameterLayout()
 }
 
 //==============================================================================
-MDATalkboxPlusProcessor::MDATalkboxPlusProcessor()
+LPCVoiceLabProcessor::LPCVoiceLabProcessor()
     : AudioProcessor (BusesProperties()
-                          .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                          .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
+                          .withInput  ("Voice",     juce::AudioChannelSet::stereo(), true)
+                          .withInput  ("Sidechain", juce::AudioChannelSet::stereo(), false)
+                          .withOutput ("Output",    juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "PARAMS", createParameterLayout())
 {
     pWet      = apvts.getRawParameterValue ("wet");
     pDry      = apvts.getRawParameterValue ("dry");
-    pCarrier  = apvts.getRawParameterValue ("carrier");
     pQuality  = apvts.getRawParameterValue ("quality");
     pOrder    = apvts.getRawParameterValue ("order");
     pUnvoiced = apvts.getRawParameterValue ("unvoiced");
@@ -82,53 +77,61 @@ MDATalkboxPlusProcessor::MDATalkboxPlusProcessor()
 }
 
 //==============================================================================
-void MDATalkboxPlusProcessor::prepareToPlay (double sampleRate, int)
+void LPCVoiceLabProcessor::prepareToPlay (double sampleRate, int)
 {
     core.prepare (sampleRate);
     reportedLatency = 0;
     setLatencySamples (0);
 }
 
-void MDATalkboxPlusProcessor::releaseResources()
+void LPCVoiceLabProcessor::releaseResources()
 {
 }
 
-bool MDATalkboxPlusProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+
+bool LPCVoiceLabProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
-    // The algorithm needs two distinct input channels: one modulator, one
-    // carrier. Stereo in, stereo out, exactly as upstream.
-    return layouts.getMainInputChannelSet()  == juce::AudioChannelSet::stereo()
-        && layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
+    const auto voice = layouts.getMainInputChannelSet();
+    const auto sidechain = layouts.getChannelSet (true, 1);
+    const auto output = layouts.getMainOutputChannelSet();
+    return voice == juce::AudioChannelSet::stereo()
+        && output == juce::AudioChannelSet::stereo()
+        && (sidechain.isDisabled() || sidechain == juce::AudioChannelSet::mono()
+                                    || sidechain == juce::AudioChannelSet::stereo());
 }
 
-void MDATalkboxPlusProcessor::processBlock (juce::AudioBuffer<float>& buffer,
-                                            juce::MidiBuffer&)
+void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
+                                        juce::MidiBuffer&)
 {
     juce::ScopedNoDenormals noDenormals;
-
     const int numSamples = buffer.getNumSamples();
-
-    for (int ch = getTotalNumInputChannels(); ch < getTotalNumOutputChannels(); ++ch)
-        buffer.clear (ch, 0, numSamples);
-
-    if (buffer.getNumChannels() < 2 || numSamples <= 0)
+    if (numSamples <= 0)
         return;
+
+    // Voice is the main input; carrier comes from the external sidechain.
+    // No carrier bus = silence, so a live microphone never accidentally leaks.
+    auto voice = getBusBuffer (buffer, true, 0);
+    auto carrier = getBusBuffer (buffer, true, 1);
+    auto output = getBusBuffer (buffer, false, 0);
+    if (voice.getNumChannels() == 0 || carrier.getNumChannels() == 0
+        || output.getNumChannels() < 2)
+    {
+        output.clear();
+        return;
+    }
 
     mdatb::TalkBoxCore::Params p;
     p.wet             = pWet->load();
     p.dry             = pDry->load();
-    p.swap            = pCarrier->load() >= 0.5f;   // index 1 == carrier on the left
+    p.swap            = false; // LPC core channel 0 is voice; channel 1 carrier
     p.quality         = pQuality->load();
     p.orderHigh       = pOrder->load() >= 0.5f;
     p.unvoiced        = pUnvoiced->load() >= 0.5f;
     p.fricativeGainDb = pFricGain->load();
     p.lowEnd          = pLowEnd->load();
-
     core.setParams (p);
 
-    // Enabling the passthrough puts a lookahead delay in the signal path. The
-    // host is told about it so the wet output lands back on the timeline; with
-    // the feature off the latency is zero and the path is the original one.
+    // TODO: review dynamic latency updates for real-time safety and host PDC.
     const int latency = core.latencySamples();
     if (latency != reportedLatency)
     {
@@ -136,28 +139,42 @@ void MDATalkboxPlusProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         setLatencySamples (latency);
     }
 
-    const float* inL = buffer.getReadPointer (0);
-    const float* inR = buffer.getReadPointer (1);
-    float* outL = buffer.getWritePointer (0);
-    float* outR = buffer.getWritePointer (1);
+    const float* modL = voice.getReadPointer (0);
+    const float* modR = voice.getReadPointer (voice.getNumChannels() > 1 ? 1 : 0);
+    const float* carL = carrier.getReadPointer (0);
+    const float* carR = carrier.getReadPointer (carrier.getNumChannels() > 1 ? 1 : 0);
+    float* outL = output.getWritePointer (0);
+    float* outR = output.getWritePointer (1);
 
-    core.process (inL, inR, outL, outR, numSamples);
+    // No heap allocation in processBlock, and host blocks may exceed kChunkSize.
+    // Read input into scratch before writing: the main input aliases the output.
+    for (int offset = 0; offset < numSamples; offset += kChunkSize)
+    {
+        const int count = juce::jmin (kChunkSize, numSamples - offset);
+        for (int i = 0; i < count; ++i)
+        {
+            voiceScratch[(size_t) i] = 0.5f * (modL[offset + i] + modR[offset + i]);
+            carrierScratch[(size_t) i] = 0.5f * (carL[offset + i] + carR[offset + i]);
+        }
+        core.process (voiceScratch.data(), carrierScratch.data(),
+                      outL + offset, outR + offset, count);
+    }
 }
 
 //==============================================================================
-juce::AudioProcessorEditor* MDATalkboxPlusProcessor::createEditor()
+juce::AudioProcessorEditor* LPCVoiceLabProcessor::createEditor()
 {
     // Upstream had no custom interface and relied on the host's generic panel.
     return new juce::GenericAudioProcessorEditor (*this);
 }
 
-void MDATalkboxPlusProcessor::getStateInformation (juce::MemoryBlock& destData)
+void LPCVoiceLabProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     if (auto xml = apvts.copyState().createXml())
         copyXmlToBinary (*xml, destData);
 }
 
-void MDATalkboxPlusProcessor::setStateInformation (const void* data, int sizeInBytes)
+void LPCVoiceLabProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
         if (xml->hasTagName (apvts.state.getType()))
@@ -167,5 +184,5 @@ void MDATalkboxPlusProcessor::setStateInformation (const void* data, int sizeInB
 //==============================================================================
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new MDATalkboxPlusProcessor();
+    return new LPCVoiceLabProcessor();
 }
