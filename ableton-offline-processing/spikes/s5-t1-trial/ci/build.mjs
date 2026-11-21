@@ -1,7 +1,7 @@
 // Controlled offline compiler + standalone CommonJS bundle. Never imports/executes the SDK or host.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { builtinModules } from 'node:module';
+import { builtinModules, createRequire } from 'node:module';
 import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +34,63 @@ export function beta1CjsExport(pkg) {
     throw new Error('Unsupported beta.1 conditional CJS export');
   }
   return branch.default;
+}
+
+// Parse text only: never load/evaluate the bundle. Keep the conservative text
+// checks, excluding only function-name tokens (esbuild emits function __require()).
+// Inspect every body and real call before excluding any declaration name.
+export function validateBundleRequires(output, ts) {
+  if (typeof output !== 'string' || ts?.version !== '5.9.3') {
+    throw new Error('Bundle validation requires the pinned TypeScript 5.9.3 parser');
+  }
+  const parsed = ts.createSourceFile('bundle.js', output, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  if (!parsed || !Array.isArray(parsed.parseDiagnostics) || parsed.parseDiagnostics.length) {
+    throw new Error('Bundle syntax parsing failed');
+  }
+  const loaderNames = new Set(['require', '__require']);
+  const functionNames = [];
+  const reject = () => { throw new Error('Bundle contains unexpected or nonliteral require()'); };
+  const unparenthesized = node => {
+    while (ts.isParenthesizedExpression(node)) node = node.expression;
+    return node;
+  };
+  const loaderName = node => {
+    node = unparenthesized(node);
+    if (ts.isIdentifier(node)) return node.text;
+    if (ts.isPropertyAccessExpression(node)) return node.name.text;
+    if (ts.isElementAccessExpression(node) && node.argumentExpression && ts.isStringLiteral(node.argumentExpression)) {
+      return node.argumentExpression.text;
+    }
+    return null;
+  };
+  const visit = node => {
+    if ((ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node)) &&
+        node.name && loaderNames.has(node.name.text)) {
+      functionNames.push([node.name.getStart(parsed), node.name.end]);
+    }
+    if (ts.isCallExpression(node)) {
+      const callee = unparenthesized(node.expression);
+      if (callee.kind === ts.SyntaxKind.ImportKeyword) reject();
+      // Indirect .call/.apply/.bind must not bypass the literal-call rule.
+      if (ts.isPropertyAccessExpression(callee) && ['call', 'apply', 'bind'].includes(callee.name.text) &&
+          loaderNames.has(loaderName(callee.expression))) reject();
+      if (loaderNames.has(loaderName(callee))) {
+        if (node.arguments.length !== 1 || !ts.isStringLiteral(node.arguments[0])) reject();
+        const spec = node.arguments[0].text;
+        if (!spec.startsWith('node:') || !builtin.has(spec.slice(5))) reject();
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(parsed);
+  let checked = output;
+  for (const [start, end] of functionNames.sort((a, b) => b[0] - a[0])) {
+    checked = checked.slice(0, start) + ' '.repeat(end - start) + checked.slice(end);
+  }
+  const requires = /\b(?:__require|require)\s*\(\s*(['"])([^'"\r\n]+)\1\s*\)/g;
+  const specs = [...checked.matchAll(requires)].map(m => m[2]);
+  if (specs.some(s => !s.startsWith('node:') || !builtin.has(s.slice(5))) ||
+      /\b(?:__require|require)\s*\(/.test(checked.replace(requires, ''))) reject();
 }
 
 const contained = (base, target) => {
@@ -157,12 +214,8 @@ function main() {
     const badImports = imports.filter(i => !i.external || !i.path?.startsWith('node:') || !builtin.has(i.path.slice(5)));
     if (badImports.length) throw new Error(`Unexpected external/dynamic dependencies: ${JSON.stringify(badImports)}`);
     const output = readFileSync(candidate, 'utf8');
-    const requires = /\b(?:__require|require)\s*\(\s*(['"])([^'"\r\n]+)\1\s*\)/g;
-    const specs = [...output.matchAll(requires)].map(m => m[2]);
-    if (specs.some(s => !s.startsWith('node:') || !builtin.has(s.slice(5))) ||
-        /\b(?:__require|require)\s*\(/.test(output.replace(requires, ''))) {
-      throw new Error('Bundle contains unexpected or nonliteral require()');
-    }
+    const typescript = createRequire(import.meta.url)(path.join(path.dirname(tsc), 'typescript.js'));
+    validateBundleRequires(output, typescript);
     if (/^\s*(?:import|export)\s/m.test(output) || /\bimport\s*\(/.test(output)) {
       throw new Error('Bundle contains ESM syntax or dynamic import()');
     }
@@ -186,4 +239,4 @@ function main() {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) main();
