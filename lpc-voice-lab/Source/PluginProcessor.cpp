@@ -110,7 +110,6 @@ LPCVoiceLabProcessor::LPCVoiceLabProcessor()
 void LPCVoiceLabProcessor::prepareToPlay (double sampleRate, int)
 {
     core.prepare (sampleRate);
-    core.useFixedLookahead (true);
     // Constant, declared before processing starts. Never change host PDC
     // from the audio callback when Unvoiced is toggled.
     reportedLatency = core.latencySamples();
@@ -201,6 +200,7 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         p.wet = 0.0f;
         p.dry = 0.70710678118f;
     }
+    core.setMode (getVoiceMode());
     core.setParams (p);
 
     // Fixed 25 ms latency was already declared in prepareToPlay.
@@ -265,15 +265,70 @@ juce::AudioProcessorEditor* LPCVoiceLabProcessor::createEditor()
 
 void LPCVoiceLabProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    if (auto xml = apvts.copyState().createXml())
+    if (auto xml = captureStateXml())
         copyXmlToBinary (*xml, destData);
 }
 
 void LPCVoiceLabProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     if (auto xml = getXmlFromBinary (data, sizeInBytes))
-        if (xml->hasTagName (apvts.state.getType()))
-            apvts.replaceState (juce::ValueTree::fromXml (*xml));
+        restoreStateXml (*xml);
+}
+
+void LPCVoiceLabProcessor::setVoiceMode (VoiceMode mode)
+{
+    if (voiceMode.exchange (mode, std::memory_order_relaxed) != mode)
+        updateHostDisplay (ChangeDetails().withNonParameterStateChanged (true));
+}
+
+std::unique_ptr<juce::XmlElement> LPCVoiceLabProcessor::captureStateXml()
+{
+    auto xml = apvts.copyState().createXml();
+    if (xml != nullptr)
+        xml->setAttribute ("voiceMode", getVoiceMode() == VoiceMode::nuVo ? "NuVo" : "TalkBox");
+    return xml;
+}
+
+bool LPCVoiceLabProcessor::restoreStateXml (const juce::XmlElement& xml)
+{
+    if (! xml.hasTagName (apvts.state.getType())) return false;
+    auto state = juce::ValueTree::fromXml (xml);
+    if (! state.isValid()) return false;
+    // voiceMode lives in the atomic below, not in the parameter tree; keep the
+    // tree identical to what Alpha 0.4 stored so the two can never disagree.
+    state.removeProperty ("voiceMode", nullptr);
+    apvts.replaceState (state);
+    // Legacy presets and unknown future modes always select the protected engine.
+    setVoiceMode (xml.getStringAttribute ("voiceMode") == "NuVo" ? VoiceMode::nuVo : VoiceMode::talkBox);
+    return true;
+}
+
+void LPCVoiceLabProcessor::applyFactoryPreset (int index)
+{
+    if (index < 0 || index > 2) return;
+    auto set = [this] (const char* id, float value)
+    {
+        if (auto* parameter = apvts.getParameter (id))
+        {
+            parameter->beginChangeGesture();
+            parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
+            parameter->endChangeGesture();
+        }
+    };
+    // Alpha 0.4 values unchanged, including preservation of gain trims/bypass.
+    setVoiceMode (VoiceMode::talkBox);
+    const bool classic = index == 0;
+    const bool retro = index == 1;
+    set ("quality", classic ? 1.0f : retro ? 0.65f : 1.0f);
+    set ("order", index == 2 ? 1.0f : 0.0f);
+    set ("wet", 0.5f);
+    set ("dry", 0.0f);
+    set ("lowend", 0.0f);
+    set ("unvoiced", 1.0f);
+    set ("fricative", index == 2 ? 0.0f : -3.0f);
+    set ("retro", retro ? 1.0f : 0.0f);
+    set ("grit", retro ? 0.40f : 0.0f);
+    set ("bandwidth", retro ? 4800.0f : 18000.0f);
 }
 
 //==============================================================================

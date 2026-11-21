@@ -2,7 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-#include "TalkBoxCore.h"
+#include "VoiceEngine.h"
 #include <array>
 
 //==============================================================================
@@ -39,6 +39,14 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    // Optional preset metadata, deliberately not a new automatable parameter.
+    using VoiceMode = lpc::VoiceMode;
+    VoiceMode getVoiceMode() const noexcept { return voiceMode.load (std::memory_order_relaxed); }
+    void setVoiceMode (VoiceMode);
+    std::unique_ptr<juce::XmlElement> captureStateXml();
+    bool restoreStateXml (const juce::XmlElement&);
+    void applyFactoryPreset (int index);
+
     juce::AudioProcessorValueTreeState apvts;
 
     // Read-only, normalized block-peak metering for the UI. Audio thread
@@ -50,7 +58,8 @@ public:
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
-    mdatb::TalkBoxCore core;
+    lpc::VoiceEngine core;
+    std::atomic<VoiceMode> voiceMode { VoiceMode::talkBox };
 
     std::atomic<float>* pWet      = nullptr;
     std::atomic<float>* pDry      = nullptr;

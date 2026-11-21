@@ -172,6 +172,19 @@ LPCVoiceLabEditor::LPCVoiceLabEditor (LPCVoiceLabProcessor& p)
     orderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
         (processor.apvts, "order", orderChoice);
 
+    voiceModeChoice.addItem ("TALKBOX / ALPHA 0.4", 1);
+    voiceModeChoice.addItem ("NUVO / EXPERIMENTAL", 2);
+    voiceModeChoice.setColour (juce::ComboBox::backgroundColourId, lighter);
+    voiceModeChoice.setColour (juce::ComboBox::textColourId, paper);
+    voiceModeChoice.setColour (juce::ComboBox::outlineColourId, muted);
+    voiceModeChoice.setSelectedId (processor.getVoiceMode() == LPCVoiceLabProcessor::VoiceMode::nuVo ? 2 : 1);
+    voiceModeChoice.onChange = [this]
+    {
+        processor.setVoiceMode (voiceModeChoice.getSelectedId() == 2
+            ? LPCVoiceLabProcessor::VoiceMode::nuVo : LPCVoiceLabProcessor::VoiceMode::talkBox);
+    };
+    addAndMakeVisible (voiceModeChoice);
+
     for (auto* button : { &unvoicedToggle, &retroToggle, &bypassToggle })
     {
         button->setLookAndFeel (&skin);
@@ -316,7 +329,7 @@ void LPCVoiceLabEditor::savePresetToFile (juce::File target)
     if (! target.hasFileExtension (".lpcpreset"))
         target = target.withFileExtension (".lpcpreset");
 
-    auto xml = processor.apvts.copyState().createXml();
+    auto xml = processor.captureStateXml();
     if (xml == nullptr)
     {
         showPresetError ("Could not capture current parameter state.");
@@ -360,8 +373,7 @@ void LPCVoiceLabEditor::loadPresetFromFile (const juce::File& file)
         showPresetError ("This file is not a compatible LPC Voice Lab preset.");
         return;
     }
-    const auto loaded = juce::ValueTree::fromXml (*xml);
-    if (! loaded.isValid())
+    if (! processor.restoreStateXml (*xml))
     {
         showPresetError ("The preset contains invalid parameter data.");
         return;
@@ -369,7 +381,6 @@ void LPCVoiceLabEditor::loadPresetFromFile (const juce::File& file)
     // This updates all saved parameters, including the wet/dry/gains and
     // every modern processing feature. The DAW's normal state mechanism
     // remains separate and unchanged.
-    processor.apvts.replaceState (loaded);
     presetIndex = -1;
     currentProgram.setText (file.getFileNameWithoutExtension(), juce::dontSendNotification);
     presetMessage.setText ("LOADED  /  " + file.getFileName(), juce::dontSendNotification);
@@ -379,31 +390,7 @@ void LPCVoiceLabEditor::loadPresetFromFile (const juce::File& file)
 void LPCVoiceLabEditor::applyFactoryPreset (int index)
 {
     presetIndex = index;
-    auto set = [this] (const char* id, float value)
-    {
-        if (auto* parameter = processor.apvts.getParameter (id))
-        {
-            parameter->beginChangeGesture();
-            parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
-            parameter->endChangeGesture();
-        }
-    };
-
-    // Deterministic DSP parameters. Preserve mic/carrier/output gain and
-    // bypass across program changes to avoid resetting safe live-mic trims.
-    // Named user patches, by contrast, save/restore ALL parameters.
-    const bool classic = index == 0;
-    const bool retro = index == 1;
-    set ("quality", classic ? 1.0f : retro ? 0.65f : 1.0f);
-    set ("order", index == 2 ? 1.0f : 0.0f);
-    set ("wet", 0.5f);
-    set ("dry", 0.0f);
-    set ("lowend", 0.0f);
-    set ("unvoiced", 1.0f);
-    set ("fricative", index == 2 ? 0.0f : -3.0f);
-    set ("retro", retro ? 1.0f : 0.0f);
-    set ("grit", retro ? 0.40f : 0.0f);
-    set ("bandwidth", retro ? 4800.0f : 18000.0f);
+    processor.applyFactoryPreset (index);
 
     static const char* names[] { "CLASSIC / WORKING REFERENCE",
                                  "RETRO / EXPERIMENT", "ARTICULATE / EXPERIMENT" };
@@ -415,6 +402,8 @@ void LPCVoiceLabEditor::applyFactoryPreset (int index)
 
 void LPCVoiceLabEditor::timerCallback()
 {
+    voiceModeChoice.setSelectedId (processor.getVoiceMode() == LPCVoiceLabProcessor::VoiceMode::nuVo ? 2 : 1,
+                                   juce::dontSendNotification);
     repaint (juce::Rectangle<int> (800, 215, 380, 180));
 }
 
@@ -447,7 +436,7 @@ void LPCVoiceLabEditor::paint (juce::Graphics& g)
     g.drawLine (30.0f, 77.0f, 1190.0f, 77.0f, 1.1f);
     label (g, "LPC", { 35, 17, 125, 49 }, 39, paper);
     label (g, "VOICE LAB", { 141, 29, 320, 32 }, 28, cyan);
-    label (g, "ALPHA 0.4  /  SPEECH SYNTHESIS  /  BLUEPRINT SERIES",
+    label (g, "ALPHA 0.5  /  SPEECH SYNTHESIS  /  BLUEPRINT SERIES",
            { 522, 25, 650, 36 }, 16, muted, juce::Justification::centredRight);
 
     panel (g, { 30, 92, 1160, 74 });
@@ -497,7 +486,9 @@ void LPCVoiceLabEditor::paint (juce::Graphics& g)
     label (g, "ORDER", { 928, 576, 214, 22 }, 13, paper);
     g.setColour (cyan.withAlpha (0.45f));
     g.drawLine (48, 654, 1172, 654, 1.0f);
-    label (g, "TALKBOX ENGINE ACTIVE  /  NUVO + TAZMANIA RESEARCH ONLY",
+    label (g, processor.getVoiceMode() == LPCVoiceLabProcessor::VoiceMode::nuVo
+               ? "NUVO EXPERIMENT  /  REFERENCE MATCH UNVERIFIED"
+               : "TALKBOX ENGINE  /  ALPHA 0.4 PROCESSING",
            { 52, 704, 610, 19 }, 11, muted);
 }
 
@@ -509,6 +500,7 @@ void LPCVoiceLabEditor::resized()
     programButton.setBounds (1041, 107, 132, 43);
     currentProgram.setBounds (665, 687, 505, 29);
     presetMessage.setBounds (806, 447, 360, 29);
+    voiceModeChoice.setBounds (530, 447, 260, 29);
 
     controls[0].setBounds (74, 216, 190, 157);
     controls[1].setBounds (311, 216, 190, 157);

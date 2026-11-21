@@ -41,6 +41,7 @@ private:
     std::array<juce::Slider, 10> controls;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 10> attachments;
     juce::ComboBox orderChoice;
+    juce::ComboBox voiceModeChoice;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> orderAttachment;
     juce::ToggleButton unvoicedToggle { "UNVOICED" };
     juce::ToggleButton retroToggle { "RETRO" };

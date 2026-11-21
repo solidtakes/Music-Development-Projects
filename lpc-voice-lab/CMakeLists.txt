@@ -70,7 +70,8 @@ juce_add_plugin(LPCVoiceLab
 target_sources(LPCVoiceLab PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
-    Source/TalkBoxCore.cpp)
+    Source/TalkBoxCore.cpp
+    Source/NuVoCore.cpp)
 
 target_compile_definitions(LPCVoiceLab PUBLIC
     JUCE_WEB_BROWSER=0
@@ -97,4 +98,31 @@ if(TBX_BUILD_TESTS)
     add_executable(tbx_tests Tests/TalkBoxCoreTests.cpp Source/TalkBoxCore.cpp)
     target_include_directories(tbx_tests PRIVATE Source)
     add_test(NAME tbx_tests COMMAND tbx_tests)
+
+    # JUCE-free: TalkBox mode of the engine wrapper is bit-identical to the
+    # Alpha 0.4 core, and the experimental NuVo path stays bounded.
+    add_executable(voice_engine_tests Tests/VoiceEngineTests.cpp
+        Source/TalkBoxCore.cpp Source/NuVoCore.cpp)
+    target_include_directories(voice_engine_tests PRIVATE Source)
+    add_test(NAME voice_engine_tests COMMAND voice_engine_tests)
+
+    # Needs JUCE: legacy and new preset XML round trips through the processor.
+    juce_add_console_app(lpc_state_tests PRODUCT_NAME "LPC State Tests")
+    target_sources(lpc_state_tests PRIVATE
+        Tests/StateRoundTripTests.cpp
+        Source/PluginProcessor.cpp
+        Source/PluginEditor.cpp
+        Source/TalkBoxCore.cpp
+        Source/NuVoCore.cpp)
+    target_include_directories(lpc_state_tests PRIVATE Source)
+    target_compile_definitions(lpc_state_tests PRIVATE
+        JucePlugin_Name="LPC Voice Lab"
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0
+        JUCE_REPORT_APP_USAGE=0)
+    target_link_libraries(lpc_state_tests PRIVATE
+        juce::juce_audio_utils
+        juce::juce_recommended_config_flags)
+    add_test(NAME lpc_state_tests COMMAND lpc_state_tests)
 endif()
