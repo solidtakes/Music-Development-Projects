@@ -34,12 +34,14 @@ double NuVoCore::Bandpass::process (double x) noexcept
 
 void NuVoCore::prepare (double sampleRate)
 {
-    sr = std::isfinite (sampleRate) && sampleRate >= 8000 && sampleRate <= 192000
-       ? sampleRate : 44100;
+    // Run at the real rate, exactly like TalkBoxCore's added stages, so the
+    // lookahead (and therefore the reported latency) matches it at every rate,
+    // and the band filters are tuned for the rate they actually run at.
+    sr = std::isfinite (sampleRate) && sampleRate > 0 ? sampleRate : 44100;
     const auto configure = [this] (auto& bank)
     {
-        const double ratio = std::pow (std::min (8000.0, sr * 0.4) / 120.0,
-                                       1.0 / (bank.size() - 1));
+        const double top = std::clamp (sr * 0.4, 240.0, 8000.0);
+        const double ratio = std::pow (top / 120.0, 1.0 / (bank.size() - 1));
         const double q = std::clamp (1.0 / (ratio - 1.0), 1.0, 12.0);
         double frequency = 120.0;
         for (auto& band : bank)

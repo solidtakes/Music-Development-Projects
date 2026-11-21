@@ -6,8 +6,10 @@
  *   - TalkBox mode is bit-identical to the Alpha 0.4 path (TalkBoxCore with
  *     fixed lookahead), across rates, block sizes and parameter sets.
  *   - Both modes report the same fixed latency, so host PDC never changes.
- *   - Switching modes is ramped, and returning to TalkBox resumes the original
- *     DSP exactly once the ramp has finished.
+ *   - Switching modes is a crossfade with no dropout: the outgoing core plays
+ *     on while the incoming one fills its lookahead, then a 10 ms fade, after
+ *     which the output is exactly the incoming core. An aborted or reversed
+ *     switch leaves TalkBox bit-identical.
  *   - NuVo output is finite and bounded, and silent without a carrier.
  *
  * These are engineering invariants only. Nothing here compares NuVo against
@@ -22,6 +24,7 @@
 #include <cstdio>
 #include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 using lpc::VoiceEngine;
@@ -153,7 +156,8 @@ void latencyIsTheSameInBothModes()
 {
     bool ok = true;
     std::string detail;
-    for (double sr : { 44100.0, 48000.0, 96000.0, 192000.0 })
+    // Includes rates above 192 kHz, which NuVo once clamped to 44.1 kHz.
+    for (double sr : { 8000.0, 44100.0, 48000.0, 96000.0, 192000.0, 352800.0, 384000.0 })
     {
         mdatb::TalkBoxCore reference;
         reference.prepare (sr);
@@ -238,63 +242,181 @@ void nuVoSilentWithoutCarrier()
     check (peak < 1.0e-6, "nuvo is silent with no carrier, dry off", buf);
 }
 
-void modeSwitchIsRampedAndReversible()
+//==============================================================================
+// Mode-switch behaviour. A reference "core" is either the Alpha 0.4 TalkBox
+// (fixed lookahead) or NuVo, started fresh at a given sample.
+struct Reference
+{
+    VoiceMode mode;
+    int start;
+    mdatb::TalkBoxCore talkBox;
+    lpc::NuVoCore nuVo;
+    std::vector<float> out, scratch;
+
+    Reference (VoiceMode m, int s, double sr, int n) : mode (m), start (s),
+        out ((size_t) n, 0.0f), scratch ((size_t) n, 0.0f)
+    {
+        talkBox.prepare (sr);
+        talkBox.useFixedLookahead (true);
+        nuVo.prepare (sr);
+    }
+
+    void run (const Material& m, const Params& p, int off, int count)
+    {
+        if (off < start) return;
+        if (mode == VoiceMode::talkBox)
+        {
+            talkBox.setParams (p);
+            talkBox.process (m.voice.data() + off, m.carrier.data() + off,
+                             out.data() + off, scratch.data() + off, count);
+        }
+        else
+        {
+            nuVo.setParams (p);
+            nuVo.process (m.voice.data() + off, m.carrier.data() + off,
+                          out.data() + off, scratch.data() + off, count);
+        }
+    }
+};
+
+double worstDiff (const std::vector<float>& a, const std::vector<float>& b, int from, int to)
+{
+    double worst = 0;
+    for (int i = from; i < to; ++i)
+        worst = std::max (worst, (double) std::fabs (a[(size_t) i] - b[(size_t) i]));
+    return worst;
+}
+
+int longestZeroRun (const std::vector<float>& x, int from, int to)
+{
+    int longest = 0, run = 0;
+    for (int i = from; i < to; ++i)
+    {
+        run = x[(size_t) i] == 0.0f ? run + 1 : 0;
+        longest = std::max (longest, run);
+    }
+    return longest;
+}
+
+// Runs the engine with mode changes at the given sample offsets (multiples of
+// the block size), feeding the references alongside.
+std::vector<float> runEngine (const Material& m, const Params& p, double sr, int block,
+                              const std::vector<std::pair<int, VoiceMode>>& switches,
+                              std::vector<Reference*> refs)
+{
+    const int n = (int) m.voice.size();
+    VoiceEngine engine;
+    engine.prepare (sr);
+    std::vector<float> l ((size_t) n), r ((size_t) n);
+    for (int off = 0; off < n; off += block)
+    {
+        const int count = std::min (block, n - off);
+        for (const auto& [at, mode] : switches)
+            if (at == off) engine.setMode (mode);
+        engine.setParams (p);
+        engine.process (m.voice.data() + off, m.carrier.data() + off,
+                        l.data() + off, r.data() + off, count);
+        for (auto* ref : refs) ref->run (m, p, off, count);
+    }
+    if (worstDiff (l, r, 0, n) != 0.0)
+        check (false, "engine output stays mono through switches");
+    return l;
+}
+
+void modeSwitchCrossfadesWithoutDropout()
 {
     const double sr = 48000.0;
     const auto m = makeMaterial (sr, 1.5);
     const int n = (int) m.voice.size();
     const int block = 256;
     const int toNuVo = 96 * block, toTalkBox = 192 * block;
+    const int lookahead = (int) (0.025 * sr);
     const int ramp = (int) (0.010 * sr);
-    Params p; p.unvoiced = true;
+    Params p; p.unvoiced = true; p.dry = 0.3f;  // dry voice exposes any gap
 
-    VoiceEngine engine;
-    engine.prepare (sr);
-    std::vector<float> el ((size_t) n), er ((size_t) n);
+    Reference talkBoxAll (VoiceMode::talkBox, 0, sr, n);           // never switched
+    Reference nuVoFresh (VoiceMode::nuVo, toNuVo, sr, n);           // incoming at switch 1
+    Reference talkBoxFresh (VoiceMode::talkBox, toTalkBox, sr, n);  // incoming at switch 2
+    const auto out = runEngine (m, p, sr, block,
+                                { { toNuVo, VoiceMode::nuVo }, { toTalkBox, VoiceMode::talkBox } },
+                                { &talkBoxAll, &nuVoFresh, &talkBoxFresh });
 
-    // Reference for the return leg: a freshly prepared Alpha 0.4 core fed the
-    // same input starting at the switch back.
-    mdatb::TalkBoxCore reference;
-    reference.prepare (sr);
-    reference.useFixedLookahead (true);
-    std::vector<float> rl ((size_t) n, 0.0f), rr ((size_t) n, 0.0f);
+    char buf[128];
+    // 1. While the incoming core primes, the outgoing one plays on untouched.
+    const double heldTb = worstDiff (out, talkBoxAll.out, 0, toNuVo + lookahead);
+    const double heldNv = worstDiff (out, nuVoFresh.out, toTalkBox, toTalkBox + lookahead);
+    std::snprintf (buf, sizeof buf, "tb->nv %.3g, nv->tb %.3g", heldTb, heldNv);
+    check (heldTb == 0.0 && heldNv == 0.0, "outgoing core plays on while incoming primes", buf);
 
-    double worstJump = 0;
-    for (int off = 0; off < n; off += block)
+    // 2. No dropout anywhere around either switch (old engine: 15 ms of zeros).
+    const int z1 = longestZeroRun (out, toNuVo, toNuVo + 4800);
+    const int z2 = longestZeroRun (out, toTalkBox, toTalkBox + 4800);
+    std::snprintf (buf, sizeof buf, "longest zero run %d / %d samples", z1, z2);
+    check (z1 < 48 && z2 < 48, "mode switch has no dropout", buf);
+
+    // 3. After lookahead + 10 ms, the output is exactly the incoming core.
+    const int settle1 = toNuVo + lookahead + ramp, settle2 = toTalkBox + lookahead + ramp;
+    const double nv = worstDiff (out, nuVoFresh.out, settle1, toTalkBox);
+    const double tb = worstDiff (out, talkBoxFresh.out, settle2, n);
+    std::snprintf (buf, sizeof buf, "nuvo %.3g, talkbox %.3g", nv, tb);
+    check (nv == 0.0 && tb == 0.0, "switch settles exactly on the incoming core", buf);
+
+    // 4. The crossfade itself stays between the two cores' outputs.
+    bool between = true;
+    for (int i = toNuVo + lookahead; i < settle1; ++i)
     {
-        const int count = std::min (block, n - off);
-        if (off == toNuVo || off == toTalkBox)
-        {
-            const float before = el[(size_t) off - 1];
-            engine.setMode (off == toNuVo ? VoiceMode::nuVo : VoiceMode::talkBox);
-            engine.setParams (p);
-            engine.process (m.voice.data() + off, m.carrier.data() + off,
-                            el.data() + off, er.data() + off, count);
-            worstJump = std::max (worstJump, (double) std::fabs (el[(size_t) off] - before));
-        }
-        else
-        {
-            engine.setParams (p);
-            engine.process (m.voice.data() + off, m.carrier.data() + off,
-                            el.data() + off, er.data() + off, count);
-        }
-        if (off >= toTalkBox)
-        {
-            reference.setParams (p);
-            reference.process (m.voice.data() + off, m.carrier.data() + off,
-                               rl.data() + off, rr.data() + off, count);
-        }
+        const float a = talkBoxAll.out[(size_t) i], b = nuVoFresh.out[(size_t) i];
+        between = between && out[(size_t) i] >= std::min (a, b) - 1.0e-6f
+                          && out[(size_t) i] <= std::max (a, b) + 1.0e-6f;
     }
+    check (between, "crossfade is a blend of the two cores");
+}
 
-    double worstAfter = 0;
-    for (int i = toTalkBox + ramp; i < n; ++i)
-        worstAfter = std::max (worstAfter, (double) std::fabs (el[(size_t) i] - rl[(size_t) i]));
+void abortedSwitchLeavesTalkBoxUntouched()
+{
+    // Switch to NuVo and back 5 ms later, before NuVo has primed: TalkBox never
+    // stopped, so the output must be the uninterrupted Alpha 0.4 core exactly.
+    const double sr = 48000.0;
+    const auto m = makeMaterial (sr, 1.0);
+    const int n = (int) m.voice.size();
+    const int block = 240;  // 5 ms
+    Params p; p.unvoiced = true;
+    Reference talkBoxAll (VoiceMode::talkBox, 0, sr, n);
+    const auto out = runEngine (m, p, sr, block,
+                                { { 100 * block, VoiceMode::nuVo }, { 101 * block, VoiceMode::talkBox } },
+                                { &talkBoxAll });
+    const double worst = worstDiff (out, talkBoxAll.out, 0, n);
+    char buf[64];
+    std::snprintf (buf, sizeof buf, "worst diff %.3g", worst);
+    check (worst == 0.0, "aborted switch leaves talkbox bit-identical", buf);
+}
 
+void rapidSwitchingStaysContinuous()
+{
+    // Toggle every 30 ms: each NuVo fade starts after its 25 ms lookahead and is
+    // reversed 5 ms in, mid-crossfade. Output stays finite, never drops out, and
+    // settles exactly on TalkBox, which never fully faded out so never reset.
+    const double sr = 48000.0;
+    const auto m = makeMaterial (sr, 1.5);
+    const int n = (int) m.voice.size();
+    const int block = 240;  // 5 ms
+    Params p; p.dry = 0.3f;
+    std::vector<std::pair<int, VoiceMode>> switches;
+    for (int k = 0; k < 20; ++k)
+        switches.push_back ({ (50 + 6 * k) * block, k % 2 ? VoiceMode::talkBox : VoiceMode::nuVo });
+    Reference talkBoxAll (VoiceMode::talkBox, 0, sr, n);
+    const auto out = runEngine (m, p, sr, block, switches, { &talkBoxAll });
+    bool finite = true;
+    for (float x : out) finite = finite && std::isfinite (x);
+    const int zeros = longestZeroRun (out, 50 * block, n);
+    const double mixed = worstDiff (out, talkBoxAll.out, 50 * block, 170 * block);
+    const double settled = worstDiff (out, talkBoxAll.out, 170 * block, n);
     char buf[96];
-    std::snprintf (buf, sizeof buf, "first-sample jump %.4f", worstJump);
-    check (worstJump < 0.01, "mode switch starts from the last sample", buf);
-    std::snprintf (buf, sizeof buf, "worst diff after ramp %.3g", worstAfter);
-    check (worstAfter == 0.0, "returning to talkbox resumes Alpha 0.4 exactly", buf);
+    std::snprintf (buf, sizeof buf, "zero run %d, mid-fade diff %.3g, settled diff %.3g",
+                   zeros, mixed, settled);
+    // mixed > 0 proves the reversals really happened mid-crossfade.
+    check (finite && zeros < 48 && mixed > 0.0 && settled == 0.0,
+           "rapid mid-fade reversals stay continuous", buf);
 }
 
 } // namespace
@@ -308,7 +430,9 @@ int main()
     nuVoIsBoundedAndActive();
     nuVoSurvivesNonFiniteInput();
     nuVoSilentWithoutCarrier();
-    modeSwitchIsRampedAndReversible();
+    modeSwitchCrossfadesWithoutDropout();
+    abortedSwitchLeavesTalkBoxUntouched();
+    rapidSwitchingStaysContinuous();
 
     std::printf ("\n%s\n", failures == 0 ? "all checks passed" : "FAILURES PRESENT");
     return failures == 0 ? 0 : 1;
