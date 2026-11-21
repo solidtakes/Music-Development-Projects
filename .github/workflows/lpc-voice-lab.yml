@@ -1,7 +1,7 @@
 name: LPC Voice Lab - offline build and DSP tests
 on:
   push:
-    branches: [codex/lpc-voice-lab-alpha01, fix/lpc-unvoiced-fixed-latency-a02, codex/lpc-voice-lab-a03-ui-m4l]
+    branches: [codex/lpc-voice-lab-alpha01, fix/lpc-unvoiced-fixed-latency-a02, codex/lpc-voice-lab-a03-ui-m4l, codex/lpc-voice-lab-a04-blueprint-presets]
     paths:
       - 'lpc-voice-lab/**'
       - '.github/workflows/lpc-voice-lab.yml'

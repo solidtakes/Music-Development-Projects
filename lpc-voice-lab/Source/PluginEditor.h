@@ -5,15 +5,14 @@
 #include <array>
 #include <memory>
 
-class VoiceLabLook final : public juce::LookAndFeel_V4
+class BlueprintLook final : public juce::LookAndFeel_V4
 {
 public:
-    void drawRotarySlider (juce::Graphics&, int x, int y, int width, int height,
-                           float pos, float startAngle, float endAngle, juce::Slider&) override;
-    void drawButtonBackground (juce::Graphics&, juce::Button&, const juce::Colour&,
-                               bool hovered, bool pressed) override;
-    void drawToggleButton (juce::Graphics&, juce::ToggleButton&, bool hovered,
-                           bool pressed) override;
+    void drawRotarySlider (juce::Graphics&, int, int, int, int, float, float, float,
+                           juce::Slider&) override;
+    void drawButtonBackground (juce::Graphics&, juce::Button&,
+                               const juce::Colour&, bool, bool) override;
+    void drawToggleButton (juce::Graphics&, juce::ToggleButton&, bool, bool) override;
 };
 
 class LPCVoiceLabEditor final : public juce::AudioProcessorEditor,
@@ -28,10 +27,17 @@ public:
 
 private:
     void timerCallback() override;
-    void applyPreset (int index);
+    void applyFactoryPreset (int);
+    void refreshPresetList();
+    void savePresetDialog();
+    void openPresetDialog();
+    void savePresetToFile (juce::File);
+    void loadPresetFromFile (const juce::File&);
+    juce::File presetFolder() const;
+    void showPresetError (const juce::String&) const;
 
     LPCVoiceLabProcessor& processor;
-    VoiceLabLook skin;
+    BlueprintLook skin;
     std::array<juce::Slider, 10> controls;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 10> attachments;
     juce::ComboBox orderChoice;
@@ -42,9 +48,15 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> unvoicedAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> retroAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
-    juce::TextButton programButton { "PROGRAM" };
+    juce::ComboBox presetChoice;
+    juce::TextButton savePreset { "SAVE AS" };
+    juce::TextButton openPreset { "OPEN" };
+    juce::TextButton programButton { "NEXT PROGRAM" };
     juce::Label currentProgram;
-    int presetIndex = -1; // do not overwrite loaded DAW state just to display UI
+    juce::Label presetMessage;
+    juce::Array<juce::File> userPresets;
+    std::unique_ptr<juce::FileChooser> presetChooser;
+    int presetIndex = -1;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LPCVoiceLabEditor)
 };

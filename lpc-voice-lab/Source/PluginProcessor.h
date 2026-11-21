@@ -41,6 +41,12 @@ public:
 
     juce::AudioProcessorValueTreeState apvts;
 
+    // Read-only, normalized block-peak metering for the UI. Audio thread
+    // writes atomics; message thread reads. No added DSP processing.
+    std::atomic<float> meterVoice { 0.0f };
+    std::atomic<float> meterCarrier { 0.0f };
+    std::atomic<float> meterOutput { 0.0f };
+
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
