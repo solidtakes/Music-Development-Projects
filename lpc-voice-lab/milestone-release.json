@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "product": "LPC Voice Lab",
+  "version": "Alpha 0.3",
+  "tag": "lpc-voice-lab-alpha-0.3",
+  "title": "LPC Voice Lab — Alpha 0.3 (historical Windows VST3 + macOS VST3/AU)",
+  "fileStem": "LPC-Voice-Lab-Alpha-0.3",
+  "sourceSha": "72fa5ab9f1bda6cc0563eddce5e2a94296b0a4c1",
+  "successfulRunId": 44870016642,
+  "branch": "milestone/lpc-voice-lab-alpha-0.3",
+  "releaseNotes": "lpc-voice-lab/releases/alpha-0.3-notes.md"
+}
