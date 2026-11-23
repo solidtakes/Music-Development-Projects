@@ -1,0 +1,95 @@
+name: LPC Voice Lab - milestone GitHub Release
+on:
+  push:
+    branches:
+      - 'milestone/lpc-voice-lab-*'
+    paths:
+      - '.github/workflows/lpc-voice-lab-milestone.yml'
+      - 'lpc-voice-lab/milestone-release.json'
+      - 'lpc-voice-lab/releases/**'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify release manifest and previously passed CI
+        id: metadata
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          FILE=lpc-voice-lab/milestone-release.json
+          jq -e '.schemaVersion == 1 and (.tag | type == "string") and (.sourceSha | type == "string") and (.successfulRunId | type == "number") and (.releaseNotes | type == "string")' "$FILE"
+          TAG="$(jq -r '.tag' "$FILE")"
+          SOURCE_SHA="$(jq -r '.sourceSha' "$FILE")"
+          RUN_ID="$(jq -r '.successfulRunId' "$FILE")"
+          TITLE="$(jq -r '.title' "$FILE")"
+          NOTES="$(jq -r '.releaseNotes' "$FILE")"
+          EXPECTED_BRANCH="$(jq -r '.branch' "$FILE")"
+          [[ "$GITHUB_REF_NAME" == "$EXPECTED_BRANCH" ]]
+          [[ "$TAG" =~ ^lpc-voice-lab-alpha-[0-9]+\.[0-9]+$ ]]
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test -f "$NOTES"
+          RESPONSE="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID")"
+          echo "$RESPONSE" | jq -e --arg sha "$SOURCE_SHA" '.head_sha == $sha and .status == "completed" and .conclusion == "success"'
+          echo "$RESPONSE" | jq -e '.name == "LPC Voice Lab - offline build and DSP tests"'
+          # A milestone is immutable: an existing tag/release must never be overwritten.
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag already exists. Refusing to replace immutable milestone $TAG."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+          echo "notes=$NOTES" >> "$GITHUB_OUTPUT"
+
+      - name: Download exact passed Windows and macOS workflow artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.metadata.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p stage/windows stage/macos out
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name LPC-Voice-Lab-Windows --dir stage/windows
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name LPC-Voice-Lab-macOS --dir stage/macos
+          test -s "stage/windows/LPC Voice Lab.vst3/Contents/x86_64-win/LPC Voice Lab.vst3"
+          test -s "stage/macos/LPC Voice Lab.vst3/Contents/MacOS/LPC Voice Lab"
+          test -s "stage/macos/LPC Voice Lab.component/Contents/MacOS/LPC Voice Lab"
+          # actions/upload-artifact normalizes file permissions. Restore Mac
+          # binary executable bits before putting it into a permanent ZIP.
+          chmod 755 "stage/macos/LPC Voice Lab.vst3/Contents/MacOS/LPC Voice Lab"
+          chmod 755 "stage/macos/LPC Voice Lab.component/Contents/MacOS/LPC Voice Lab"
+          (cd stage/windows && zip -q -r ../../out/LPC-Voice-Lab-Alpha-0.4-Windows.zip "LPC Voice Lab.vst3")
+          (cd stage/macos && zip -q -r ../../out/LPC-Voice-Lab-Alpha-0.4-macOS.zip "LPC Voice Lab.vst3" "LPC Voice Lab.component")
+          (cd out && sha256sum *.zip > SHA256SUMS.txt)
+          unzip -tq out/LPC-Voice-Lab-Alpha-0.4-Windows.zip
+          unzip -tq out/LPC-Voice-Lab-Alpha-0.4-macOS.zip
+
+      - name: Upload independent workflow backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: LPC-Voice-Lab-Milestone-ZIPs
+          path: out/
+          if-no-files-found: error
+
+      - name: Publish permanent GitHub pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          SOURCE_SHA: ${{ steps.metadata.outputs.sha }}
+          TITLE: ${{ steps.metadata.outputs.title }}
+          NOTES: ${{ steps.metadata.outputs.notes }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" out/LPC-Voice-Lab-Alpha-0.4-Windows.zip out/LPC-Voice-Lab-Alpha-0.4-macOS.zip out/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$SOURCE_SHA" --title "$TITLE" --notes-file "$NOTES" --prerelease
