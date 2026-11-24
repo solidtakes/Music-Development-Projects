@@ -1,0 +1,25 @@
+--- a/MF_BentoBoxV1/FourTrack_Bank2.py
++++ b/MF_BentoBoxV1/FourTrack_Bank2.py
+@@ -679,9 +679,21 @@
+         if before is None:
+             return False
+         now = self._binding_signature(cc)
+-        # Live's track/device proxies should be compared by identity, not
+-        # potentially expensive or unstable LOM equality overloads.
+-        return (all(before[i] is now[i] for i in range(3))
++        # Live may return a fresh Python wrapper for the *same* LOM object
++        # on each query. Comparing wrappers with `is` discarded every tested
++        # Bank 2 release. Use the LOM object's equality semantics instead;
++        # retain generation and all scalar binding guards unchanged.
++        def same_lom_object(left, right):
++            if left is right:
++                return True
++            if left is None or right is None:
++                return False
++            try:
++                return bool(left == right)
++            except (AttributeError, RuntimeError, TypeError, ValueError):
++                return False
++
++        return (all(same_lom_object(before[i], now[i]) for i in range(3))
+                 and before[3:] == now[3:])
