@@ -1,0 +1,77 @@
+name: LPC Voice Lab Alpha 0.5 builds
+on:
+  push:
+    branches: [chatgpt/lpc-a05-cross-platform-build]
+    paths: ['.github/workflows/lpc-a05-build.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: mac-arm64
+          - os: windows-2022
+            platform: windows-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7ddbf9ab7238863aa6f6d379c07f82d53ee41248
+          persist-credentials: false
+      - name: Configure macOS
+        if: runner.os == 'macOS'
+        run: cmake -S lpc-voice-lab -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DTBX_BUILD_TESTS=ON
+      - name: Configure Windows
+        if: runner.os == 'Windows'
+        run: cmake -S lpc-voice-lab -B build -A x64 -DTBX_BUILD_TESTS=ON
+      - name: Build
+        run: cmake --build build --config Release --parallel 2
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error --output-junit test-results.xml
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist staging
+          for ext in vst3 component; do
+            plugin=$(find build/LPCVoiceLab_artefacts -type d -name "LPC Voice Lab.$ext" -print -quit)
+            test -n "$plugin"
+            binary="$plugin/Contents/MacOS/LPC Voice Lab"
+            test "$(lipo -archs "$binary")" = arm64
+            codesign --force --sign - "$plugin"
+            codesign --verify --strict "$plugin"
+            ditto "$plugin" "staging/LPC Voice Lab.$ext"
+          done
+          printf '%s\n' 'Alpha 0.5 experimental; source 7ddbf9ab7238863aa6f6d379c07f82d53ee41248' 'Ad-hoc signed, not notarized. Back up Alpha 0.4 before installing; same plugin identifier.' > staging/README.txt
+          ditto -c -k --keepParent staging dist/LPC-Voice-Lab-Alpha-0.5-mac-arm64.zip
+          (cd dist && shasum -a 256 *.zip > SHA256SUMS.txt)
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path dist, staging | Out-Null
+          $plugin = Get-ChildItem build/LPCVoiceLab_artefacts -Recurse -Directory -Filter 'LPC Voice Lab.vst3' | Select-Object -First 1
+          if (!$plugin) { throw 'VST3 bundle missing' }
+          Copy-Item -LiteralPath $plugin.FullName -Destination staging -Recurse
+          'Alpha 0.5 experimental; source 7ddbf9ab7238863aa6f6d379c07f82d53ee41248. Back up Alpha 0.4 before installing; same plugin identifier.' | Set-Content staging/README.txt
+          Compress-Archive -Path staging/* -DestinationPath dist/LPC-Voice-Lab-Alpha-0.5-windows-x64.zip
+          Get-ChildItem dist/*.zip | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Set-Content dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LPC-Voice-Lab-Alpha-0.5-${{ matrix.platform }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: LPC-test-results-${{ matrix.platform }}
+          path: build/test-results.xml
+          if-no-files-found: warn
