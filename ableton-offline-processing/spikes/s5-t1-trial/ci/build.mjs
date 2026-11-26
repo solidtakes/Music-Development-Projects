@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { closeSync, constants, fstatSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, realpathSync, renameSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readPinnedParser, sanitizedNodeEnv, validateInWorker, verifySyntaxExternals } from './syntax-policy.mjs';
 
 const project = fileURLToPath(new URL('../', import.meta.url));
 const root = path.resolve(project, '../../..');
@@ -14,9 +15,21 @@ const lstatMaybe = file => {
   try { return lstatSync(file); }
   catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 };
-// A1 grants only the observed external capabilities. The broader syntax policy
-// remains deferred to A2: this validator is not a JavaScript sandbox.
-const builtin = new Set(['fs', 'fs/promises', 'path', 'crypto']);
+// The approved, hash-pinned input graph, compiled with the approved, hash-pinned
+// toolchain, produced an artifact that satisfies the finite syntax policy
+// SP-1…SP-12 below. This is not a JavaScript sandbox. It does not limit what the
+// approved code does with the four allowed built-ins or with ambient globals
+// that the policy doesn't name.
+//
+// N-1: The policy leaves uses of the four admitted built-ins to approved code.
+// N-2: Unnamed ambient capabilities, including network access, are unrestricted.
+// N-3: Static checks cannot establish obfuscated access through allowed values,
+//      prototype chains outside SP-3/SP-5, or prototype pollution.
+// N-4: The SDK runtime is trusted by hash. One-shot, consent and journal
+//      behavior still depends on source review.
+// N-5: Native loader, handshake, ESM/CJS equivalence and embedded Node are unverified.
+// N-6: OS/toolchain compromise beyond the hash checks is outside the claim.
+// N-7: Runtime differences such as host startup flags remain outside the claim.
 const expectedSdk = Object.freeze({
   package: '73f16b890dd533a50e2dbbae7db848d0c4528d87259843da6228ce216422e5ed',
   runtime: '691a663878e1bee659a406ba86632fb1fe951fac92f0029e176156d0361b994c',
@@ -75,6 +88,24 @@ export const WINDOWS_TOOL_POLICY = freeze({
     'esbuild.exe': 'ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3',
   },
 });
+export const LINUX_TOOL_POLICY = freeze({
+  typescript: WINDOWS_TOOL_POLICY.typescript,
+  esbuild: WINDOWS_TOOL_POLICY.esbuild,
+  native: {
+    'package.json': '2332dc7d04175b16730f136b5bf32b31203eecea5be03b66e9453a4658b3d971',
+    'bin/esbuild': '0c6588b092a2c291a72bab90659f3c9e0e25e0fe59c9ac12b4dae4d945e5548c',
+  },
+});
+const NODE_POLICY = freeze({
+  win32: {
+    'v24.22.1': 'd702daa815eabbff763c7d3808e235cf031cf2ca70211b56847bc72f51e240e5',
+    'v26.13.0': '14319838b3f355e0398c13569a90270bce4fc68f25189f58c59b03dadae0e6d5',
+  },
+  linux: {
+    'v24.22.1': 'e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb',
+    'v26.13.0': '0adde40d1b7dfa57c8bc83cbc319758c3ec6ebba21363bb2fa752ea6b267ad1b',
+  },
+});
 
 // JSON.parse and parser diagnostics alone both silently accept duplicate keys.
 // Walk JSON property tokens before constructing any object; never evaluate text.
@@ -110,7 +141,7 @@ export function snapshotFile(base, relative, expectedHash, maxBytes = 1024 * 102
   if (!/^[a-f0-9]{64}$/.test(expectedHash) || typeof relative !== 'string' ||
       relative.includes('\\') || relative.includes(':') || relative.includes('\0') ||
       relative.split('/').some(x => !x || x === '.' || x === '..')) throw new Error('Invalid enrolled path/hash');
-  const canonicalRoot = realpathSync(base);
+  const canonicalRoot = realpathSync.native(base);
   if (!lstatSync(canonicalRoot).isDirectory()) throw new Error('Invalid enrolled root');
   let current = canonicalRoot;
   const parts = relative.split('/');
@@ -123,6 +154,7 @@ export function snapshotFile(base, relative, expectedHash, maxBytes = 1024 * 102
   }
   const before = lstatSync(current, { bigint: true });
   if (before.size > BigInt(maxBytes) || before.ino === 0n) throw new Error('Input size/file identity unavailable');
+  if (before.nlink !== 1n) throw new Error('Hardlink alias in enrolled input: ' + relative);
   const fd = openSync(current, constants.O_RDONLY);
   try {
     const opened = fstatSync(fd, { bigint: true });
@@ -138,7 +170,7 @@ export function snapshotFile(base, relative, expectedHash, maxBytes = 1024 * 102
     const after = fstatSync(fd, { bigint: true });
     if (after.size !== before.size || after.mtimeNs !== before.mtimeNs || after.ctimeNs !== before.ctimeNs ||
         bytes.length !== Number(before.size) || fileIdentity(lstatSync(current, { bigint: true })) !== fileIdentity(before) ||
-        !samePath(realpathSync(current), current)) throw new Error('Input changed during read');
+        realpathSync.native(current) !== current) throw new Error('Input changed during read or enrolled path casing differs');
     if (digest(bytes) !== expectedHash) throw new Error('Enrolled content hash mismatch: ' + relative);
     if (asText) new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     return { path: current, relative, sha256: expectedHash, identity: fileIdentity(before), bytes };
@@ -151,12 +183,17 @@ const compilerIdentity = (id, format) => format === 'esm' && id.endsWith('.ts') 
 /** @param {ReadonlyArray<{id: string, sha256: string, format: string}>} policy @param {{repo: string, sdk?: string}} roots */
 export function snapshotInputs(policy, roots) {
   const ids = new Set(), paths = new Set(), identities = new Set();
+  const canonical = { repo: realpathSync.native(roots.repo), sdk: roots.sdk && realpathSync.native(roots.sdk) };
   return policy.map(item => {
     if (ids.has(item.id)) throw new Error('Duplicate enrolled identity');
     if (!['esm', 'cjs'].includes(item.format)) throw new Error('Unenrolled module format');
     ids.add(item.id);
     const sdk = item.id.startsWith('sdk:');
-    const captured = snapshotFile(sdk ? roots.sdk : roots.repo, sdk ? item.id.slice(4) : item.id, item.sha256);
+    const base = sdk ? canonical.sdk : canonical.repo;
+    if (!base) throw new Error('Missing enrolled root for ' + item.id);
+    const relative = sdk ? item.id.slice(4) : item.id;
+    const captured = snapshotFile(base, relative, item.sha256);
+    if (captured.path !== path.join(base, relative)) throw new Error('Enrolled root changed during capture');
     const key = process.platform === 'win32' ? captured.path.toLowerCase() : captured.path;
     if (paths.has(key) || identities.has(captured.identity)) throw new Error('Duplicate canonical/physical input');
     paths.add(key); identities.add(captured.identity);
@@ -172,6 +209,8 @@ export function verifySdkIdentity(bytes, ts, policy = SDK_POLICY) {
   }
   const pkg = strictJson(new TextDecoder('utf-8', { fatal: true }).decode(bytes.package), ts);
   beta1CjsExport(pkg);
+  if (Object.hasOwn(pkg, 'main') || Object.keys(pkg.exports).join(',') !== '.' ||
+      Object.keys(pkg.exports['.']).sort().join(',') !== 'import,require') throw new Error('Unexpected beta.1 export surface');
   const branch = pkg.exports?.['.']?.import;
   if (!branch || Object.keys(branch).sort().join(',') !== 'default,types' ||
       branch.types !== './dist/index.d.mts' || branch.default !== './dist/index.mjs' ||
@@ -181,16 +220,18 @@ export function verifySdkIdentity(bytes, ts, policy = SDK_POLICY) {
 
 export function snapshotSdk(runtime, types, ts, policy = SDK_POLICY) {
   const sdkRoot = path.dirname(path.dirname(path.resolve(runtime)));
-  if (!samePath(path.resolve(runtime), path.join(sdkRoot, 'dist/index.cjs')) ||
-      !samePath(path.resolve(types), path.join(sdkRoot, 'dist/index.d.mts'))) throw new Error('SDK files must belong to the same enrolled package');
+  if (path.resolve(runtime) !== path.join(sdkRoot, 'dist/index.cjs') ||
+      path.resolve(types) !== path.join(sdkRoot, 'dist/index.d.mts')) throw new Error('SDK files must belong to the same enrolled package');
+  const canonicalRoot = realpathSync.native(sdkRoot);
   /** @type {Record<string, ReturnType<typeof snapshotFile>>} */
   const files = {};
   for (const [key, relative] of Object.entries({ package: 'package.json', runtime: 'dist/index.cjs',
     declarations: 'dist/index.d.mts', cjsDeclarations: 'dist/index.d.cts' })) {
-    files[key] = snapshotFile(sdkRoot, relative, policy[key]);
+    files[key] = snapshotFile(canonicalRoot, relative, policy[key]);
+    if (files[key].path !== path.join(canonicalRoot, relative)) throw new Error('SDK package root changed during capture');
   }
   const descriptor = verifySdkIdentity(Object.fromEntries(Object.entries(files).map(([key, s]) => [key, s.bytes])), ts, policy);
-  return { descriptor, files, root: sdkRoot, canonicalRoot: path.dirname(path.dirname(files.runtime.path)) };
+  return { descriptor, files, root: sdkRoot, canonicalRoot };
 }
 
 // The compiled SDK runtime must be the same physical file whose package identity
@@ -204,26 +245,47 @@ export function bindSdkRuntime(sdkSnapshot, inputSnapshots) {
   return compiled[0];
 }
 
-export function verifyWindowsTools(tsc, esbuild) {
-  if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('Only the reviewed Windows x64 toolchain is enrolled');
+export function verifyCompilerTools(tsc, esbuild) {
+  const windows = process.platform === 'win32';
+  if ((!windows && process.platform !== 'linux') || process.arch !== 'x64') {
+    throw new Error('Only the reviewed Windows and Linux x64 toolchains are enrolled');
+  }
+  const policy = windows ? WINDOWS_TOOL_POLICY : LINUX_TOOL_POLICY;
+  const platformPackage = windows ? '@esbuild/win32-x64' : '@esbuild/linux-x64';
+  const binary = windows ? 'esbuild.exe' : 'bin/esbuild';
   const locations = {
     typescript: path.resolve(path.dirname(tsc), '..'), esbuild: path.resolve(path.dirname(esbuild), '..'),
-    native: path.resolve(path.dirname(esbuild), '../../@esbuild/win32-x64'),
+    native: path.resolve(path.dirname(esbuild), '../../', platformPackage),
   };
   if (!samePath(path.resolve(tsc), path.join(locations.typescript, 'lib/tsc.js')) ||
       !samePath(path.resolve(esbuild), path.join(locations.esbuild, 'bin/esbuild'))) throw new Error('Unexpected enrolled tool path');
   /** @type {Record<string, ReturnType<typeof snapshotFile>>} */
   const files = {};
-  for (const [group, entries] of Object.entries(WINDOWS_TOOL_POLICY)) {
+  for (const [group, entries] of Object.entries(policy)) {
     for (const [relative, hash] of Object.entries(entries)) {
-      files[group + '/' + relative] = snapshotFile(locations[group], relative, hash, 16 * 1024 * 1024, !relative.endsWith('.exe'));
+      files[group + '/' + relative] = snapshotFile(locations[group], relative, hash, 16 * 1024 * 1024,
+        group !== 'native' || relative !== binary);
     }
   }
   const pkg = group => JSON.parse(files[group + '/package.json'].bytes.toString('utf8'));
   if (pkg('typescript').name !== 'typescript' || pkg('typescript').version !== '5.9.3' ||
       pkg('esbuild').name !== 'esbuild' || pkg('esbuild').version !== '0.28.1' ||
-      pkg('native').name !== '@esbuild/win32-x64' || pkg('native').version !== '0.28.1') throw new Error('Tool package identity mismatch');
-  return files;
+      pkg('native').name !== platformPackage || pkg('native').version !== '0.28.1') throw new Error('Tool package identity mismatch');
+  return { files, binary: files['native/' + binary], policy };
+}
+
+export function verifyNodeLauncher() {
+  const expected = NODE_POLICY[process.platform]?.[process.version];
+  if (process.arch !== 'x64' || !expected) throw new Error('Unenrolled Node platform or version');
+  const actual = sha256(process.execPath);
+  if (actual !== expected) throw new Error('Node launcher hash mismatch');
+  return actual;
+}
+
+export function runCompiler(file, command, cwd) {
+  const done = spawnSync(process.execPath, [file, ...command], { cwd, stdio: 'inherit', env: sanitizedNodeEnv() });
+  if (done.error) throw done.error;
+  if (done.status !== 0) throw new Error('Offline compiler failed (' + (done.status ?? 'signal') + ')');
 }
 
 export function verifyExternals(imports, mode, policies = EXTERNAL_POLICIES) {
@@ -258,7 +320,7 @@ export function verifiedInputBroker(snapshots, entry, mode) {
     } else {
       // Import provenance comes from esbuild's importer namespace, not a name match:
       // only modules this broker loaded may import anything, externals included.
-      if (args.namespace !== 'aopx-verified' || !byId.has(args.importer)) throw new Error('Unverified importer: ' + args.importer);
+      if (args.namespace !== 'aopx-verified' || !loaded.has(byId.get(args.importer)?.id)) throw new Error('Unverified importer: ' + args.importer);
       if (EXTERNAL_POLICIES[mode]?.includes(args.path)) return { path: args.path, external: true };
       if (args.path === '@ableton-extensions/sdk') selected = sdk.path;
       else if (args.path.startsWith('./') || args.path.startsWith('../')) {
@@ -271,7 +333,9 @@ export function verifiedInputBroker(snapshots, entry, mode) {
   };
   const load = args => {
     const record = byId.get(args.path);
-    if (!record || digest(record.bytes) !== record.sha256) throw new Error('Unverified input load');
+    if (args.namespace !== 'aopx-verified' || !record || digest(record.bytes) !== record.sha256) {
+      throw new Error('Unverified input load');
+    }
     loaded.add(record.id);
     return { contents: Buffer.from(record.bytes), loader: record.path.endsWith('.ts') ? 'ts' : 'js', resolveDir: path.dirname(record.path) };
   };
@@ -314,63 +378,6 @@ export function beta1CjsExport(pkg) {
     throw new Error('Unsupported beta.1 conditional CJS export');
   }
   return branch.default;
-}
-
-// Parse text only: never load/evaluate the bundle. Keep the conservative text
-// checks, excluding only function-name tokens (esbuild emits function __require()).
-// Inspect every body and real call before excluding any declaration name.
-export function validateBundleRequires(output, ts) {
-  if (typeof output !== 'string' || ts?.version !== '5.9.3') {
-    throw new Error('Bundle validation requires the pinned TypeScript 5.9.3 parser');
-  }
-  const parsed = ts.createSourceFile('bundle.js', output, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-  if (!parsed || !Array.isArray(parsed.parseDiagnostics) || parsed.parseDiagnostics.length) {
-    throw new Error('Bundle syntax parsing failed');
-  }
-  const loaderNames = new Set(['require', '__require']);
-  const functionNames = [];
-  const reject = () => { throw new Error('Bundle contains unexpected or nonliteral require()'); };
-  const unparenthesized = node => {
-    while (ts.isParenthesizedExpression(node)) node = node.expression;
-    return node;
-  };
-  const loaderName = node => {
-    node = unparenthesized(node);
-    if (ts.isIdentifier(node)) return node.text;
-    if (ts.isPropertyAccessExpression(node)) return node.name.text;
-    if (ts.isElementAccessExpression(node) && node.argumentExpression && ts.isStringLiteral(node.argumentExpression)) {
-      return node.argumentExpression.text;
-    }
-    return null;
-  };
-  const visit = node => {
-    if ((ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node)) &&
-        node.name && loaderNames.has(node.name.text)) {
-      functionNames.push([node.name.getStart(parsed), node.name.end]);
-    }
-    if (ts.isCallExpression(node)) {
-      const callee = unparenthesized(node.expression);
-      if (callee.kind === ts.SyntaxKind.ImportKeyword) reject();
-      // Indirect .call/.apply/.bind must not bypass the literal-call rule.
-      if (ts.isPropertyAccessExpression(callee) && ['call', 'apply', 'bind'].includes(callee.name.text) &&
-          loaderNames.has(loaderName(callee.expression))) reject();
-      if (loaderNames.has(loaderName(callee))) {
-        if (node.arguments.length !== 1 || !ts.isStringLiteral(node.arguments[0])) reject();
-        const spec = node.arguments[0].text;
-        if (!spec.startsWith('node:') || !builtin.has(spec.slice(5))) reject();
-      }
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(parsed);
-  let checked = output;
-  for (const [start, end] of functionNames.sort((a, b) => b[0] - a[0])) {
-    checked = checked.slice(0, start) + ' '.repeat(end - start) + checked.slice(end);
-  }
-  const requires = /\b(?:__require|require)\s*\(\s*(['"])([^'"\r\n]+)\1\s*\)/g;
-  const specs = [...checked.matchAll(requires)].map(m => m[2]);
-  if (specs.some(s => !s.startsWith('node:') || !builtin.has(s.slice(5))) ||
-      /\b(?:__require|require)\s*\(/.test(checked.replace(requires, ''))) reject();
 }
 
 // Controlled outputs are never opened at their final paths. On Windows, an exclusive
@@ -441,7 +448,7 @@ async function main() {
   };
   checkParents();
   clearOutputs(); // Must invalidate a stale entry even if SDK or toolchain validation rejects.
-  let madeConfig = false;
+  let madeConfig = false, declarationDir, stagedDeclaration;
   try {
     const args = process.argv.slice(2);
     const allowed = new Set(['--tsc', '--esbuild', '--sdk-types', '--sdk-runtime', '--sdk-mock']);
@@ -469,19 +476,22 @@ async function main() {
     const types = path.resolve(path.dirname(tsc), '../../@types');
     const sdkTypes = resolveFile('--sdk-types', path.join(project, '../s5-t1/ci/sdk-stub.d.mts'));
     const sdkRuntime = isMock ? path.resolve(project, '../s5-t1/ci/runtime-sdk.mjs') : resolveFile('--sdk-runtime');
-    const toolFiles = verifyWindowsTools(tsc, esbuild);
+    const nodeSha256 = verifyNodeLauncher();
+    const { files: toolFiles, binary, policy: toolPolicy } = verifyCompilerTools(tsc, esbuild);
     const requireTool = createRequire(import.meta.url);
-    const typescript = requireTool(toolFiles['typescript/lib/typescript.js'].path);
+    const parserFile = toolFiles['typescript/lib/typescript.js'].path;
+    const typescript = readPinnedParser(parserFile);
     if (typescript.version !== '5.9.3') throw new Error('Pinned parser version mismatch');
     const mode = isMock ? 'mock' : 'real';
-    let sdkReceipt, sdkSnapshot;
+    let sdkReceipt, sdkSnapshot, declaration;
     if (!isMock) {
       sdkSnapshot = snapshotSdk(sdkRuntime, sdkTypes, typescript);
       sdkReceipt = sdkSnapshot.descriptor;
+      declaration = sdkSnapshot.files.declarations;
     } else {
       const stub = path.resolve(project, '../s5-t1/ci/sdk-stub.d.mts');
       if (!samePath(sdkTypes, stub)) throw new Error('Mock declarations must be the enrolled repository stub');
-      const declaration = snapshotFile(root, 'ableton-offline-processing/spikes/s5-t1/ci/sdk-stub.d.mts',
+      declaration = snapshotFile(root, 'ableton-offline-processing/spikes/s5-t1/ci/sdk-stub.d.mts',
         '1530613f8ab08e9c0ba9c49d0673872c4b94991c936df1b9474dd6afd157dfaa');
       sdkReceipt = { name: 'synthetic-mock-only', hashes: { declarations: declaration.sha256 } };
     }
@@ -489,28 +499,34 @@ async function main() {
     const snapshots = snapshotInputs(INPUT_POLICIES[mode], { repo: root, sdk: sdkSnapshot?.canonicalRoot });
     if (!isMock) bindSdkRuntime(sdkSnapshot, snapshots);
     const broker = verifiedInputBroker(snapshots, path.join(project, 'src/extension.ts'), mode);
-    const run = (file, command) => {
-      const env = { ...process.env };
-      delete env.NODE_OPTIONS; delete env.NODE_PATH; delete env.NODE_TEST_CONTEXT;
-      const done = spawnSync(process.execPath, [file, ...command], { cwd: root, stdio: 'inherit', env });
-      if (done.error) throw done.error;
-      if (done.status !== 0) throw new Error(`Offline compiler failed (${done.status ?? 'signal'})`);
-    };
     mkdirSync(path.dirname(entry), { recursive: true });
     checkParents();
     if (lstatMaybe(config)) throw new Error('Existing temporary compiler config; refuse to overwrite');
+    declarationDir = mkdtempSync(path.join(buildDir, '.aopx-declarations-'));
+    stagedDeclaration = path.join(declarationDir, 'index.d.mts');
+    writeFileSync(stagedDeclaration, declaration.bytes, { flag: 'wx' });
     writeFileSync(config, JSON.stringify({ compilerOptions: {
       target: 'es2023', module: 'nodenext', moduleResolution: 'nodenext', lib: ['es2023'],
       strict: true, erasableSyntaxOnly: true, skipLibCheck: true, types: ['node'], typeRoots: [types],
       allowJs: true, checkJs: false, rewriteRelativeImportExtensions: true, allowImportingTsExtensions: true,
-      rootDir: root, noEmit: true, paths: { '@ableton-extensions/sdk': [sdkTypes] },
-    }, include: [path.join(project, 'src/**/*.ts'), path.join(project, 'test/**/*.ts')], exclude: [sdkTypes] }, null, 2));
+      rootDir: root, noEmit: true, paths: { '@ableton-extensions/sdk': [stagedDeclaration] },
+    }, include: [path.join(project, 'src/**/*.ts'), path.join(project, 'test/**/*.ts')], exclude: [stagedDeclaration] }, null, 2), { flag: 'wx' });
     madeConfig = true;
-    run(tsc, ['-p', config]);
-    const priorBinary = process.env.ESBUILD_BINARY_PATH;
+    for (const key of ['typescript/lib/tsc.js', 'typescript/lib/_tsc.js']) {
+      if (sha256(toolFiles[key].path) !== toolFiles[key].sha256) throw new Error('Compiler changed after enrollment: ' + key);
+    }
+    runCompiler(toolFiles['typescript/lib/tsc.js'].path, ['-p', config], root);
+    const cleanEnv = sanitizedNodeEnv();
+    const removed = Object.entries(process.env).filter(([name]) => !Object.hasOwn(cleanEnv, name));
     let built;
     try {
-      process.env.ESBUILD_BINARY_PATH = toolFiles['native/esbuild.exe'].path;
+      for (const [name] of removed) delete process.env[name];
+      if (sha256(binary.path) !== binary.sha256 ||
+          sha256(toolFiles['esbuild/lib/main.js'].path) !== toolFiles['esbuild/lib/main.js'].sha256 ||
+          sha256(toolFiles['esbuild/bin/esbuild'].path) !== toolFiles['esbuild/bin/esbuild'].sha256) {
+        throw new Error('esbuild changed after enrollment');
+      }
+      process.env.ESBUILD_BINARY_PATH = binary.path;
       const api = requireTool(toolFiles['esbuild/lib/main.js'].path);
       if (api.version !== '0.28.1') throw new Error('Pinned bundler version mismatch');
       built = await api.build({ absWorkingDir: root, entryPoints: [path.join(project, 'src/extension.ts')],
@@ -519,40 +535,45 @@ async function main() {
         tsconfigRaw: { compilerOptions: { target: 'ES2023', useDefineForClassFields: true } },
         plugins: [broker.plugin] });
     } finally {
-      if (priorBinary === undefined) delete process.env.ESBUILD_BINARY_PATH;
-      else process.env.ESBUILD_BINARY_PATH = priorBinary;
+      delete process.env.ESBUILD_BINARY_PATH;
+      for (const [name, value] of removed) process.env[name] = value;
     }
     const metadataText = JSON.stringify(built.metafile, null, 2) + '\n';
     const { imports } = verifyBundleMetadata(metadataText, typescript, snapshots, broker.loaded, root, candidate, mode);
     if (built.outputFiles?.length !== 1 || !samePath(built.outputFiles[0].path, candidate)) throw new Error('Unexpected compiler output files');
-    const output = new TextDecoder('utf-8', { fatal: true }).decode(built.outputFiles[0].contents);
-    validateBundleRequires(output, typescript);
-    if (/^\s*(?:import|export)\s/m.test(output) || /\bimport\s*\(/.test(output)) {
-      throw new Error('Bundle contains ESM syntax or dynamic import()');
-    }
+    const artifactBytes = built.outputFiles[0].contents;
+    const syntaxImports = await validateInWorker(artifactBytes, parserFile, mode);
+    verifySyntaxExternals(syntaxImports, imports.map(i => i.path));
+    const output = new TextDecoder('utf-8', { fatal: true }).decode(artifactBytes);
     checkParents();
     writeControlledOutputs(buildDir, [[metaPath, metadataText], [candidate, (isMock ? MOCK_HEADER : '') + output],
       [packageScope, '{"type":"commonjs"}\n']]);
     renameSync(candidate, entry); // Final manifest entry appears only after complete validation.
     console.log(JSON.stringify({ mode: isMock ? 'mock-sdk' : 'real-beta1-sdk',
-      policy: { version: 'A1', sha256: digest(JSON.stringify({ inputs: INPUT_POLICIES[mode], externals: EXTERNAL_POLICIES[mode], sdk: SDK_POLICY, tools: WINDOWS_TOOL_POLICY })) },
+      policy: { version: 'A2', sha256: digest(JSON.stringify({
+        inputs: INPUT_POLICIES[mode], externals: EXTERNAL_POLICIES[mode], sdk: SDK_POLICY, tools: toolPolicy,
+        syntax: sha256(fileURLToPath(new URL('./syntax-policy.mjs', import.meta.url))), node: nodeSha256,
+      })) },
       inputs: snapshots.map(({ id, compilerId, format, path, relative, sha256, identity, bytes }) => ({ id, compilerId, format, path, relative, sha256, identity, bytes: bytes.length })),
       toolchain: { node: process.version, typescript: typescript.version, esbuild: '0.28.1',
-        platform: process.platform, arch: process.arch, tscSha256: sha256(tsc), esbuildSha256: sha256(esbuild) },
+        platform: process.platform, arch: process.arch, nodeSha256,
+        tscSha256: toolFiles['typescript/lib/tsc.js'].sha256, esbuildSha256: toolFiles['esbuild/bin/esbuild'].sha256 },
       toolFiles: Object.fromEntries(Object.entries(toolFiles).map(([id, s]) => [id, { path: s.path, sha256: s.sha256 }])),
       sdk: { version: isMock ? 'synthetic-mock-only' : '1.0.0-beta.1',
         ...sdkReceipt, runtimeSha256: snapshots[0].sha256 },
       artifact: { entry: manifest.entry, bytes: readFileSync(entry).length,
         sha256: sha256(entry), packageScopeSha256: sha256(packageScope),
-        externalImports: imports.map(i => i.path) } }, null, 2));
+        externalImports: syntaxImports } }, null, 2));
   } catch (error) {
     try { clearOutputs(); } catch (cleanupError) { throw new AggregateError([error, cleanupError], 'Build failed and generated output cleanup was unsafe'); }
     throw error;
   } finally {
     if (madeConfig && lstatMaybe(config)) unlinkSync(config);
+    if (stagedDeclaration && lstatMaybe(stagedDeclaration)) unlinkSync(stagedDeclaration);
+    if (declarationDir) rmdirSync(declarationDir);
   }
 }
 
-if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+if (process.argv[1] && realpathSync.native(process.argv[1]) === realpathSync.native(fileURLToPath(import.meta.url))) {
   main().catch(error => { console.error(error); process.exitCode = 1; });
 }

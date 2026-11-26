@@ -1,0 +1,66 @@
+name: AOPX A2 offline qualification
+
+on:
+  push:
+    branches: [codex/aopx-a2-bounded-validator]
+
+permissions:
+  contents: read
+
+jobs:
+  qualification:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        node: ['24.22.1', '26.13.0']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Exercise Windows CRLF checkout
+        if: runner.os == 'Windows'
+        run: |
+          git config --local core.autocrlf true
+          git checkout-index --all --force
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install lockfile-pinned build tools without scripts
+        working-directory: ableton-offline-processing/engine
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build and qualify the exact commit offline
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node ableton-offline-processing/spikes/s5-t1/ci/build.mjs
+          node ableton-offline-processing/spikes/s5-t1-trial/ci/build.mjs --sdk-mock
+          node --test --test-reporter=tap \
+            'ableton-offline-processing/spikes/s5-t1-trial/test/*.test.ts' \
+            ableton-offline-processing/spikes/s5-t1-trial/test/a2-acceptance.test.mjs \
+            'ableton-offline-processing/spikes/s5-t1/test/*.test.ts' \
+            ableton-offline-processing/spikes/s5-design/fake-host.test.mjs > "$RUNNER_TEMP/aopx-a2.tap" || {
+              cat "$RUNNER_TEMP/aopx-a2.tap"
+              exit 1
+            }
+          cat "$RUNNER_TEMP/aopx-a2.tap"
+          node --input-type=module - "$RUNNER_TEMP/aopx-a2.tap" <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const tap = readFileSync(process.argv[2], 'utf8');
+          assert.match(tap, /^# skipped 0$/m);
+          const logged = label => JSON.parse(tap.split(/\r?\n/).find(line => line.startsWith('# ' + label + '=')).slice(label.length + 3));
+          const matrix = logged('AOPX_A2_MATRIX');
+          for (const [prefix, count, width] of [['A', 19, 2], ['B', 24, 2], ['2.3-', 27, 1]]) {
+            for (let i = 1; i <= count; i++) {
+              const id = prefix + String(i).padStart(width, '0');
+              assert.ok(matrix.some(row => row.id === id && row.actual === 'reject'), id);
+            }
+          }
+          assert.equal(logged('AOPX_A2_MUTATIONS').filter(row => row.failures > 0).length, 18);
+          JS
+          python -B ableton-offline-processing/spikes/s5-t1-trial/ci/test_package.py

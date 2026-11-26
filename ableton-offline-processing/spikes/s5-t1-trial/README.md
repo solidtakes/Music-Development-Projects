@@ -41,9 +41,46 @@ treats the emitted `.js` as CJS despite the source package's `"type":"module"`.
 The builder fixes esbuild's working directory to the repository root, rejects unexpected or
 dynamic runtime dependencies, and logs toolchain versions and artifact SHA-256 hashes.
 Mock-only loader tests verify zero load-time side effects, exact registration without command
-invocation, ordinary CommonJS load, and filesystem/dependency/ESM mutation detection. CI tests
-Windows/Linux on 24.14.1 (diagnostic **below** beta.1's declared >=24.16.0 minimum), current
-Live 12 target 24.22.1, and development Node 26.13.0. None proves native host behavior.
+invocation, ordinary CommonJS load, and filesystem/dependency/ESM mutation detection. A2 qualification uses Windows and
+Linux x64 with standalone Node 24.22.1 and 26.13.0. Windows jobs use a CRLF-configured
+checkout. CI uses the mock SDK and publishes no artifacts.
+
+## A2 build claim and limits
+
+The approved, hash-pinned input graph, compiled with the approved, hash-pinned toolchain, produced an artifact that satisfies the finite syntax policy SP-1…SP-12 below. This is **not** a JavaScript sandbox. It does not limit what the approved code does with the four allowed built-ins or with ambient globals that the policy doesn't name.
+
+The compiler consumes private copies of the twelve mode-specific LF snapshots. Real mode
+binds the beta.1 manifest, CJS runtime, and both declaration snapshots to one package root.
+The parser, compiler files, esbuild files, and standalone Node launcher are hash-pinned.
+A bounded TypeScript parser and binder validate the in-memory CommonJS output and reconcile
+literal calls with the esbuild metafile. The worker allows 1 MiB of output, 50,000 AST nodes,
+depth 160, and eight seconds. It checks the CommonJS function-body grammar without running
+the output. Compiler, bundler, and parser-worker child environments strip inherited preloads.
+
+| Rule | Check |
+|---|---|
+| SP-1 | Exact literal external calls and matching metafile multiset |
+| SP-2 | Loader identifiers confined to direct calls, direct typeof, and the pinned helper declaration |
+| SP-3 | Reserved decoded property, binding, and reflected keys |
+| SP-4 | Enumerated ambient access paths and wrapper arguments |
+| SP-5 | Dynamic code, ESM forms, and with statements |
+| SP-6 | Binder-resolved references and reviewed exceptions to the shadowing rule |
+| SP-7 | Pinned esbuild CommonJS helper shape and full traversal |
+| SP-8 | Literal/comment data and traversal of template substitutions |
+| SP-9 | CommonJS grammar, Annex B disagreements, and legacy octal in reserved contexts |
+| SP-10 | Fail-closed parser, traversal, and worker limits |
+| SP-11 | AST decisions preserve text lookalikes in literal data |
+| SP-12 | Mock ambient paths reject in real mode |
+
+- **N-1** Use of the four permitted built-ins remains governed by the approved code.
+- **N-2** Unnamed ambient capabilities, including network access, remain unrestricted.
+- **N-3** Static inspection cannot establish obfuscated access through allowed values or prototype chains outside SP-3/SP-5, including prototype pollution.
+- **N-4** The SDK runtime is trusted by hash. Source review is required for one-shot, consent, and journal behavior.
+- **N-5** Native loader behavior, host handshake, ESM/CJS equivalence, and embedded Node remain unverified.
+- **N-6** Operating system and toolchain compromise beyond the file hash checks are outside the claim.
+- **N-7** Host runtime differences, including experimental startup flags, are outside the claim.
+
+[Issue #40 acceptance specification](https://github.com/solidtakes/Music-Development-Projects/issues/40#issuecomment-7060950865).
 
 ## Pinned owner source and verification boundary
 
@@ -109,7 +146,7 @@ From extracted/repository root, using the existing pinned compiler dependencies:
 ```powershell
 node ableton-offline-processing/spikes/s5-t1/ci/build.mjs
 node ableton-offline-processing/spikes/s5-t1-trial/ci/build.mjs --sdk-mock
-node --test --test-reporter=spec ableton-offline-processing/spikes/s5-t1-trial/test/*.test.ts ableton-offline-processing/spikes/s5-t1/test/*.test.ts ableton-offline-processing/spikes/s5-design/fake-host.test.mjs
+node --test --test-reporter=tap ableton-offline-processing/spikes/s5-t1-trial/test/a2-acceptance.test.mjs ableton-offline-processing/spikes/s5-t1-trial/test/*.test.ts
 python ableton-offline-processing/spikes/s5-t1-trial/ci/test_package.py
 ```
 
@@ -118,6 +155,13 @@ Both build scripts accept `--tsc <existing typescript/lib/tsc.js>` and an explic
 builder accepts `--esbuild <existing esbuild/bin/esbuild>` and requires exactly one of
 `--sdk-mock` or `--sdk-runtime <verified beta.1 dist/index.cjs>`; real-SDK mode also requires
 matching `--sdk-types`. It reads SDK bytes for bundling but never imports/executes the runtime.
+The matrix test emits an acceptance table and isolated rule mutation counts. Loader
+tests check the mock output against the controlled digest before evaluation. For C08-real,
+compile the verified beta.1 SDK in a separate owner-local scratch checkout and set
+AOPX_A2_REAL_ENTRY and AOPX_A2_REAL_META to its entry and bundle-meta.json when running
+qualification against a mock checkout. C08 reads the real output as data and checks its hash
+and admitted imports. Keep the receipts and remove the real scratch build after verification.
+
 CI uses only the handwritten SDK mock. The actual SDK is **not** included in the source ZIP and
 no native load, registration or processing is authorized by an offline build.
 
