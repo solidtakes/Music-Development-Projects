@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#100916">
+<title>NCC-1337 • LCARS Android Touch Mixer</title>
+<style>
+:root{--lav:#ac7fda;--gold:#ffdc60;--blue:#75b9f0;--paper:#e8d6fa;--bg:#07050a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--paper);font:12px/1.4 'Arial Narrow','Segoe UI',Arial,sans-serif;-webkit-user-select:none;user-select:none}
+main{max-width:900px;margin:auto;padding:9px 8px 24px}
+header{border-left:11px solid var(--lav);border-radius:28px 0 0 0;background:#21102e;padding:13px 13px 8px;display:flex;justify-content:space-between;gap:8px;align-items:end}
+h1{font-size:24px;color:var(--gold);margin:0;line-height:1;letter-spacing:-.05em}header small{font-size:9px;font-weight:900;color:#c9a6ea;white-space:nowrap}
+.bar{height:13px;margin:5px 0 9px;background:linear-gradient(90deg,var(--lav) 0 52%,#120719 52% 55%,var(--blue) 55% 80%,#120719 80% 83%,var(--gold) 83%)}
+.status{font-weight:900;font-size:11px;color:var(--gold);margin:0 0 6px;min-height:18px}
+.tabs{display:flex;gap:4px;margin:7px 0 10px}.tabs button{border:0;border-left:4px solid var(--lav);border-radius:0 12px 12px 0;background:#69439d;color:white;font-size:13px;font-weight:900;min-height:44px;padding:9px 13px;flex:1;touch-action:manipulation}.tabs button.active{color:#1e0c25;background:var(--gold)}
+.intro{color:#bcdacf;font-weight:800;margin:8px 2px 11px}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.strip{position:relative;background:#130d20;border-top:4px solid var(--lav);padding:6px 2px;min-width:0;text-align:center;display:flex;flex-direction:column;align-items:center;min-height:278px}
+.strip.blue{background:#101827;border-color:var(--blue)}.strip.stereo{border-color:var(--gold)}.strip.dragging{outline:2px solid #a8ffd6;outline-offset:-2px}
+.num{background:var(--gold);color:#160d23;font-size:11px;font-weight:1000;padding:4px 7px;min-width:28px;line-height:1;border-radius:0 9px 9px 0}.strip.blue .num{background:var(--blue)}
+.level{height:21px;font-weight:1000;color:#e8cbff;font-size:10px;white-space:nowrap;font-variant-numeric:tabular-nums}.strip.dragging .level{color:#b9ffd5}
+.rail{width:100%;height:186px;max-width:76px;position:relative;flex-shrink:0;touch-action:none!important;overscroll-behavior:contain;cursor:ns-resize;outline:none;}
+.rail:focus-visible{outline:2px solid var(--gold)}
+.path{position:absolute;left:22%;top:3%;width:7px;height:91%;border-left:5px solid var(--lav);border-bottom:5px solid var(--lav);border-radius:0 0 0 22px;pointer-events:none}
+.segments{position:absolute;top:9%;left:35%;height:74%;width:13px;display:flex;flex-direction:column;gap:3px;pointer-events:none}
+.segments i{display:block;flex:1;background:#975dcf}.segments i:nth-child(even){background:#3e7bca}.segments i:nth-child(3){background:#7bceeb}
+.ticks{position:absolute;left:12%;top:6%;height:77%;width:5px;background:repeating-linear-gradient(to bottom,var(--gold) 0px,var(--gold) 3px,transparent 3px,transparent 8px);pointer-events:none}
+.thumb{position:absolute;left:42%;top:var(--thumb,52%);width:34%;height:12px;border-radius:60%;border:1px solid #fff5ca;background:linear-gradient(#fffefd,#c5dce8);box-shadow:0 1px 3px black;pointer-events:none;transform:translateY(-50%)}
+.name{font-size:9px;font-weight:1000;line-height:1.08;min-height:21px;margin-top:6px;overflow-wrap:anywhere}.kind{color:var(--blue);font-size:8px;font-weight:900}.stereo .kind{color:var(--gold)}
+.footer{background:#1b1125;border-left:6px solid var(--blue);padding:8px 10px;font-size:11px;margin-top:11px;color:#ddc2f3}
+.fresh{color:#b9ffd5}.warn{color:#ffce94}.muted{color:#9787ac}
+@media(max-width:360px){.grid{gap:3px}.rail{height:174px}.strip{min-height:264px}.num{padding:3px 5px}.name{font-size:8px}}
+</style></head>
+<body><main>
+<header><h1>NCC-1337<br>LCARS • LIVE MIXER</h1><small>RME / 10 INPUTS<br>ANDROID MULTI-TOUCH</small></header>
+<div class="bar" aria-hidden="true"></div>
+<div id="status" class="status">CONNECTING TO TOTALMIX…</div>
+<nav class="tabs" aria-label="Submix destination"><button data-output="MAIN">MAIN</button><button class="active" data-output="PHONES">PHONES</button><button data-output="MON2">MON 2</button></nav>
+<p class="intro">Drag the white knobs. Two fingers can move different inputs together. Tap alone will not change audio.</p>
+<section id="grid" class="grid" aria-label="10 live vertical input faders"></section>
+<div id="notice" class="footer" role="status">WAITING FOR LIVE OSC FEEDBACK…</div>
+</main><script>
+(()=>{'use strict';
+const defs=[{index:0,name:'Mic Chain'},{index:1,name:'Digitech SV'},{index:2,name:'OB TEO5',stereo:true},{index:4,name:'DMX 1 / DJ',stereo:true},{index:6,name:'DMX 3'},{index:7,name:'DMX 4'},{index:8,name:'LMDRUM'},{index:9,name:'PRO12ASB'},{index:10,name:'ESQ1'},{index:11,name:'DX100'}];
+const grid=document.getElementById('grid'),status=document.getElementById('status'),note=document.getElementById('notice');
+let out='PHONES',snapshot=null,connected=false,sending=false;
+const active=new Map(),pending=new Map(),optimistic=new Map(),lastSent=new Map();
+const clamp=x=>Math.max(-65,Math.min(6,Math.round(x*20)/20));
+const fmt=x=>Number.isFinite(x)?(x<=-299?'OFF':x.toFixed(2)+' dB'):'—';
+const key=(index,o=out)=>index+':'+o;
+function observed(i,o=out){return snapshot?.inputs?.find(x=>x.index===i)?.sends?.[o]||null;}
+function fresh(s){return !!s && Number.isFinite(s.age_s)&&s.age_s<20&&(s.state==='OBSERVED'||s.state==='OFF');}
+function ready(i){return connected&&fresh(observed(i));}
+function at(i){const p=optimistic.get(key(i)),s=observed(i);if(p && (Date.now()-p.at<3000)&&(!Number.isFinite(s?.dB)||Math.abs(s.dB-p.db)>0.12))return p.db;
+ optimistic.delete(key(i));return s?.dB>-299?clamp(s.dB):-65;}
+function render(){
+ grid.innerHTML=defs.map((d,n)=>`<article class="strip ${[2,5,8].includes(n)?'blue':''} ${d.stereo?'stereo':''}" data-strip="${d.index}"><span class="num">${String(d.index).padStart(2,'0')}</span><span class="level">—</span><div class="rail" role="slider" tabindex="0" aria-orientation="vertical" aria-label="${d.name} ${out} fader" aria-valuemin="-65" aria-valuemax="6" data-index="${d.index}"><span class="path"></span><span class="ticks"></span><span class="segments"><i></i><i></i><i></i><i></i><i></i></span><span class="thumb"></span></div><span class="name">${d.name.toUpperCase()}</span><span class="kind">${d.stereo?'STEREO L/R':'INPUT'}</span></article>`).join('');paintAll();
+}
+function paint(i,db){const el=grid.querySelector(`[data-strip="${i}"]`);if(!el)return;
+ el.querySelector('.level').textContent=fmt(db);
+ const slider=el.querySelector('.rail');slider.style.setProperty('--thumb',(8+Math.max(0,Math.min(1,-db/70))*84).toFixed(2)+'%');slider.setAttribute('aria-valuenow',db.toFixed(2));slider.setAttribute('aria-valuetext',fmt(db));
+ el.classList.toggle('dragging',Array.from(active.values()).some(g=>g.index===i));}
+function paintAll(){for(const d of defs){const s=observed(d.index);if(!fresh(s)){const el=grid.querySelector(`[data-strip="${d.index}"]`);if(el)el.querySelector('.level').textContent=s?'STALE':'—';continue;}paint(d.index,at(d.index));}}
+async function poll(){try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const s=await r.json();if(s.version!=='0.8'||!Array.isArray(s.inputs))throw Error('Expected OSC bridge v0.8');snapshot=s;connected=true;
+ const n=defs.filter(d=>fresh(observed(d.index))).length;
+ status.textContent=`${n}/10 LIVE · ${out} · OSC TX ${s.manual_fader_packets_sent} · RX-TRIGGERED TX ${s.automatic_fader_packets_sent}`;
+ status.className=n===10?'status fresh':'status warn';paintAll();if(!active.size&&!pending.size)note.textContent='LIVE OSC • Drag to adjust immediately. Stereo L/R linking remains managed by TotalMix.';
+ }catch(e){connected=false;status.textContent='BRIDGE OFFLINE';status.className='status warn';note.textContent='Cannot reach Windows OSC bridge: '+e.message;}}
+async function pump(){if(sending||!connected||!pending.size)return;const [k,job]=pending.entries().next().value;pending.delete(k);
+ // Reject a stale or unmapped send rather than guessing which channel to move.
+ if(!defs.some(d=>d.index===job.index)||!fresh(observed(job.index,job.out)))return;
+ sending=true;try{const r=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input_index:job.index,submix:job.out,target_db:job.db}),cache:'no-store'});if(!r.ok){const err=await r.json().catch(()=>({}));throw Error(err.error||'HTTP '+r.status);}lastSent.set(k,job.db);note.textContent=`SENT: ${defs.find(d=>d.index===job.index).name} → ${job.out} ${fmt(job.db)}`;
+ }catch(e){pending.clear();optimistic.clear();note.textContent='AUDIO SEND HELD: '+e.message;}finally{sending=false;}}
+function queue(i,o,db){if(!ready(i))return;const k=key(i,o);if(lastSent.get(k)===db&&!pending.has(k)){paint(i,db);return;}pending.set(k,{index:i,out:o,db});optimistic.set(k,{db,at:Date.now()});paint(i,db);}
+function slider(e){return e.target.closest?.('.rail[data-index]');}
+function begin(e){const el=slider(e);if(!el)return;e.preventDefault();if(e.button!==undefined&&e.button!==0)return;const i=Number(el.dataset.index);if(!ready(i)){note.textContent='Fader held: live OSC feedback is not fresh.';return;}
+ if(Array.from(active.values()).some(g=>g.index===i))return;
+ const g={index:i,out,startY:e.clientY,baseline:at(i),db:at(i),height:Math.max(70,el.getBoundingClientRect().height),moved:false,el};active.set(e.pointerId,g);try{el.setPointerCapture(e.pointerId)}catch(_){}paint(i,g.db);
+}
+function move(e){const g=active.get(e.pointerId);if(!g)return;e.preventDefault();const dy=g.startY-e.clientY;if(!g.moved&&Math.abs(dy)<4)return;g.moved=true;const db=clamp(g.baseline+dy/g.height*71);if(db!==g.db){g.db=db;queue(g.index,g.out,db);}}
+function finish(e,cancel){const g=active.get(e.pointerId);if(!g)return;e.preventDefault();active.delete(e.pointerId);if(g.moved&&!cancel)queue(g.index,g.out,g.db);paint(g.index,g.db);}
+function keys(e){const el=slider(e);if(!el)return;const d={ArrowUp:.5,ArrowDown:-.5,PageUp:3,PageDown:-3}[e.key];if(d===undefined)return;e.preventDefault();const i=Number(el.dataset.index);if(ready(i))queue(i,out,clamp(at(i)+d));}
+grid.addEventListener('pointerdown',begin,{passive:false});grid.addEventListener('pointermove',move,{passive:false});grid.addEventListener('pointerup',e=>finish(e,false),{passive:false});grid.addEventListener('pointercancel',e=>finish(e,true),{passive:false});grid.addEventListener('lostpointercapture',e=>finish(e,true),{passive:false});grid.addEventListener('keydown',keys);
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{if(active.size)return;out=b.dataset.output;pending.clear();optimistic.clear();document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));render();poll();}));
+render();poll();setInterval(poll,1100);setInterval(pump,120);
+})();
+</script></body></html>

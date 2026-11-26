@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+OPEN_ANDROID_PAIRING.html
+*.log
+*.tmp
+.env
