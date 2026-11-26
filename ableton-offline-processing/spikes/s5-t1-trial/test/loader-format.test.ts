@@ -4,6 +4,7 @@ import { builtinModules, createRequire } from 'node:module';
 import { readFile, readdir, mkdtemp, mkdir, rm, link, realpath, symlink, unlink, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import os from 'node:os';
 import { beta1CjsExport, INPUT_POLICIES, EXTERNAL_POLICIES, SDK_POLICY,
   WINDOWS_TOOL_POLICY, LINUX_TOOL_POLICY, strictJson, snapshotFile, snapshotInputs, snapshotSdk, verifySdkIdentity,
@@ -432,7 +433,7 @@ test('A1-E01 each mode enforces exactly four built-ins and the six-record multis
 });
 
 async function a1Fixture() {
-  const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-a1-fixture-'));
+  const temp = realpathSync.native(await mkdtemp(path.join(os.tmpdir(), 'aopx-a1-fixture-')));
   const texts: Record<string, string> = {
     'entry.ts': "import {value} from './lib.ts'; import {marker} from '@ableton-extensions/sdk'; import p from 'node:path'; export const answer = value + marker; export const pathCheck = p.isAbsolute;\n",
     'lib.ts': "export const value = 'VALUE_FROM_SNAPSHOT';\n",

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -38,7 +38,8 @@ function denies(id, text, reason = /^SP-\d\d:/, mode = 'mock') {
 }
 
 async function temporary(action) {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'aopx-a2-'));
+  // The hosted Windows TEMP can use a short path alias.
+  const dir = realpathSync.native(await mkdtemp(path.join(os.tmpdir(), 'aopx-a2-')));
   try { return await action(dir); }
   finally { await rm(dir, { recursive: true, force: true }); }
 }
