@@ -1,0 +1,14 @@
+# A1 byte-enrolled runtime and mock declaration inputs only.
+ableton-offline-processing/engine/src/wav.ts text eol=lf
+ableton-offline-processing/engine/src/dsp.ts text eol=lf
+ableton-offline-processing/spikes/s5-design/fake-host.mjs text eol=lf
+ableton-offline-processing/spikes/s5-t1/src/confirm.ts text eol=lf
+ableton-offline-processing/spikes/s5-t1/src/flow.ts text eol=lf
+ableton-offline-processing/spikes/s5-t1/src/files.ts text eol=lf
+ableton-offline-processing/spikes/s5-t1/src/live-port.ts text eol=lf
+ableton-offline-processing/spikes/s5-t1-trial/src/profile.ts text eol=lf
+ableton-offline-processing/spikes/s5-t1-trial/src/consent.ts text eol=lf
+ableton-offline-processing/spikes/s5-t1-trial/src/trial.ts text eol=lf
+ableton-offline-processing/spikes/s5-t1-trial/src/extension.ts text eol=lf
+ableton-offline-processing/spikes/s5-t1/ci/runtime-sdk.mjs text eol=lf
+ableton-offline-processing/spikes/s5-t1/ci/sdk-stub.d.mts text eol=lf

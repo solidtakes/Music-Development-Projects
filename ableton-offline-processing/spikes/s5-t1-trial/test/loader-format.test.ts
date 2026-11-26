@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { builtinModules, createRequire } from 'node:module';
-import { readFile, mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { readFile, readdir, mkdtemp, mkdir, rm, link, realpath, symlink, unlink, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import os from 'node:os';
-import { beta1CjsExport, validateBundleRequires } from '../ci/build.mjs';
+import { beta1CjsExport, validateBundleRequires, INPUT_POLICIES, EXTERNAL_POLICIES, SDK_POLICY,
+  WINDOWS_TOOL_POLICY, strictJson, snapshotFile, snapshotInputs, snapshotSdk, verifySdkIdentity,
+  verifyWindowsTools, verifiedInputBroker, verifyBundleMetadata, verifyExternals,
+  bindSdkRuntime, writeControlledOutputs } from '../ci/build.mjs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
@@ -309,8 +312,8 @@ test('guard-removal matching accepts LF and CRLF but rejects an absent, altered 
 });
 
 // Isolated scratch integration: no installed toolchain, real SDK, host, media or repo files.
-// Two deliberately failing builders prove that the fixed manifest entry is invalidated
-// both before and after synthetic compiler output, without deleting unrelated files.
+// Rejections invalidate the fixed manifest entry without deleting unrelated files.
+// A1 also refuses synthetic tools before their code can run.
 test('rejected offline build invalidates stale entry and preserves unrelated files', async () => {
   const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-build-cleanup-'));
   try {
@@ -357,12 +360,12 @@ test('rejected offline build invalidates stale entry and preserves unrelated fil
     assert.match(early.stderr, /Select exactly one/);
     await verify();
 
-    // Failure AFTER a synthetic esbuild emits a rejected candidate and metafile.
-    // No dependency installation or real SDK execution; only synthetic Node scripts.
+    // A synthetic compiler/bundler may claim the right version, but A1 must
+    // refuse its unpinned path/bytes before running it or accepting its output.
     const tsDir = path.join(temp, 'tools/typescript');
     const esDir = path.join(temp, 'tools/esbuild');
     const tscPath = path.join(tsDir, 'lib/tsc.js');
-    const esPath = path.join(esDir, 'bin/esbuild.js');
+    const esPath = path.join(esDir, 'bin/esbuild');
     const stub = path.join(temp, 'spikes/s5-t1/ci/sdk-stub.d.mts');
     const mock = path.join(temp, 'spikes/s5-t1/ci/runtime-sdk.mjs');
     for (const dir of [path.dirname(tscPath), path.dirname(esPath), path.dirname(stub)]) {
@@ -370,7 +373,8 @@ test('rejected offline build invalidates stale entry and preserves unrelated fil
     }
     await writeFile(path.join(tsDir, 'package.json'), JSON.stringify({name:'typescript',version:'5.9.3'}));
     await writeFile(path.join(esDir, 'package.json'), JSON.stringify({name:'esbuild',version:'0.28.1'}));
-    await writeFile(tscPath, '// synthetic compiler: no source emission\n');
+    const compilerRan = path.join(temp, 'unverified-compiler-ran');
+    await writeFile(tscPath, `require('node:fs').writeFileSync(${JSON.stringify(compilerRan)}, 'BAD');\n`);
     await writeFile(stub, '// mock SDK declaration fixture\n');
     await writeFile(mock, '// synthetic SDK runtime: never imported\n');
     await writeFile(esPath, `
@@ -391,7 +395,8 @@ fs.writeFileSync(metafile, JSON.stringify({
     assert.equal(late.error, undefined);
     assert.equal(late.signal, null);
     assert.equal(late.status, 1);
-    assert.match(late.stderr, /Unexpected external\/dynamic dependencies/);
+    assert.match(late.stderr, /Unexpected enrolled tool path|Enrolled content hash mismatch/);
+    await assert.rejects(readFile(compilerRan), /ENOENT/, 'unverified compiler must never execute');
     await verify();
   } finally {
     await rm(temp, { recursive: true, force: true });
@@ -535,4 +540,354 @@ test('syntax-aware validator fails closed on malformed syntax, unavailable parse
   assert.throws(() => validateBundleRequires('require("node:fs");', {
     ...parser, forEachChild: () => { throw new Error('parser traversal failed'); },
   }), /parser traversal failed/);
+});
+
+const a1Hash = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
+const a1Externals = () => EXTERNAL_POLICIES.mock.map(specifier => ({ path: specifier, kind: 'require-call', external: true }));
+const mockRuntimeId = 'ableton-offline-processing/spikes/s5-t1/ci/runtime-sdk.mjs';
+
+test('A1-P01 production policies are immutable, explicit and mode-separated', () => {
+  assert.ok(Object.isFrozen(INPUT_POLICIES) && Object.isFrozen(INPUT_POLICIES.real[0]));
+  assert.equal(INPUT_POLICIES.real.length, 12);
+  assert.equal(INPUT_POLICIES.mock.length, 12);
+  assert.equal(new Set(INPUT_POLICIES.real.map(p => p.id)).size, 12);
+  assert.equal(INPUT_POLICIES.real[0].id, 'sdk:dist/index.cjs');
+  assert.equal(INPUT_POLICIES.mock[0].id, mockRuntimeId);
+  assert.equal(INPUT_POLICIES.real[0].sha256, SDK_POLICY.runtime);
+  assert.equal(INPUT_POLICIES.mock[0].sha256, '695316e4386ad7f132c6e967f8661b29c415451f15bd6bc3aeee95e7d78f51b6');
+  assert.deepEqual(INPUT_POLICIES.real.slice(1), INPUT_POLICIES.mock.slice(1));
+  assert.ok(Object.isFrozen(WINDOWS_TOOL_POLICY.typescript));
+  assert.equal(WINDOWS_TOOL_POLICY.typescript['lib/typescript.js'], '3ae902c92cc44dace175c0e69e13a4b0899f6983c6121d76b9ab8dd5795e7675');
+  assert.throws(() => { (INPUT_POLICIES.mock[0] as any).sha256 = '0'.repeat(64); }, TypeError);
+});
+
+test('A1-J01 strict metadata JSON rejects duplicate decoded keys and malformed input', () => {
+  const parser = pinnedParser();
+  assert.deepEqual(strictJson('{"inputs":{"one":{"bytes":1}}}', parser), { inputs: { one: { bytes: 1 } } });
+  for (const text of [
+    '{"inputs":{},"inputs":{}}', '{"inputs":{"x":{},"\\u0078":{}}}',
+    '{"inputs":{"x":{"bytes":1,"bytes":2}}}',
+  ]) assert.throws(() => strictJson(text, parser), /Duplicate JSON key/);
+  for (const text of ['{"x":', '{"x":1,}', '{/*comment*/"x":1}']) assert.throws(() => strictJson(text, parser));
+  assert.throws(() => strictJson('{}', { ...parser, version: '0' }), /pinned parser/);
+});
+
+test('A1-E01 each mode enforces exactly four built-ins and the six-record multiset', async t => {
+  for (const mode of ['mock', 'real']) {
+    assert.doesNotThrow(() => verifyExternals(a1Externals(), mode));
+    const bad = [
+      a1Externals().slice(1), [...a1Externals(), a1Externals()[0]],
+      a1Externals().map((x, i) => i === 0 ? { ...x, external: false } : x),
+      a1Externals().map((x, i) => i === 0 ? { ...x, kind: 'dynamic-import' } : x),
+      ...['fs', 'node:module', 'node:child_process', 'node:vm', 'node:worker_threads', 'node:fs/'].map(specifier =>
+        a1Externals().map((x, i) => i === 0 ? { ...x, path: specifier } : x)),
+    ];
+    for (const [index, imports] of bad.entries()) await t.test(mode + '-external-negative-' + index, () => {
+      assert.throws(() => verifyExternals(imports, mode), /Unexpected external/);
+    });
+  }
+});
+
+async function a1Fixture() {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-a1-fixture-'));
+  const texts: Record<string, string> = {
+    'entry.ts': "import {value} from './lib.ts'; import {marker} from '@ableton-extensions/sdk'; import p from 'node:path'; export const answer = value + marker; export const pathCheck = p.isAbsolute;\n",
+    'lib.ts': "export const value = 'VALUE_FROM_SNAPSHOT';\n",
+    [mockRuntimeId]: "export const marker = 'SYNTHETIC_NO_SDK';\n",
+  };
+  for (const [relative, text] of Object.entries(texts)) {
+    await mkdir(path.dirname(path.join(temp, relative)), { recursive: true });
+    await writeFile(path.join(temp, relative), text);
+  }
+  const policy = Object.entries(texts).map(([id, text]) => ({ id, sha256: a1Hash(text), format: 'esm' }));
+  const snapshots = snapshotInputs(policy, { repo: temp });
+  const candidate = path.join(temp, 'pending.js');
+  const metadata = () => ({
+    inputs: Object.fromEntries(snapshots.map(s => ['aopx-verified:' + s.compilerId, { bytes: s.bytes.length }])),
+    outputs: { [candidate]: { imports: a1Externals() } },
+  });
+  return { temp, texts, policy, snapshots, candidate, metadata };
+}
+
+test('A1-C01 exact closure rejects added, missing, duplicated, substituted and mutated metadata inputs', async t => {
+  const f = await a1Fixture();
+  try {
+    const parser = pinnedParser();
+    const loaded = new Set(f.snapshots.map(s => s.id));
+    const verify = (metadata: unknown, consumed = loaded) =>
+      verifyBundleMetadata(JSON.stringify(metadata), parser, f.snapshots, consumed, f.temp, f.candidate, 'mock');
+    assert.doesNotThrow(() => verify(f.metadata()));
+    const cases: Array<[string, (m: any) => void]> = [
+      ['added input even with zero bytes', m => { m.inputs['aopx-verified:added.ts'] = { bytes: 0 }; }],
+      ['missing input', m => { delete m.inputs['aopx-verified:lib.mts']; }],
+      ['same basename at another path', m => { m.inputs['aopx-verified:other/lib.mts'] = m.inputs['aopx-verified:lib.mts']; delete m.inputs['aopx-verified:lib.mts']; }],
+      ['unrecognized namespace', m => { m.inputs['file:lib.mts'] = m.inputs['aopx-verified:lib.mts']; delete m.inputs['aopx-verified:lib.mts']; }],
+      ['alias duplicate', m => { m.inputs['aopx-verified:./lib.mts'] = m.inputs['aopx-verified:lib.mts']; }],
+      ['changed byte count', m => { m.inputs['aopx-verified:lib.mts'].bytes++; }],
+      ['real SDK in mock graph', m => { m.inputs['aopx-verified:sdk:dist/index.cjs'] = { bytes: 1 }; }],
+      ['extra compiler output', m => { m.outputs[path.join(f.temp, 'extra.js')] = { imports: [] }; }],
+      ['wrong output path', m => { m.outputs[path.join(f.temp, 'wrong.js')] = m.outputs[f.candidate]; delete m.outputs[f.candidate]; }],
+    ];
+    for (const [label, mutate] of cases) await t.test(label, () => {
+      const metadata = f.metadata(); mutate(metadata);
+      assert.throws(() => verify(metadata), /Unexpected|Missing/);
+    });
+    assert.throws(() => verify(f.metadata(), new Set()), /Missing verified/);
+    const duplicate = JSON.stringify(f.metadata()).replace('"inputs":{', '"inputs":{"aopx-verified:lib.mts":{"bytes":0},');
+    assert.throws(() => verifyBundleMetadata(duplicate, parser, f.snapshots, loaded, f.temp, f.candidate, 'mock'), /Duplicate JSON key/);
+    const repeated = [...f.policy, f.policy[0]];
+    assert.throws(() => snapshotInputs(repeated, { repo: f.temp }), /Duplicate enrolled identity/);
+  } finally { await rm(f.temp, { recursive: true, force: true }); }
+});
+
+test('A1-F01 canonical enrollment rejects changed bytes, links, traversal, non-files and physical duplicates', async () => {
+  const f = await a1Fixture();
+  try {
+    await writeFile(path.join(f.temp, 'lib.ts'), 'MUTATED');
+    assert.throws(() => snapshotInputs(f.policy, { repo: f.temp }), /hash mismatch/);
+    await writeFile(path.join(f.temp, 'lib.ts'), f.texts['lib.ts'].replace(/\n/g, '\r\n'));
+    assert.throws(() => snapshotInputs(f.policy, { repo: f.temp }), /hash mismatch/, 'raw CRLF substitution is not enrolled');
+    await writeFile(path.join(f.temp, 'lib.ts'), f.texts['lib.ts']);
+    assert.throws(() => snapshotFile(f.temp, '../lib.ts', f.policy[0].sha256), /Invalid enrolled/);
+    assert.throws(() => snapshotFile(f.temp, 'lib.ts', f.policy[1].sha256, 1), /size/);
+    await mkdir(path.join(f.temp, 'directory.ts'));
+    assert.throws(() => snapshotFile(f.temp, 'directory.ts', f.policy[0].sha256), /Unsafe enrolled/);
+    await link(path.join(f.temp, 'lib.ts'), path.join(f.temp, 'hardlink.ts'));
+    assert.throws(() => snapshotInputs([f.policy[1], { id: 'hardlink.ts', sha256: f.policy[1].sha256, format: 'esm' }], { repo: f.temp }), /Duplicate canonical\/physical/);
+    if (process.platform === 'win32') assert.throws(() => snapshotInputs([
+      f.policy[1], { id: 'LIB.ts', sha256: f.policy[1].sha256, format: 'esm' },
+    ], { repo: f.temp }), /Duplicate canonical\/physical/);
+    await mkdir(path.join(f.temp, 'real-dir'));
+    await writeFile(path.join(f.temp, 'real-dir/value.ts'), f.texts['lib.ts']);
+    await symlink(path.join(f.temp, 'real-dir'), path.join(f.temp, 'linked-dir'), process.platform === 'win32' ? 'junction' : 'dir');
+    assert.throws(() => snapshotFile(f.temp, 'linked-dir/value.ts', f.policy[1].sha256), /Unsafe enrolled/);
+    const invalid = Buffer.from([0xff]);
+    await writeFile(path.join(f.temp, 'invalid.ts'), invalid);
+    assert.throws(() => snapshotFile(f.temp, 'invalid.ts', a1Hash(invalid)), /encoded data|encoding|UTF/i);
+  } finally { await rm(f.temp, { recursive: true, force: true }); }
+});
+
+test('A1-B01 compiler receives hashed snapshot bytes despite subsequent disk and caller-buffer mutation', async () => {
+  const f = await a1Fixture();
+  const originalBinary = process.env.ESBUILD_BINARY_PATH;
+  try {
+    const entry = path.join(f.temp, 'entry.ts');
+    const broker = verifiedInputBroker(f.snapshots, entry, 'mock');
+    const compilerEntry = broker.resolve({ path: entry, importer: '', kind: 'entry-point' }).path;
+    assert.equal(compilerEntry, 'entry.mts');
+    await writeFile(path.join(f.temp, 'lib.ts'), "export const value = 'DISK_MUTATION';\n");
+    f.snapshots.find(s => s.id === 'lib.ts')!.bytes.fill(0);
+    assert.throws(() => verifiedInputBroker(f.snapshots, entry, 'mock'), /Snapshot buffer changed/);
+    assert.throws(() => broker.resolve({ path: 'node:module', importer: compilerEntry, namespace: 'aopx-verified', kind: 'import-statement' }), /Unenrolled import/);
+    assert.throws(() => broker.resolve({ path: './extra.ts', importer: compilerEntry, namespace: 'aopx-verified', kind: 'import-statement' }), /Unexpected input/);
+    assert.throws(() => broker.load({ path: 'unregistered.ts' }), /Unverified input/);
+    const esbuild = process.env.AOPX_OFFLINE_ESBUILD ?? path.resolve(project, '../../engine/node_modules/esbuild/bin/esbuild');
+    const tools = verifyWindowsTools(offlineTsc(), esbuild);
+    process.env.ESBUILD_BINARY_PATH = tools['native/esbuild.exe'].path;
+    const api = nativeRequire(tools['esbuild/lib/main.js'].path);
+    const built = await api.build({ absWorkingDir: f.temp, entryPoints: [entry], outfile: f.candidate,
+      bundle: true, platform: 'node', format: 'cjs', target: 'node24', write: false, metafile: true,
+      tsconfigRaw: {}, plugins: [broker.plugin], logLevel: 'silent' });
+    const output = built.outputFiles[0].text;
+    assert.match(output, /VALUE_FROM_SNAPSHOT/);
+    assert.doesNotMatch(output, /DISK_MUTATION/);
+    assert.match(output, /__toESM\(require\("node:path"\), 1\)/, 'explicit ESM policy must retain Node default-import interop');
+    assert.equal(broker.loaded.size, 3);
+    assert.equal(Object.keys(built.metafile.inputs).length, 3);
+    await assert.rejects(readFile(f.candidate), /ENOENT/, 'synthetic compiled output must remain in memory');
+  } finally {
+    if (originalBinary === undefined) delete process.env.ESBUILD_BINARY_PATH;
+    else process.env.ESBUILD_BINARY_PATH = originalBinary;
+    await rm(f.temp, { recursive: true, force: true });
+  }
+});
+
+test('A1-S01 pure SDK identity and declaration hash tests never load fixture code', async t => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-a1-sdk-'));
+  try {
+    const parser = pinnedParser();
+    const sentinel = path.join(temp, 'SDK_WAS_EXECUTED');
+    const pkg = { ...validBeta1Metadata(), engines: { node: '>=24.16.0' } };
+    const bytes = {
+      package: Buffer.from(JSON.stringify(pkg)),
+      runtime: Buffer.from(`require('node:fs').writeFileSync(${JSON.stringify(sentinel)}, 'BAD'); throw new Error('SDK_MUST_NOT_EXECUTE');\n`),
+      declarations: Buffer.from('// synthetic ESM declaration\n'),
+      cjsDeclarations: Buffer.from('// synthetic CJS declaration\n'),
+    };
+    const policy: typeof SDK_POLICY = { package: a1Hash(bytes.package), runtime: a1Hash(bytes.runtime),
+      declarations: a1Hash(bytes.declarations), cjsDeclarations: a1Hash(bytes.cjsDeclarations) };
+    assert.equal(verifySdkIdentity(bytes, parser, policy).version, '1.0.0-beta.1');
+    for (const key of Object.keys(bytes) as Array<keyof typeof bytes>) await t.test('mutated-' + key, () => {
+      const changed = { ...bytes, [key]: Buffer.concat([bytes[key], Buffer.from('!')]) };
+      assert.throws(() => verifySdkIdentity(changed, parser, policy), /SDK hash mismatch/);
+    });
+    const mutations = [
+      (p: any) => { p.name = '@wrong/sdk'; }, (p: any) => { p.version = '1.0.0-beta.2'; },
+      (p: any) => { p.exports['.'].require.default = '../escape.cjs'; },
+      (p: any) => { p.exports['.'].require.extra = './other.cjs'; },
+      (p: any) => { p.exports['.'].import.types = './dist/index.d.cts'; },
+      (p: any) => { p.engines.node = '>=24.14.1'; },
+    ];
+    for (const [index, mutate] of mutations.entries()) await t.test('identity-' + index, () => {
+      const changedPackage = structuredClone(pkg); mutate(changedPackage);
+      const packageBytes = Buffer.from(JSON.stringify(changedPackage));
+      assert.throws(() => verifySdkIdentity({ ...bytes, package: packageBytes }, parser,
+        { ...policy, package: a1Hash(packageBytes) }), /SDK|conditional/);
+    });
+    const duplicatePackage = Buffer.from('{"name":"bad",' + bytes.package.toString('utf8').slice(1));
+    assert.throws(() => verifySdkIdentity({ ...bytes, package: duplicatePackage }, parser,
+      { ...policy, package: a1Hash(duplicatePackage) }), /Duplicate JSON/);
+    assert.throws(() => verifySdkIdentity(bytes, parser), /SDK hash mismatch/, 'synthetic policy cannot become production approval');
+    await mkdir(path.join(temp, 'dist'));
+    for (const [key, relative] of Object.entries({ package: 'package.json', runtime: 'dist/index.cjs', declarations: 'dist/index.d.mts', cjsDeclarations: 'dist/index.d.cts' })) {
+      await writeFile(path.join(temp, relative), bytes[key as keyof typeof bytes]);
+    }
+    const runtime = path.join(temp, 'dist/index.cjs');
+    const types = path.join(temp, 'dist/index.d.mts');
+    assert.equal(snapshotSdk(runtime, types, parser, policy).descriptor.version, '1.0.0-beta.1');
+    assert.throws(() => snapshotSdk(runtime, path.join(temp, 'another/dist/index.d.mts'), parser, policy), /same enrolled package/);
+    assert.throws(() => snapshotSdk(runtime, path.join(temp, 'dist/index.d.cts'), parser, policy), /same enrolled package/);
+    await writeFile(path.join(temp, 'dist/index.d.cts'), 'CHANGED');
+    assert.throws(() => snapshotSdk(runtime, types, parser, policy), /hash mismatch/);
+    await assert.rejects(readFile(sentinel), /ENOENT/, 'no SDK fixture may be imported or evaluated');
+  } finally { await rm(temp, { recursive: true, force: true }); }
+});
+
+test('A1-T01 each compiler, parser, API, package and binary pin rejects a one-byte mutation', async t => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-a1-tools-'));
+  try {
+    const esbuild = process.env.AOPX_OFFLINE_ESBUILD ?? path.resolve(project, '../../engine/node_modules/esbuild/bin/esbuild');
+    const reviewed = verifyWindowsTools(offlineTsc(), esbuild);
+    const fixtures: Array<{id: string; file: string; bytes: Buffer}> = [];
+    for (const [id, snapshot] of Object.entries(reviewed)) {
+      const relative = id.startsWith('native/') ? '@esbuild/win32-x64/' + id.slice('native/'.length) : id;
+      const file = path.join(temp, relative);
+      await mkdir(path.dirname(file), { recursive: true });
+      await writeFile(file, snapshot.bytes);
+      fixtures.push({ id, file, bytes: snapshot.bytes });
+    }
+    const tscFixture = path.join(temp, 'typescript/lib/tsc.js');
+    const esbuildFixture = path.join(temp, 'esbuild/bin/esbuild');
+    assert.equal(Object.keys(verifyWindowsTools(tscFixture, esbuildFixture)).length, 9);
+    for (const fixture of fixtures) await t.test(fixture.id, async () => {
+      const changed = Buffer.from(fixture.bytes); changed[0] ^= 1;
+      await writeFile(fixture.file, changed);
+      assert.throws(() => verifyWindowsTools(tscFixture, esbuildFixture), /Enrolled content hash mismatch/);
+      await writeFile(fixture.file, fixture.bytes);
+    });
+    // These copied files are inspected as bytes only, never imported/executed.
+  } finally { await rm(temp, { recursive: true, force: true }); }
+});
+
+test('A1-N01 broker admits imports only from its own namespace and only the enrolled entry point', async () => {
+  const f = await a1Fixture();
+  try {
+    const entry = path.join(f.temp, 'entry.ts');
+    const broker = verifiedInputBroker(f.snapshots, entry, 'mock');
+    const ns = 'aopx-verified';
+    assert.equal(broker.resolve({ path: entry, importer: '', kind: 'entry-point' }).path, 'entry.mts');
+    assert.throws(() => broker.resolve({ path: path.join(f.temp, 'lib.ts'), importer: '', kind: 'entry-point' }), /Unexpected entry point/);
+    assert.equal(broker.resolve({ path: './lib.ts', importer: 'entry.mts', namespace: ns, kind: 'import-statement' }).path, 'lib.mts');
+    assert.equal(broker.resolve({ path: '@ableton-extensions/sdk', importer: 'entry.mts', namespace: ns, kind: 'import-statement' }).path, mockRuntimeId);
+    assert.deepEqual(broker.resolve({ path: 'node:path', importer: 'entry.mts', namespace: ns, kind: 'import-statement' }), { path: 'node:path', external: true });
+    // A matching importer name is not provenance: wrong, missing or file namespaces reject,
+    // as does a correct namespace with an importer this broker never loaded.
+    for (const args of [
+      { path: './lib.ts', importer: 'entry.mts', namespace: 'file', kind: 'import-statement' },
+      { path: './lib.ts', importer: 'entry.mts', kind: 'import-statement' },
+      { path: '@ableton-extensions/sdk', importer: 'entry.mts', namespace: 'file', kind: 'import-statement' },
+      { path: 'node:path', importer: 'entry.mts', namespace: 'file', kind: 'require-call' },
+      { path: './lib.ts', importer: path.join(f.temp, 'entry.ts'), namespace: ns, kind: 'import-statement' },
+      { path: './lib.ts', importer: 'other.mts', namespace: ns, kind: 'import-statement' },
+    ]) assert.throws(() => broker.resolve(args), /Unverified importer/, JSON.stringify(args));
+  } finally { await rm(f.temp, { recursive: true, force: true }); }
+});
+
+test('A1-R01 compiled SDK runtime is bound to the verified package by canonical path and identity', async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-a1-bind-'));
+  try {
+    const parser = pinnedParser();
+    const pkg = { ...validBeta1Metadata(), engines: { node: '>=24.16.0' } };
+    const bytes = {
+      package: Buffer.from(JSON.stringify(pkg)),
+      runtime: Buffer.from('// synthetic runtime bytes, never executed\n'),
+      declarations: Buffer.from('// synthetic ESM declaration\n'),
+      cjsDeclarations: Buffer.from('// synthetic CJS declaration\n'),
+    };
+    const policy: typeof SDK_POLICY = { package: a1Hash(bytes.package), runtime: a1Hash(bytes.runtime),
+      declarations: a1Hash(bytes.declarations), cjsDeclarations: a1Hash(bytes.cjsDeclarations) };
+    const files = { package: 'package.json', runtime: 'dist/index.cjs', declarations: 'dist/index.d.mts', cjsDeclarations: 'dist/index.d.cts' };
+    for (const name of ['a', 'b']) {
+      await mkdir(path.join(temp, name, 'dist'), { recursive: true });
+      for (const [key, relative] of Object.entries(files)) await writeFile(path.join(temp, name, relative), bytes[key as keyof typeof bytes]);
+    }
+    const runtimePolicy = [{ id: 'sdk:dist/index.cjs', sha256: policy.runtime, format: 'cjs' }];
+    const capture = (sdk: string) => snapshotInputs(runtimePolicy, { repo: temp, sdk });
+    // Root selected through a junction alias: the verified package is canonical package a.
+    const alias = path.join(temp, 'alias');
+    await symlink(path.join(temp, 'a'), alias, process.platform === 'win32' ? 'junction' : 'dir');
+    const verified = snapshotSdk(path.join(alias, 'dist/index.cjs'), path.join(alias, 'dist/index.d.mts'), parser, policy);
+    assert.equal(path.relative(verified.canonicalRoot, await realpath(path.join(temp, 'a'))), '');
+    assert.equal(bindSdkRuntime(verified, capture(verified.canonicalRoot)).id, 'sdk:dist/index.cjs');
+    // Identical runtime bytes from another package directory are not the verified runtime.
+    assert.throws(() => bindSdkRuntime(verified, capture(path.join(temp, 'b'))), /not the verified package runtime/);
+    // Re-pointing the alias between captures must not substitute package b.
+    await unlink(alias);
+    await symlink(path.join(temp, 'b'), alias, process.platform === 'win32' ? 'junction' : 'dir');
+    assert.throws(() => bindSdkRuntime(verified, capture(alias)), /not the verified package runtime/);
+    assert.equal(bindSdkRuntime(verified, capture(verified.canonicalRoot)).id, 'sdk:dist/index.cjs', 'canonical root is unaffected by the alias');
+    // Pure negative cases: missing, duplicated or buffer-mutated compiled records.
+    const good = capture(verified.canonicalRoot);
+    assert.throws(() => bindSdkRuntime(verified, []), /not the verified/);
+    assert.throws(() => bindSdkRuntime(verified, [...good, ...good]), /not the verified/);
+    assert.throws(() => bindSdkRuntime(undefined, good), /not the verified/);
+    const mutated = [{ ...good[0], bytes: Buffer.concat([good[0].bytes, Buffer.from('!')]) }];
+    assert.throws(() => bindSdkRuntime(verified, mutated), /not the verified/);
+    assert.throws(() => bindSdkRuntime(verified, [{ ...good[0], identity: '0:0' }]), /not the verified/);
+  } finally { await rm(temp, { recursive: true, force: true }); }
+});
+
+test('A1-W01 controlled outputs are staged, never opened at final paths, and refuse planted links', async () => {
+  const temp = await mkdtemp(path.join(os.tmpdir(), 'aopx-a1-write-'));
+  try {
+    const out = path.join(temp, 'out');
+    await mkdir(out);
+    const victimDir = path.join(temp, 'victim-dir');
+    const victim = path.join(temp, 'victim.txt');
+    await mkdir(victimDir);
+    await writeFile(victim, 'ORIGINAL');
+    const dirLink = process.platform === 'win32' ? 'junction' : 'dir';
+    const noStageLeft = async () => assert.deepEqual((await readdir(out)).filter(x => x.startsWith('.aopx-stage-')), []);
+    const fresh = ['meta.json', 'entry.js.aopx-pending.js', 'package.json'].map(x => path.join(out, x));
+    writeControlledOutputs(out, fresh.map((file, i) => [file, 'CONTENT_' + i]));
+    for (const [i, file] of fresh.entries()) assert.equal(await readFile(file, 'utf8'), 'CONTENT_' + i);
+    await noStageLeft();
+    // Every planted destination is refused, including dangling links, which an
+    // exclusive ('wx') open would follow on Windows and create at their targets.
+    const gone = path.join(temp, 'gone');
+    const missing = path.join(temp, 'missing.txt');
+    const planted: Array<[string, () => Promise<void>]> = [
+      ['regular file', async () => { await writeFile(path.join(out, 'p0'), 'STALE'); }],
+      ['junction to existing directory', async () => { await symlink(victimDir, path.join(out, 'p1'), dirLink); }],
+      ['dangling junction', async () => { await mkdir(gone); await symlink(gone, path.join(out, 'p2'), dirLink); await rm(gone, { recursive: true }); }],
+    ];
+    let fileLinks = true; // File symlinks need the Windows symlink privilege; junctions do not.
+    try { await symlink(victim, path.join(out, 'probe-link'), 'file'); await unlink(path.join(out, 'probe-link')); } catch { fileLinks = false; }
+    if (fileLinks) planted.push(
+      ['file symlink to existing file', async () => { await symlink(victim, path.join(out, 'p3'), 'file'); }],
+      ['dangling file symlink', async () => { await symlink(missing, path.join(out, 'p4'), 'file'); }]);
+    for (const [index, [label, plant]] of planted.entries()) {
+      const destination = path.join(out, 'p' + index);
+      const sibling = path.join(out, 'sibling' + index);
+      await plant();
+      assert.throws(() => writeControlledOutputs(out, [[sibling, 'FIRST'], [destination, 'NEW']]), /already present/, label);
+      await assert.rejects(readFile(sibling), /ENOENT/, label + ': no partial set may be published');
+      await noStageLeft();
+    }
+    assert.equal(await readFile(path.join(out, 'p0'), 'utf8'), 'STALE');
+    assert.equal(await readFile(victim, 'utf8'), 'ORIGINAL', 'no write may follow a planted link');
+    assert.deepEqual(await readdir(victimDir), []);
+    await assert.rejects(readFile(gone), /ENOENT/, 'dangling junction target must not be created');
+    await assert.rejects(readFile(missing), /ENOENT/, 'dangling symlink target must not be created');
+  } finally { await rm(temp, { recursive: true, force: true }); }
 });
