@@ -1,11 +1,17 @@
-name: LPC Voice Lab Alpha 0.5 builds
+name: LPC VOCODER Alpha 0.5.1 builds
 on:
   push:
     branches: [chatgpt/lpc-a05-cross-platform-build]
     paths: ['.github/workflows/lpc-a05-build.yml']
   workflow_dispatch:
+
 permissions:
   contents: read
+
+env:
+  LPC_SOURCE_COMMIT: a9d74cc5b070b0c425f6deea9eac3031825f493e
+  LPC_CANDIDATE: 0.5.1a
+
 jobs:
   build:
     strategy:
@@ -21,8 +27,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 7ddbf9ab7238863aa6f6d379c07f82d53ee41248
+          ref: ${{ env.LPC_SOURCE_COMMIT }}
           persist-credentials: false
+      - name: Record source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LPC_SOURCE_COMMIT"
+          mkdir -p dist
+          printf 'LPC VOCODER Alpha %s\nSource %s\n' "$LPC_CANDIDATE" "$LPC_SOURCE_COMMIT" > dist/SOURCE.txt
       - name: Configure macOS
         if: runner.os == 'macOS'
         run: cmake -S lpc-voice-lab -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DTBX_BUILD_TESTS=ON
@@ -33,12 +46,25 @@ jobs:
         run: cmake --build build --config Release --parallel 2
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure --no-tests=error --output-junit test-results.xml
+      - name: Capture editor screenshots
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $test = Get-ChildItem build/lpc_state_tests_artefacts -Recurse -File -Filter 'LPC State Tests.exe' | Select-Object -First 1
+          if (!$test) { throw 'State test executable missing' }
+          & $test.FullName --editor-screenshots dist/screenshots
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Stage documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p staging
+          cp lpc-voice-lab/ALPHA051_INSTALL.md dist/SOURCE.txt staging/
       - name: Package macOS
         if: runner.os == 'macOS'
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist staging
           for ext in vst3 component; do
             plugin=$(find build/LPCVoiceLab_artefacts -type d -name "LPC Voice Lab.$ext" -print -quit)
             test -n "$plugin"
@@ -48,30 +74,31 @@ jobs:
             codesign --verify --strict "$plugin"
             ditto "$plugin" "staging/LPC Voice Lab.$ext"
           done
-          printf '%s\n' 'Alpha 0.5 experimental; source 7ddbf9ab7238863aa6f6d379c07f82d53ee41248' 'Ad-hoc signed, not notarized. Back up Alpha 0.4 before installing; same plugin identifier.' > staging/README.txt
-          ditto -c -k --keepParent staging dist/LPC-Voice-Lab-Alpha-0.5-mac-arm64.zip
+          ditto -c -k staging "dist/LPC-VOCODER-Alpha-${LPC_CANDIDATE}-mac-arm64.zip"
           (cd dist && shasum -a 256 *.zip > SHA256SUMS.txt)
       - name: Package Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Path dist, staging | Out-Null
           $plugin = Get-ChildItem build/LPCVoiceLab_artefacts -Recurse -Directory -Filter 'LPC Voice Lab.vst3' | Select-Object -First 1
-          if (!$plugin) { throw 'VST3 bundle missing' }
+          if (!$plugin -or !(Test-Path (Join-Path $plugin.FullName 'Contents/x86_64-win/LPC Voice Lab.vst3'))) {
+            throw 'x64 VST3 bundle missing'
+          }
           Copy-Item -LiteralPath $plugin.FullName -Destination staging -Recurse
-          'Alpha 0.5 experimental; source 7ddbf9ab7238863aa6f6d379c07f82d53ee41248. Back up Alpha 0.4 before installing; same plugin identifier.' | Set-Content staging/README.txt
-          Compress-Archive -Path staging/* -DestinationPath dist/LPC-Voice-Lab-Alpha-0.5-windows-x64.zip
-          Get-ChildItem dist/*.zip | ForEach-Object { "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)" } | Set-Content dist/SHA256SUMS.txt
+          Compress-Archive -Path staging/* -DestinationPath "dist/LPC-VOCODER-Alpha-$env:LPC_CANDIDATE-windows-x64.zip"
+          Get-ChildItem dist/*.zip | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
+          } | Set-Content -Encoding ascii dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: LPC-Voice-Lab-Alpha-0.5-${{ matrix.platform }}
+          name: LPC-VOCODER-Alpha-${{ env.LPC_CANDIDATE }}-${{ matrix.platform }}
           path: dist/
           if-no-files-found: error
           retention-days: 30
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: LPC-test-results-${{ matrix.platform }}
+          name: LPC-VOCODER-Tests-${{ env.LPC_CANDIDATE }}-${{ matrix.platform }}
           path: build/test-results.xml
           if-no-files-found: warn
