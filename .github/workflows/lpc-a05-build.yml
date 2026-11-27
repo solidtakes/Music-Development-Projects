@@ -50,7 +50,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $test = Get-ChildItem build/lpc_state_tests_artefacts -Recurse -File -Filter 'LPC State Tests.exe' | Select-Object -First 1
+          $test = Get-ChildItem build/lpc_state_tests_artefacts -Recurse -File -Filter 'lpc_state_tests.exe' | Select-Object -First 1
           if (!$test) { throw 'State test executable missing' }
           & $test.FullName --editor-screenshots dist/screenshots
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
