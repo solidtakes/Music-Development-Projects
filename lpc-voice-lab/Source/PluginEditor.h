@@ -5,11 +5,15 @@
 #include <array>
 #include <memory>
 
-class BlueprintLook final : public juce::LookAndFeel_V4
+class GraphiteLook final : public juce::LookAndFeel_V4
 {
 public:
-    void drawRotarySlider (juce::Graphics&, int, int, int, int, float, float, float,
-                           juce::Slider&) override;
+    GraphiteLook();
+    juce::Slider::SliderLayout getSliderLayout (juce::Slider&) override;
+    juce::Label* createSliderTextBox (juce::Slider&) override;
+    void drawLabel (juce::Graphics&, juce::Label&) override;
+    void drawLinearSlider (juce::Graphics&, int, int, int, int, float, float, float,
+                           juce::Slider::SliderStyle, juce::Slider&) override;
     void drawButtonBackground (juce::Graphics&, juce::Button&,
                                const juce::Colour&, bool, bool) override;
     void drawToggleButton (juce::Graphics&, juce::ToggleButton&, bool, bool) override;
@@ -29,11 +33,10 @@ public:
 private:
     void timerCallback() override;
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
-    // Syncs the mode dropdown and repaints only the mode status label, and only
-    // when the shown mode actually changed.
     void refreshVoiceModeDisplay();
     void applyFactoryPreset (int);
     void refreshPresetList();
+    void showPresetFile (const juce::File&);
     void savePresetDialog();
     void openPresetDialog();
     void savePresetToFile (juce::File);
@@ -42,11 +45,12 @@ private:
     void showPresetError (const juce::String&) const;
 
     LPCVoiceLabProcessor& processor;
-    BlueprintLook skin;
+    GraphiteLook skin;
     std::array<juce::Slider, 10> controls;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 10> attachments;
     juce::ComboBox orderChoice;
-    juce::ComboBox voiceModeChoice;
+    juce::TextButton talkBoxButton { "TALKBOX" };
+    juce::TextButton nuVoButton { "NUVO" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> orderAttachment;
     juce::ToggleButton unvoicedToggle { "UNVOICED" };
     juce::ToggleButton retroToggle { "RETRO" };
@@ -58,13 +62,10 @@ private:
     juce::TextButton savePreset { "SAVE AS" };
     juce::TextButton openPreset { "OPEN" };
     juce::TextButton programButton { "NEXT PROGRAM" };
-    juce::Label currentProgram;
     juce::Label presetMessage;
     juce::Array<juce::File> userPresets;
     std::unique_ptr<juce::FileChooser> presetChooser;
     int presetIndex = -1;
-    LPCVoiceLabProcessor::VoiceMode shownVoiceMode = LPCVoiceLabProcessor::VoiceMode::talkBox;
-    static constexpr int kModeLabelX = 52, kModeLabelY = 704, kModeLabelW = 610, kModeLabelH = 19;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LPCVoiceLabEditor)
 };

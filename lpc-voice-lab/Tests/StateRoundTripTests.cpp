@@ -309,9 +309,9 @@ void userChangesStillNotify()
     DirtyCounter dirty;
     p.addListener (&dirty);
 
-    p.setVoiceMode (Mode::nuVo);                    // dropdown: change
-    const int afterDropdown = dirty.count;
-    p.setVoiceMode (Mode::nuVo);                    // dropdown: same mode, no change
+    p.setVoiceMode (Mode::nuVo);                    // engine selection changes
+    const int afterSelection = dirty.count;
+    p.setVoiceMode (Mode::nuVo);                    // same mode, no change
     const int afterSame = dirty.count;
 
     auto legacy = parse (kLegacyPreset);            // user loads an Alpha 0.4 preset
@@ -324,11 +324,11 @@ void userChangesStillNotify()
     const int afterFactory = dirty.count;
     p.removeListener (&dirty);
 
-    const bool ok = afterDropdown == 1 && afterSame == 1 && afterPreset == 2
+    const bool ok = afterSelection == 1 && afterSame == 1 && afterPreset == 2
                  && afterFactory == beforeFactory + 1 && p.getVoiceMode() == Mode::talkBox;
     char buf[128];
-    std::snprintf (buf, sizeof buf, "dropdown %d, same %d, preset %d, factory +%d",
-                   afterDropdown, afterSame, afterPreset, afterFactory - beforeFactory);
+    std::snprintf (buf, sizeof buf, "selection %d, same %d, preset %d, factory +%d",
+                   afterSelection, afterSame, afterPreset, afterFactory - beforeFactory);
     check (ok, "user mode changes and presets still notify", buf);
 }
 
@@ -336,47 +336,116 @@ void editorFollowsModeChanges()
 {
     LPCVoiceLabProcessor p;
     std::unique_ptr<juce::AudioProcessorEditor> editor (p.createEditor());
-    juce::ComboBox* modeBox = nullptr;
+    juce::TextButton* talkBox = nullptr;
+    juce::TextButton* nuVo = nullptr;
     for (auto* child : editor->getChildren())
-        if (auto* box = dynamic_cast<juce::ComboBox*> (child))
-            if (box->getNumItems() == 2 && box->getItemText (1).startsWith ("NUVO"))
-                modeBox = box;
-    if (modeBox == nullptr)
+        if (auto* button = dynamic_cast<juce::TextButton*> (child))
+        {
+            if (button->getButtonText() == "TALKBOX") talkBox = button;
+            if (button->getButtonText() == "NUVO") nuVo = button;
+        }
+    if (talkBox == nullptr || nuVo == nullptr)
     {
-        check (false, "editor mode display follows every change", "mode dropdown not found");
+        check (false, "editor mode display follows every change", "engine buttons missing");
         return;
     }
 
     // Deliver the async change message the way the message loop would.
-    const auto shown = [&] { p.voiceModeChanged.dispatchPendingMessages(); return modeBox->getSelectedId(); };
-    std::string detail;
+    const auto shows = [&] (Mode mode)
+    {
+        p.voiceModeChanged.dispatchPendingMessages();
+        return talkBox->getToggleState() == (mode == Mode::talkBox)
+            && nuVo->getToggleState() == (mode == Mode::nuVo);
+    };
 
     const auto chunk = chunkFor (Mode::nuVo);
     p.setStateInformation (chunk.getData(), (int) chunk.getSize());    // DAW restore, editor open
-    const int afterRestore = shown();
+    const bool afterRestore = shows (Mode::nuVo);
     p.restoreStateXml (*parse (kLegacyPreset));                       // preset load
-    const int afterPreset = shown();
+    const bool afterPreset = shows (Mode::talkBox);
     p.setVoiceMode (Mode::nuVo);                                       // change from elsewhere
-    const int afterExternal = shown();
+    const bool afterExternal = shows (Mode::nuVo);
 
     DirtyCounter dirty;
     p.addListener (&dirty);
-    modeBox->setSelectedId (1, juce::sendNotificationSync);           // user picks TalkBox
+    talkBox->onClick();
+    const bool afterTalkBox = shows (Mode::talkBox) && p.getVoiceMode() == Mode::talkBox;
+    nuVo->onClick();
+    const bool afterNuVo = shows (Mode::nuVo) && p.getVoiceMode() == Mode::nuVo;
     p.removeListener (&dirty);
 
-    const bool ok = afterRestore == 2 && afterPreset == 1 && afterExternal == 2
-                 && p.getVoiceMode() == Mode::talkBox && dirty.count == 1;
-    char buf[128];
-    std::snprintf (buf, sizeof buf, "restore %d, preset %d, external %d, dropdown -> %s (notified %d)",
-                   afterRestore, afterPreset, afterExternal,
-                   p.getVoiceMode() == Mode::talkBox ? "TalkBox" : "NuVo", dirty.count);
-    check (ok, "editor mode display follows every change", buf);
-    editor.reset();
+    check (afterRestore && afterPreset && afterExternal && afterTalkBox && afterNuVo
+           && dirty.count == 2, "editor mode display follows every change");
+}
+
+void editorControlsFollowState()
+{
+    LPCVoiceLabProcessor p;
+    std::unique_ptr<juce::AudioProcessorEditor> editor (p.createEditor());
+    for (const auto& entry : kLegacyValues)
+    {
+        const auto& id = entry.first;
+        const auto value = entry.second;
+        auto* parameter = p.apvts.getParameter (id.c_str());
+        auto* control = editor->findChildWithID (id.c_str());
+        parameter->setValueNotifyingHost (parameter->convertTo0to1 (value));
+
+        if (auto* slider = dynamic_cast<juce::Slider*> (control))
+        {
+            const auto text = slider->getTextFromValue (slider->getValue());
+            const auto next = slider->getMaximum() - 0.05 * (slider->getMaximum() - slider->getMinimum());
+            const auto followsHost = std::abs (slider->getValue() - value) < 0.001;
+            const auto editMatches = std::abs (slider->getValueFromText (text) - value)
+                                   < (id == "quality" ? 0.01 : 0.001);
+            slider->setValue (next, juce::sendNotificationSync);
+            const auto sendsHost = std::abs (parameter->convertFrom0to1 (parameter->getValue())
+                                            - slider->getValue()) < 0.001;
+            check (followsHost && editMatches && sendsHost, "fader automation / readout: " + id);
+        }
+        else if (auto* box = dynamic_cast<juce::ComboBox*> (control))
+        {
+            check (box->getSelectedId() == (int) value + 1, "choice automation: " + id);
+        }
+        else if (auto* button = dynamic_cast<juce::ToggleButton*> (control))
+        {
+            check (button->getToggleState() == (value != 0.0f), "toggle automation: " + id);
+        }
+        else
+        {
+            check (false, "missing editor control: " + id);
+        }
+    }
+}
+
+void captureEditor (const juce::File& directory)
+{
+    LPCVoiceLabProcessor p;
+    std::unique_ptr<juce::AudioProcessorEditor> editor (p.createEditor());
+    p.meterVoice.store (0.30f);
+    p.meterCarrier.store (0.48f);
+    p.meterOutput.store (0.19f);
+    check (directory.createDirectory().wasOk(), "create screenshot directory");
+
+    for (const auto mode : { Mode::talkBox, Mode::nuVo })
+    {
+        p.setVoiceMode (mode, false);
+        p.voiceModeChanged.dispatchPendingMessages();
+        const auto image = editor->createComponentSnapshot (editor->getLocalBounds());
+        const auto filename = mode == Mode::talkBox ? "LPC-Vocoder-TalkBox.png" : "LPC-Vocoder-NuVo.png";
+        const auto file = directory.getChildFile (filename);
+        juce::TemporaryFile temp (file);
+        bool written;
+        {
+            juce::FileOutputStream output (temp.getFile());
+            written = output.openedOk() && juce::PNGImageFormat().writeImageToStream (image, output);
+        }
+        check (written && temp.overwriteTargetFileWithTemporary(), filename);
+    }
 }
 
 } // namespace
 
-int main()
+int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI juceInit;
     std::printf ("LPC Voice Lab - preset / state round-trip test\n\n");
@@ -396,6 +465,9 @@ int main()
     hostRestoreDoesNotNotify();
     userChangesStillNotify();
     editorFollowsModeChanges();
+    editorControlsFollowState();
+    if (argc == 3 && juce::String (argv[1]) == "--editor-screenshots")
+        captureEditor (juce::File::getCurrentWorkingDirectory().getChildFile (argv[2]));
 
     std::printf ("\n%s\n", failures == 0 ? "all checks passed" : "FAILURES PRESENT");
     return failures == 0 ? 0 : 1;
