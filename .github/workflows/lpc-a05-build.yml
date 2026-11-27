@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  LPC_SOURCE_COMMIT: a9d74cc5b070b0c425f6deea9eac3031825f493e
+  LPC_SOURCE_COMMIT: f8106a449aa8d1375079529f9d1c0eaaa925ac81
   LPC_CANDIDATE: 0.5.1a
 
 jobs:
