@@ -233,6 +233,7 @@ LPCVoiceLabEditor::LPCVoiceLabEditor (LPCVoiceLabProcessor& p)
     {
         auto& slider = controls[i];
         const auto spec = faders[i];
+        slider.setLookAndFeel (&skin);
         slider.setComponentID (spec.id);
         slider.setName (processor.apvts.getParameter (spec.id)->getName (64));
         slider.setTitle (slider.getName());
@@ -351,6 +352,8 @@ LPCVoiceLabEditor::~LPCVoiceLabEditor()
 {
     processor.voiceModeChanged.removeChangeListener (this);
     stopTimer();
+    for (auto& slider : controls)
+        slider.setLookAndFeel (nullptr);
     setLookAndFeel (nullptr);
 }
 
@@ -524,8 +527,8 @@ void LPCVoiceLabEditor::paint (juce::Graphics& g)
     g.fillAll (graphite);
     for (int y = 61; y < 449; ++y)
     {
-        g.setColour (y % 3 == 0 ? juce::Colours::white.withAlpha (0.017f)
-                                : juce::Colours::black.withAlpha (0.06f));
+        g.setColour (y % 3 == 0 ? juce::Colours::white.withAlpha (0.010f)
+                                : juce::Colours::black.withAlpha (0.04f));
         g.drawHorizontalLine (y, 0.0f, (float) getWidth());
     }
 
