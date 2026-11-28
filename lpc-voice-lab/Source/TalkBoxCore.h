@@ -276,7 +276,7 @@ public:
 
     /** Processes in place or out of place; in/out may alias. */
     void process (const float* inL, const float* inR,
-                  float* outL, float* outR, int numSamples) noexcept;
+                  float* outL, float* outR, int numSamples, float* wetOut = nullptr) noexcept;
 
 private:
     void lpc (float* buf, float* car, int n, int o) noexcept;

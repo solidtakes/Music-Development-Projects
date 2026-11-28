@@ -110,6 +110,7 @@ if(TBX_BUILD_TESTS)
     juce_add_console_app(lpc_state_tests PRODUCT_NAME "LPC State Tests")
     target_sources(lpc_state_tests PRIVATE
         Tests/StateRoundTripTests.cpp
+        Tests/AirBandTests.cpp
         Source/PluginProcessor.cpp
         Source/PluginEditor.cpp
         Source/TalkBoxCore.cpp

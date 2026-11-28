@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "AirBand.h"
 #include "VoiceEngine.h"
 #include <array>
 
@@ -70,6 +71,7 @@ private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     lpc::VoiceEngine core;
+    lpc::AirBand air;
     std::atomic<VoiceMode> voiceMode { VoiceMode::talkBox };
 
     std::atomic<float>* pWet      = nullptr;
@@ -86,10 +88,13 @@ private:
     std::atomic<float>* pRetro    = nullptr;
     std::atomic<float>* pGrit     = nullptr;
     std::atomic<float>* pBandwidth = nullptr;
+    std::atomic<float>* pAirFrequency = nullptr;
+    std::atomic<float>* pAirGain = nullptr;
 
     static constexpr int kChunkSize = 1024;
     std::array<float, kChunkSize> voiceScratch {};
     std::array<float, kChunkSize> carrierScratch {};
+    std::array<float, kChunkSize> wetScratch {};
     int reportedLatency = 0;
     float sampleRateHz = 44100.0f;
     float retroLP = 0.0f;

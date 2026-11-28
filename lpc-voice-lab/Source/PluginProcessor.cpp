@@ -79,6 +79,16 @@ LPCVoiceLabProcessor::createParameterLayout()
         ParameterID { "bandwidth", 1 }, "Bandwidth",
         NormalisableRange<float> { 1800.0f, 18000.0f, 50.0f, 0.5f }, 18000.0f));
 
+    StringArray airChoices;
+    for (int frequency : lpc::AirBand::frequenciesKHz)
+        airChoices.add (String (frequency) + " kHz");
+    layout.add (std::make_unique<AudioParameterChoice> (
+        ParameterID { "airfreq", 2 }, "Air Frequency", airChoices, 0));
+    layout.add (std::make_unique<AudioParameterFloat> (
+        ParameterID { "airgain", 2 }, "Air Gain",
+        NormalisableRange<float> { 0.0f, 12.0f, 0.1f }, 0.0f,
+        AudioParameterFloatAttributes().withLabel ("dB")));
+
     return layout;
 }
 
@@ -104,6 +114,8 @@ LPCVoiceLabProcessor::LPCVoiceLabProcessor()
     pRetro    = apvts.getRawParameterValue ("retro");
     pGrit     = apvts.getRawParameterValue ("grit");
     pBandwidth= apvts.getRawParameterValue ("bandwidth");
+    pAirFrequency = apvts.getRawParameterValue ("airfreq");
+    pAirGain = apvts.getRawParameterValue ("airgain");
 }
 
 //==============================================================================
@@ -116,6 +128,7 @@ void LPCVoiceLabProcessor::prepareToPlay (double sampleRate, int)
     setLatencySamples (reportedLatency);
 
     sampleRateHz = (float) juce::jmax (1.0, sampleRate);
+    air.prepare (sampleRateHz, (int) pAirFrequency->load(), pAirGain->load());
     retroLP = 0.0f;
     micGainSmooth.reset (sampleRate, 0.020);
     carGainSmooth.reset (sampleRate, 0.020);
@@ -168,6 +181,7 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         || (carrier.getNumChannels() == 0 && ! bypassed))
     {
         output.clear();
+        air.bypass();
         meterVoice.store (0.0f, std::memory_order_relaxed);
         meterCarrier.store (0.0f, std::memory_order_relaxed);
         meterOutput.store (0.0f, std::memory_order_relaxed);
@@ -184,6 +198,11 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     const float cutoff = juce::jmin (pBandwidth->load(), sampleRateHz * 0.45f);
     lpAlphaSmooth.setTargetValue (
         1.0f - std::exp (-juce::MathConstants<float>::twoPi * cutoff / sampleRateHz));
+    if (bypassed)
+        air.bypass();
+    else
+        air.setParameters ((int) pAirFrequency->load(), pAirGain->load());
+    const bool airActive = air.isActive();
 
     mdatb::TalkBoxCore::Params p;
     p.wet             = pWet->load();
@@ -233,13 +252,15 @@ void LPCVoiceLabProcessor::processBlock (juce::AudioBuffer<float>& buffer,
             carrierPeak = juce::jmax (carrierPeak, std::abs (carrierScratch[(size_t) i]));
         }
         core.process (voiceScratch.data(), carrierScratch.data(),
-                      outL + offset, outR + offset, count);
+                      outL + offset, outR + offset, count, airActive ? wetScratch.data() : nullptr);
 
         // Opt-in first-pass lo-fi colouring. Zero retro mix reproduces
         // the Alpha 0.2 wet+dry signal (with new gains at their unity defaults).
         for (int i = 0; i < count; ++i)
         {
-            const float clean = outL[offset + i];
+            float clean = outL[offset + i];
+            if (airActive)
+                clean += air.extra (wetScratch[(size_t) i]);
             const float alpha = lpAlphaSmooth.getNextValue();
             retroLP += alpha * (clean - retroLP);
             const float drive = driveSmooth.getNextValue();
@@ -298,9 +319,18 @@ bool LPCVoiceLabProcessor::restoreStateXml (const juce::XmlElement& xml, bool no
     if (! xml.hasTagName (apvts.state.getType())) return false;
     auto state = juce::ValueTree::fromXml (xml);
     if (! state.isValid()) return false;
-    // voiceMode lives in the atomic below, not in the parameter tree; keep the
-    // tree identical to what Alpha 0.4 stored so the two can never disagree.
+    // Store voiceMode separately from the automatable parameters.
     state.removeProperty ("voiceMode", nullptr);
+    for (const auto* id : { "airfreq", "airgain" })
+    {
+        if (! state.getChildWithProperty ("id", id).isValid())
+        {
+            juce::ValueTree entry ("PARAM");
+            entry.setProperty ("id", id, nullptr);
+            entry.setProperty ("value", 0.0f, nullptr);
+            state.appendChild (entry, nullptr);
+        }
+    }
     apvts.replaceState (state);
     // Legacy presets and unknown future modes always select the protected engine.
     setVoiceMode (xml.getStringAttribute ("voiceMode") == "NuVo" ? VoiceMode::nuVo : VoiceMode::talkBox,
@@ -334,6 +364,8 @@ void LPCVoiceLabProcessor::applyFactoryPreset (int index)
     set ("retro", retro ? 1.0f : 0.0f);
     set ("grit", retro ? 0.40f : 0.0f);
     set ("bandwidth", retro ? 4800.0f : 18000.0f);
+    set ("airfreq", 0.0f);
+    set ("airgain", 0.0f);
 }
 
 //==============================================================================

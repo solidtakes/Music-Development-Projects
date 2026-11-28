@@ -122,6 +122,14 @@ namespace
             g.fillRoundedRectangle (803.0f + 11.5f * (float) i, (float) y, 9.5f, 8.0f, 1.0f);
         }
     }
+
+    void readoutFace (juce::Graphics& g, juce::Rectangle<int> area, bool focused)
+    {
+        g.setColour (juce::Colour (0xff100b0b));
+        g.fillRoundedRectangle (area.toFloat(), 3.0f);
+        g.setColour (focused ? red : darkRed);
+        g.drawRoundedRectangle (area.toFloat().reduced (0.5f), 3.0f, 1.0f);
+    }
 }
 
 GraphiteLook::GraphiteLook()
@@ -141,7 +149,8 @@ GraphiteLook::GraphiteLook()
 juce::Slider::SliderLayout GraphiteLook::getSliderLayout (juce::Slider& slider)
 {
     auto layout = juce::LookAndFeel_V4::getSliderLayout (slider);
-    layout.sliderBounds.removeFromTop (34);
+    if (slider.getSliderStyle() == juce::Slider::LinearVertical)
+        layout.sliderBounds.removeFromTop (34);
     return layout;
 }
 
@@ -155,6 +164,13 @@ juce::Label* GraphiteLook::createSliderTextBox (juce::Slider& slider)
 
 void GraphiteLook::drawLabel (juce::Graphics& g, juce::Label& display)
 {
+    if (auto* parent = display.getParentComponent(); parent != nullptr
+        && parent->getComponentID() == "airfreq")
+    {
+        drawDigits (g, display.getText(), display.getLocalBounds());
+        return;
+    }
+
     if (display.getComponentID() != "fader-readout")
     {
         juce::LookAndFeel_V4::drawLabel (g, display);
@@ -162,12 +178,17 @@ void GraphiteLook::drawLabel (juce::Graphics& g, juce::Label& display)
     }
 
     const auto area = display.getLocalBounds();
-    g.setColour (juce::Colour (0xff100b0b));
-    g.fillRoundedRectangle (area.toFloat(), 3.0f);
-    g.setColour (darkRed);
-    g.drawRoundedRectangle (area.toFloat().reduced (0.5f), 3.0f, 1.0f);
+    readoutFace (g, area, false);
     if (! display.isBeingEdited())
         drawDigits (g, display.getText(), area);
+}
+
+void GraphiteLook::drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h,
+                                     float, float, float, juce::Slider& slider)
+{
+    const juce::Rectangle<int> area (x, y, w, h);
+    readoutFace (g, area, slider.hasKeyboardFocus (false) || slider.isMouseOverOrDragging());
+    drawDigits (g, juce::String (slider.getValue(), 1), area);
 }
 
 void GraphiteLook::drawLinearSlider (juce::Graphics& g, int x, int y, int w, int h,
@@ -271,6 +292,29 @@ LPCVoiceLabEditor::LPCVoiceLabEditor (LPCVoiceLabProcessor& p)
         }
         slider.updateText();
     }
+
+    airFrequency.setComponentID ("airfreq");
+    airFrequency.setTitle ("Air Frequency");
+    airFrequency.setDescription ("Shelf frequency in kHz");
+    airFrequency.setColour (juce::ComboBox::backgroundColourId, juce::Colour (0xff100b0b));
+    airFrequency.setColour (juce::ComboBox::outlineColourId, darkRed);
+    for (size_t i = 0; i < lpc::AirBand::frequenciesKHz.size(); ++i)
+        airFrequency.addItem (juce::String (lpc::AirBand::frequenciesKHz[i]), (int) i + 1);
+    addAndMakeVisible (airFrequency);
+    airFrequencyAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>
+        (processor.apvts, "airfreq", airFrequency);
+
+    airGain.setComponentID ("airgain");
+    airGain.setTitle ("Air Gain");
+    airGain.setDescription ("Drag to adjust air gain in dB. Double-click to reset.");
+    airGain.setTooltip ("Drag to adjust Air Gain. Double-click to reset.");
+    airGain.setMouseCursor (juce::MouseCursor::UpDownResizeCursor);
+    airGain.setSliderStyle (juce::Slider::RotaryVerticalDrag);
+    airGain.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+    airGain.setDoubleClickReturnValue (true, 0.0);
+    addAndMakeVisible (airGain);
+    airGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
+        (processor.apvts, "airgain", airGain);
 
     orderChoice.setName ("Order");
     orderChoice.setComponentID ("order");
@@ -549,6 +593,9 @@ void LPCVoiceLabEditor::paint (juce::Graphics& g)
     g.drawHorizontalLine (152, 36.0f, 1084.0f);
     label (g, "ENGINE", { 38, 83, 230, 19 }, 12.0f, muted);
     label (g, "EXPERIMENTAL", { 295, 105, 127, 34 }, 11.0f, muted);
+    label (g, "AIR BAND", { 449, 83, 185, 19 }, 12.0f, muted);
+    label (g, "kHz", { 533, 105, 35, 34 }, 11.0f, muted);
+    label (g, "dB", { 652, 105, 32, 34 }, 11.0f, muted);
     meter (g, "VOICE", 85, processor.meterVoice.load (std::memory_order_relaxed));
     meter (g, "CARRIER", 103, processor.meterCarrier.load (std::memory_order_relaxed));
     meter (g, "OUTPUT", 121, processor.meterOutput.load (std::memory_order_relaxed));
@@ -579,7 +626,7 @@ void LPCVoiceLabEditor::paint (juce::Graphics& g)
     g.fillRect (0, 451, getWidth(), getHeight() - 451);
     g.setColour (rim);
     g.drawHorizontalLine (451, 0.0f, (float) getWidth());
-    label (g, "ALPHA 0.5.1a", { 929, 452, 158, 27 }, 12.0f, muted,
+    label (g, "ALPHA 0.5.1b", { 929, 452, 158, 27 }, 12.0f, muted,
            juce::Justification::centredRight);
 }
 
@@ -593,6 +640,8 @@ void LPCVoiceLabEditor::resized()
 
     talkBoxButton.setBounds (38, 105, 124, 34);
     nuVoButton.setBounds (170, 105, 116, 34);
+    airFrequency.setBounds (449, 105, 78, 34);
+    airGain.setBounds (571, 105, 75, 34);
 
     for (size_t i = 0; i < controls.size(); ++i)
         controls[i].setBounds (27 + (int) i * 86, 162, 84, 239);

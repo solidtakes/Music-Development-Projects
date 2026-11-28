@@ -16,6 +16,8 @@
 #include <map>
 #include <string>
 
+int runAirBandTests();
+
 namespace
 {
 
@@ -62,7 +64,10 @@ const Values kNewValues {
     { "wet", 0.8f }, { "dry", 0.1f }, { "quality", 0.2f }, { "order", 0.0f },
     { "unvoiced", 0.0f }, { "fricative", 4.0f }, { "lowend", 0.9f },
     { "micgain", -12.0f }, { "cargain", 6.0f }, { "outgain", -3.0f },
-    { "bypass", 1.0f }, { "retro", 0.0f }, { "grit", 0.75f }, { "bandwidth", 9000.0f } };
+    { "bypass", 1.0f }, { "retro", 0.0f }, { "grit", 0.75f }, { "bandwidth", 9000.0f },
+    { "airfreq", 2.0f }, { "airgain", 7.3f } };
+
+const Values kAirDefaults { { "airfreq", 0.0f }, { "airgain", 0.0f } };
 
 void setValues (LPCVoiceLabProcessor& p, const Values& values)
 {
@@ -94,45 +99,49 @@ void parameterIdsUnchanged()
 {
     LPCVoiceLabProcessor p;
     const char* ids[] { "wet", "dry", "quality", "order", "unvoiced", "fricative", "lowend",
-                        "micgain", "cargain", "outgain", "bypass", "retro", "grit", "bandwidth" };
+                        "micgain", "cargain", "outgain", "bypass", "retro", "grit", "bandwidth",
+                        "airfreq", "airgain" };
     const auto& params = p.getParameters();
-    bool ok = params.size() == 14;
+    bool ok = params.size() == (int) std::size (ids);
     std::string detail = std::to_string (params.size()) + " params";
     for (int i = 0; ok && i < params.size(); ++i)
     {
         auto* withId = dynamic_cast<juce::AudioProcessorParameterWithID*> (params[i]);
-        ok = withId != nullptr && withId->paramID == ids[i] && withId->getVersionHint() == 1;
+        ok = withId != nullptr && withId->paramID == ids[i]
+            && withId->getVersionHint() == (i < 14 ? 1 : 2);
         if (! ok) detail += ", mismatch at " + std::to_string (i);
     }
-    check (ok, "all 14 Alpha 0.4 parameter IDs unchanged, in order", detail);
+    check (ok, "14 legacy IDs unchanged, 2 Air parameters appended", detail);
 }
 
 void legacyPresetDefaultsToTalkBox()
 {
     LPCVoiceLabProcessor p;
+    setValues (p, kNewValues);
     p.setVoiceMode (Mode::nuVo);  // a NuVo session loading an old preset
     auto xml = parse (kLegacyPreset);
     const bool restored = xml != nullptr && p.restoreStateXml (*xml);
-    const auto bad = compareValues (p, kLegacyValues);
+    const auto bad = compareValues (p, kLegacyValues) + compareValues (p, kAirDefaults);
     check (restored && p.getVoiceMode() == Mode::talkBox && bad.empty(),
            "legacy preset restores params, selects TalkBox", bad);
 }
 
 void legacyDawChunkDefaultsToTalkBox()
 {
-    // Alpha 0.4 getStateInformation: copyXmlToBinary (apvts XML).
+    // Alpha 0.5.1a sessions wrote the existing parameters and voice mode.
     auto xml = parse (kLegacyPreset);
     xml->removeAttribute ("lpcVoiceLabPresetVersion");
     xml->removeAttribute ("presetName");
+    xml->setAttribute ("voiceMode", "NuVo");
     juce::MemoryBlock chunk;
     juce::AudioProcessor::copyXmlToBinary (*xml, chunk);
 
     LPCVoiceLabProcessor p;
-    p.setVoiceMode (Mode::nuVo);
+    setValues (p, kNewValues);
     p.setStateInformation (chunk.getData(), (int) chunk.getSize());
-    const auto bad = compareValues (p, kLegacyValues);
-    check (p.getVoiceMode() == Mode::talkBox && bad.empty(),
-           "legacy DAW chunk restores params, selects TalkBox", bad);
+    const auto bad = compareValues (p, kLegacyValues) + compareValues (p, kAirDefaults);
+    check (p.getVoiceMode() == Mode::nuVo && bad.empty(),
+           "Alpha 0.5.1a DAW chunk restores NuVo with Air off", bad);
 }
 
 void legacyPresetResavesAsTalkBox()
@@ -241,11 +250,12 @@ void factoryPresetsSelectTalkBox()
     for (int i = 0; i < 3; ++i)
     {
         LPCVoiceLabProcessor p;
+        setValues (p, kNewValues);
         p.setVoiceMode (Mode::nuVo);
         p.applyFactoryPreset (i);
-        ok = ok && p.getVoiceMode() == Mode::talkBox;
+        ok = ok && p.getVoiceMode() == Mode::talkBox && compareValues (p, kAirDefaults).empty();
     }
-    check (ok, "factory presets select TalkBox");
+    check (ok, "factory presets select TalkBox and leave Air off");
 }
 
 //==============================================================================
@@ -382,7 +392,10 @@ void editorControlsFollowState()
 {
     LPCVoiceLabProcessor p;
     std::unique_ptr<juce::AudioProcessorEditor> editor (p.createEditor());
-    for (const auto& entry : kLegacyValues)
+    auto values = kLegacyValues;
+    values.emplace ("airfreq", 2.0f);
+    values.emplace ("airgain", 7.3f);
+    for (const auto& entry : values)
     {
         const auto& id = entry.first;
         const auto value = entry.second;
@@ -404,7 +417,9 @@ void editorControlsFollowState()
         }
         else if (auto* box = dynamic_cast<juce::ComboBox*> (control))
         {
-            check (box->getSelectedId() == (int) value + 1, "choice automation: " + id);
+            const bool followsHost = box->getSelectedId() == (int) value + 1;
+            box->setSelectedId (1, juce::sendNotificationSync);
+            check (followsHost && parameter->getValue() == 0.0f, "choice automation: " + id);
         }
         else if (auto* button = dynamic_cast<juce::ToggleButton*> (control))
         {
@@ -424,6 +439,7 @@ void captureEditor (const juce::File& directory)
     p.meterVoice.store (0.30f);
     p.meterCarrier.store (0.48f);
     p.meterOutput.store (0.19f);
+    setValues (p, { { "airfreq", 1.0f }, { "airgain", 4.5f } });
     check (directory.createDirectory().wasOk(), "create screenshot directory");
 
     for (const auto mode : { Mode::talkBox, Mode::nuVo })
@@ -466,6 +482,7 @@ int main (int argc, char** argv)
     userChangesStillNotify();
     editorFollowsModeChanges();
     editorControlsFollowState();
+    failures += runAirBandTests();
     if (argc == 3 && juce::String (argv[1]) == "--editor-screenshots")
         captureEditor (juce::File::getCurrentWorkingDirectory().getChildFile (argv[2]));
 

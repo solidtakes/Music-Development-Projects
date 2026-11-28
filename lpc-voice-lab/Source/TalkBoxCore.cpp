@@ -349,7 +349,7 @@ int TalkBoxCore::latencySamples() const noexcept
 }
 
 void TalkBoxCore::process (const float* inL, const float* inR,
-                           float* outL, float* outR, int numSamples) noexcept
+                           float* outL, float* outR, int numSamples, float* wetOut) noexcept
 {
     int p0 = pos;
     int p1 = (pos + N / 2) % N;
@@ -425,6 +425,8 @@ void TalkBoxCore::process (const float* inL, const float* inR,
             lpcOut = lowEnd.process (lpcOut);
 
         const float out = wet * (lpcOut * duck + passSample) + dry * dr;
+        if (wetOut != nullptr)
+            wetOut[i] = wet * (lpcOut * duck + passSample);
         outL[i] = out;
         outR[i] = out;
     }

@@ -17,7 +17,7 @@ public:
     void setParams (const Params&) noexcept;
     int latencySamples() const noexcept { return uv.lookaheadSamples(); }
     void process (const float* voice, const float* carrier,
-                  float* left, float* right, int count) noexcept;
+                  float* left, float* right, int count, float* wetOut = nullptr) noexcept;
 
 private:
     struct Bandpass

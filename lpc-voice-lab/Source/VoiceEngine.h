@@ -90,13 +90,13 @@ public:
     int latencySamples() const noexcept { return talkBox.latencySamples(); }
 
     void process (const float* voice, const float* carrier,
-                  float* left, float* right, int count) noexcept
+                  float* left, float* right, int count, float* wetOut = nullptr) noexcept
     {
         if (! (running[0] && running[1]))
         {
             // Steady state: exactly one core, written straight to the output.
-            if (running[0]) talkBox.process (voice, carrier, left, right, count);
-            else            nuVo.process (voice, carrier, left, right, count);
+            if (running[0]) talkBox.process (voice, carrier, left, right, count, wetOut);
+            else            nuVo.process (voice, carrier, left, right, count, wetOut);
             advancePrimed ((size_t) (running[0] ? 0 : 1), count);
             return;
         }
@@ -106,8 +106,10 @@ public:
         for (int done = 0; done < count;)
         {
             const int n = std::min (kSubBlock, count - done);
-            talkBox.process (voice + done, carrier + done, tbL.data(), tbR.data(), n);
-            nuVo.process (voice + done, carrier + done, nvL.data(), nvR.data(), n);
+            talkBox.process (voice + done, carrier + done, tbL.data(), tbR.data(), n,
+                             wetOut != nullptr ? tbWet.data() : nullptr);
+            nuVo.process (voice + done, carrier + done, nvL.data(), nvR.data(), n,
+                          wetOut != nullptr ? nvWet.data() : nullptr);
             for (int i = 0; i < n; ++i)
             {
                 // Hold the mix until the incoming core's wet path is ready.
@@ -122,6 +124,8 @@ public:
                 const float g = (float) position / (float) rampLength;
                 left[done + i] = right[done + i]
                     = (1.0f - g) * tbL[(size_t) i] + g * nvL[(size_t) i];
+                if (wetOut != nullptr)
+                    wetOut[done + i] = (1.0f - g) * tbWet[(size_t) i] + g * nvWet[(size_t) i];
             }
             done += n;
         }
@@ -148,5 +152,6 @@ private:
     int rampLength = 441, position = 0;
     // Scratch for the crossfade only; no allocation on the audio thread.
     std::array<float, kSubBlock> tbL {}, tbR {}, nvL {}, nvR {};
+    std::array<float, kSubBlock> tbWet {}, nvWet {};
 };
 }

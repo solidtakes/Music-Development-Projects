@@ -88,7 +88,7 @@ void NuVoCore::setParams (const Params& p) noexcept
 }
 
 void NuVoCore::process (const float* voice, const float* carrier,
-                        float* left, float* right, int count) noexcept
+                        float* left, float* right, int count, float* wetOut) noexcept
 {
     for (int i = 0; i < count; ++i)
     {
@@ -120,6 +120,8 @@ void NuVoCore::process (const float* voice, const float* carrier,
         // Bound the new wet path only. Dry keeps the original 2*dry^2 taper.
         effect = std::isfinite (effect) ? 4.0f * std::tanh (effect * 0.25f) : 0.0f;
         left[i] = right[i] = wet * effect + dry * v;
+        if (wetOut != nullptr)
+            wetOut[i] = wet * effect;
     }
 }
 }

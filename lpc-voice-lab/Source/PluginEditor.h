@@ -12,6 +12,8 @@ public:
     juce::Slider::SliderLayout getSliderLayout (juce::Slider&) override;
     juce::Label* createSliderTextBox (juce::Slider&) override;
     void drawLabel (juce::Graphics&, juce::Label&) override;
+    void drawRotarySlider (juce::Graphics&, int, int, int, int, float, float, float,
+                           juce::Slider&) override;
     void drawLinearSlider (juce::Graphics&, int, int, int, int, float, float, float,
                            juce::Slider::SliderStyle, juce::Slider&) override;
     void drawButtonBackground (juce::Graphics&, juce::Button&,
@@ -48,6 +50,10 @@ private:
     GraphiteLook skin;
     std::array<juce::Slider, 10> controls;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 10> attachments;
+    juce::ComboBox airFrequency;
+    juce::Slider airGain;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> airFrequencyAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> airGainAttachment;
     juce::ComboBox orderChoice;
     juce::TextButton talkBoxButton { "TALKBOX" };
     juce::TextButton nuVoButton { "NUVO" };

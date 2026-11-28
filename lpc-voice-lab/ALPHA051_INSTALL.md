@@ -2,6 +2,10 @@
 
 The editor is branded **LPC VOCODER**. Hosts still list the plugin as **LPC Voice Lab**. The Alpha 0.4, 0.5 and 0.5.1 bundles share the same identifiers. Use only one copy of each plugin format in the folders your host scans.
 
+Alpha 0.5.1b adds **Air Band**. Choose 10, 20 or 40 kHz and drag the dB display to boost the wet path. Double-click the gain to return to 0.0 dB. Older sessions and factory presets start with Air off. The 20 and 40 kHz settings use distinct broad curves even at 44.1 and 48 kHz.
+
+Air adds up to 12 dB of high-frequency boost before the output trim. Watch the output meter and lower OUTPUT as needed to leave headroom.
+
 ## Install for owner testing
 
 1. Download your platform’s GitHub Actions artifact. Extract the outer archive, then verify the inner versioned ZIP against `SHA256SUMS.txt`.
